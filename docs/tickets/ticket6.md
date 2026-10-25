@@ -12,10 +12,15 @@ browser build and verification guarantees.
 The production frontend uses Vite 8.3.4. Dependabot supplied the minimal 8.3.5 lockfile and
 manifest update, but the PR lacked the repository-required ticket and test evidence.
 
-## References
+## Research / references used
 
 - Dependabot PR #6 dependency diff.
 - Existing frontend verification and static-hosting checks.
+
+## Work planned for the PR
+
+- Update the Vite package and lockfile.
+- Add repository-required ticket and test evidence.
 
 ## Acceptance criteria
 
@@ -23,11 +28,23 @@ manifest update, but the PR lacked the repository-required ticket and test evide
 - [x] The complete verification suite passes from a clean dependency install.
 - [x] Ticket and local validation evidence are present.
 
-## Validation
+## Acceptance status
 
-See `docs/test/test6.md`.
+All acceptance criteria are met.
 
-## Boundaries and follow-up
+## Tests / validation performed
+
+`npm ci` followed by `npm run verify` passed. See `docs/test/test6.md` for the exact result.
+
+## Evidence files produced
+
+- `docs/test/test6.md`
+
+## Boundaries
 
 This is a development-tooling update only. It does not alter deployed customer behavior, Cognito,
 Cloudflare settings, or API authorization.
+
+## Follow-up work
+
+Merge after required GitHub checks pass.

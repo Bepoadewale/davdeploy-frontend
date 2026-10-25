@@ -5,7 +5,7 @@
 Clean local frontend verification only. No Cloudflare, Cognito, API, email, or customer-workspace
 resource was changed.
 
-## Commands
+## Commands executed
 
 ```text
 npm ci
