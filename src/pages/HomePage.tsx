@@ -33,6 +33,24 @@ const workflow = [
   ['04', 'Deploy', 'Governed execution in your cloud.'],
 ];
 
+const audiences = [
+  {
+    title: 'Technical founders',
+    text: 'Make the big infrastructure calls without becoming a full-time cloud architect.',
+    visual: 'architecture' as const,
+  },
+  {
+    title: 'Growing product teams',
+    text: 'Give product, engineering, and leadership one shared view of the trade-offs.',
+    visual: 'governance' as const,
+  },
+  {
+    title: 'Teams with real stakes',
+    text: 'Keep cost, security, and delivery conversations clear before the work gets expensive.',
+    visual: 'cost' as const,
+  },
+];
+
 function ArrowIcon() {
   return (
     <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
@@ -152,6 +170,26 @@ export default function HomePage() {
         <div>
           <strong>Cost-aware</strong>
           <span>Complexity must earn its place</span>
+        </div>
+      </section>
+
+      <section className="ac3-audience" aria-labelledby="audience-heading">
+        <div className="ac3-section-heading">
+          <p className="ac3-eyebrow">Made for the people carrying the decision</p>
+          <h2 id="audience-heading">Less second-guessing. More forward motion.</h2>
+          <p>
+            DavDeploy gives a growing team a calmer way to turn a cloud idea into a plan everyone
+            can stand behind.
+          </p>
+        </div>
+        <div className="ac3-audience-grid">
+          {audiences.map((audience) => (
+            <article key={audience.title}>
+              <ProductVisual kind={audience.visual} compact />
+              <h3>{audience.title}</h3>
+              <p>{audience.text}</p>
+            </article>
+          ))}
         </div>
       </section>
 

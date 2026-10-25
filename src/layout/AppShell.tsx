@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import BrandMark from '../components/BrandMark';
 import { publicConfigurationIssues } from '../config';
 
 function Icon({ children }: { children: ReactNode }) {
@@ -70,7 +71,7 @@ export function AppShell() {
       </a>
       <header className="topbar workspace-topbar">
         <Link className="brand" to="/overview" aria-label="davdeploy overview">
-          <span className="brand-mark">AC</span>
+          <BrandMark />
           <span>davdeploy</span>
         </Link>
         <span className="workspace-topbar-divider" aria-hidden="true" />

@@ -76,7 +76,7 @@ describe('application routes', () => {
       </MemoryRouter>,
     );
     expect(
-      await screen.findByRole('heading', { name: /govern the next cloud change/i }),
+      await screen.findByRole('heading', { name: /keep the next cloud decision moving/i }),
     ).toBeInTheDocument();
     expect(await screen.findByText('Plans requiring a decision')).toBeInTheDocument();
     expect(screen.getByText('Support API')).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('application routes', () => {
       </MemoryRouter>,
     );
     expect(
-      await screen.findByRole('heading', { name: /move your cloud workload forward/i }),
+      await screen.findByRole('heading', { name: /turn the next big idea into a clear plan/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Continue where you left off')).toBeInTheDocument();
     expect(screen.queryByText('Plans requiring a decision')).not.toBeInTheDocument();
