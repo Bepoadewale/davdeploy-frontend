@@ -37,13 +37,13 @@ export default function OverviewPage() {
   const roleCopy = administrator
     ? {
         eyebrow: 'Administrator workspace',
-        title: 'Govern the next cloud change.',
-        description: 'Review evidence. Approve exact changes. Track outcomes.',
+        title: 'Keep the next cloud decision moving.',
+        description: 'Review the plan, make the call, and keep the story clear.',
       }
     : {
         eyebrow: 'Developer workspace',
-        title: 'Move your cloud workload forward.',
-        description: 'Plan, approve, deploy, and observe.',
+        title: 'Turn the next big idea into a clear plan.',
+        description: 'Bring the context. We help make the next move easier to review.',
       };
 
   return (
@@ -148,7 +148,7 @@ export default function OverviewPage() {
                 <div className="section-heading">
                   <div>
                     <p className="eyebrow">Workspace readiness</p>
-                    <h2>Inputs for safe execution</h2>
+                    <h2>What is ready</h2>
                   </div>
                 </div>
                 <div className="readiness-list">
@@ -203,7 +203,7 @@ export default function OverviewPage() {
                   </Link>
                 </div>
                 <p className="readiness-note">
-                  Policy and approval protect every privileged change.
+                  Every important change has a clear decision record.
                 </p>
               </aside>
             </div>
@@ -269,8 +269,8 @@ export default function OverviewPage() {
               <section className="onboarding panel workspace-onboarding">
                 <div>
                   <p className="eyebrow">Getting started</p>
-                  <h2>From repository to governed deployment</h2>
-                  <p>Connect, approve, deploy, observe.</p>
+                  <h2>From repository to a confident next move</h2>
+                  <p>Connect, review, approve, move forward.</p>
                 </div>
                 <ol>
                   <li>
@@ -285,8 +285,8 @@ export default function OverviewPage() {
                   </li>
                   <li>
                     <span>3</span>
-                    <b>Deploy and observe</b>
-                    <small>Track the authorized change and verified outcome</small>
+                    <b>Move forward with confidence</b>
+                    <small>Keep the approved decision and its outcome together</small>
                   </li>
                 </ol>
               </section>

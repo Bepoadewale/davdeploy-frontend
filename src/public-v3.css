@@ -30,6 +30,7 @@
 .ac3-header,
 .ac3-hero,
 .ac3-trust,
+.ac3-audience,
 .ac3-product,
 .ac3-workflow,
 .ac3-cta,
@@ -425,6 +426,48 @@
   font-size: 0.72rem;
 }
 
+.ac3-audience {
+  padding: 132px 0;
+}
+
+.ac3-audience .ac3-section-heading {
+  max-width: 720px;
+}
+
+.ac3-audience-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 46px;
+}
+
+.ac3-audience-grid article {
+  background: var(--ac3-paper);
+  border: 1px solid var(--ac3-line);
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  padding: 26px;
+}
+
+.ac3-audience-grid figure {
+  align-self: start;
+  margin: 0;
+  width: 76px;
+}
+
+.ac3-audience-grid h3 {
+  font-size: 1.12rem;
+  letter-spacing: -0.035em;
+  margin: 4px 0 8px;
+}
+
+.ac3-audience-grid p {
+  color: var(--ac3-muted);
+  grid-column: 2;
+  line-height: 1.6;
+  margin: 0;
+}
+
 .ac3-product {
   padding: 104px 0;
 }
@@ -719,6 +762,7 @@
   .ac3-header,
   .ac3-hero,
   .ac3-trust,
+  .ac3-audience,
   .ac3-product,
   .ac3-workflow,
   .ac3-cta,
@@ -759,6 +803,14 @@
 
   .ac3-trust div:nth-child(4) {
     border-top: 1px solid var(--ac3-line);
+  }
+
+  .ac3-audience-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ac3-audience-grid article:last-child {
+    grid-column: span 2;
   }
 
   .ac3-section-heading,
@@ -812,6 +864,7 @@
   .ac3-header,
   .ac3-hero,
   .ac3-trust,
+  .ac3-audience,
   .ac3-product,
   .ac3-workflow,
   .ac3-cta,
@@ -891,6 +944,20 @@
 
   .ac3-product {
     padding: 78px 0;
+  }
+
+  .ac3-audience {
+    padding: 78px 0;
+  }
+
+  .ac3-audience-grid {
+    grid-template-columns: 1fr;
+    margin-top: 30px;
+  }
+
+  .ac3-audience-grid article,
+  .ac3-audience-grid article:last-child {
+    grid-column: auto;
   }
 
   .ac3-section-heading {

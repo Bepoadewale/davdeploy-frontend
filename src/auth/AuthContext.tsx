@@ -1,10 +1,4 @@
 import {
-  InMemoryWebStorage,
-  UserManager,
-  WebStorageStateStore,
-  type UserManagerSettings,
-} from 'oidc-client-ts';
-import {
   createContext,
   useCallback,
   useContext,
@@ -13,6 +7,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react';
+import type { UserManager, UserManagerSettings } from 'oidc-client-ts';
 import { ApiClient } from '../api/client';
 import type { WorkspaceProfile } from '../api/contracts';
 import { config, emailOtpConfigured, oidcConfigured } from '../config';
@@ -36,8 +31,9 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-function createUserManager(): UserManager | null {
+async function createUserManager(): Promise<UserManager | null> {
   if (!oidcConfigured) return null;
+  const { InMemoryWebStorage, UserManager, WebStorageStateStore } = await import('oidc-client-ts');
   const settings: UserManagerSettings = {
     authority: config.oidc.authority,
     client_id: config.oidc.clientId,
@@ -58,8 +54,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const tokenRef = useRef<string | null>(null);
-  const manager = useMemo(createUserManager, []);
+  const managerRef = useRef<Promise<UserManager | null> | null>(null);
   const api = useMemo(() => new ApiClient(() => tokenRef.current), []);
+
+  const manager = useCallback(() => {
+    managerRef.current ??= createUserManager();
+    return managerRef.current;
+  }, []);
 
   const pendingInvitation = useCallback(() => {
     const fromUrl = new URLSearchParams(window.location.search).get('invite');
@@ -90,12 +91,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
-    if (!manager) {
+    const userManager = await manager();
+    if (!userManager) {
       setError('Hosted sign-in is not configured for this deployment.');
       return;
     }
     pendingInvitation();
-    await manager.signinRedirect({ extraQueryParams: { identity_provider: 'Google' } });
+    await userManager.signinRedirect({ extraQueryParams: { identity_provider: 'Google' } });
   }, [manager, pendingInvitation]);
 
   const startEmailSignIn = useCallback(
@@ -192,8 +194,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setLoading(true);
     setError(null);
     try {
-      if (!manager) throw new Error('Hosted sign-in is not configured.');
-      const user = await manager.signinRedirectCallback();
+      const userManager = await manager();
+      if (!userManager) throw new Error('Hosted sign-in is not configured.');
+      const user = await userManager.signinRedirectCallback();
       if (!user.id_token) throw new Error('Cognito did not return an identity token.');
       await adoptToken(user.id_token, String(user.profile.email ?? 'My workspace'));
     } catch (callbackError) {
@@ -209,9 +212,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setToken(null);
     setProfile(null);
     setError(null);
-    if (manager) {
-      await manager.removeUser();
-      await manager.clearStaleState();
+    const userManager = await manager();
+    if (userManager) {
+      await userManager.removeUser();
+      await userManager.clearStaleState();
     }
   }, [manager]);
 

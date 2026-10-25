@@ -23,7 +23,13 @@ describe('public product overview', () => {
     expect(
       screen.getByText(/plan, approve, and deploy the right infrastructure/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /simple cloud architecture/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: /simple cloud architecture/i })).toHaveLength(2);
+    expect(
+      screen.getByRole('heading', { name: /less second-guessing\. more forward motion/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Technical founders')).toBeInTheDocument();
+    expect(screen.getByText('Growing product teams')).toBeInTheDocument();
+    expect(screen.getByText('Teams with real stakes')).toBeInTheDocument();
     expect(screen.getByText(/infrastructure stays in your account/i)).toBeInTheDocument();
     expect(screen.queryByText(/AWS/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/customers trust/i)).not.toBeInTheDocument();
