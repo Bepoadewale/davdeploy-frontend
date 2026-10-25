@@ -7,11 +7,11 @@ export default function AuthCallbackPage() {
   const { profile, error, completeCallback } = useAuth();
   const started = useRef(false);
   useEffect(() => {
-    if (!started.current) {
+    if (!profile && !started.current) {
       started.current = true;
       void completeCallback();
     }
-  }, [completeCallback]);
+  }, [completeCallback, profile]);
   if (profile) return <Navigate to="/overview" replace />;
   return (
     <main className="auth-page">
