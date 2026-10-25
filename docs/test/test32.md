@@ -5,7 +5,7 @@
 Clean local frontend verification. No external identity, API, Cloudflare, email, or customer data
 was used or changed.
 
-## Commands
+## Commands executed
 
 ```text
 npm ci
