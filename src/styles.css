@@ -1839,13 +1839,13 @@ label > small {
   min-height: 34px;
   padding: 7px 9px;
 }
-.settings-grid {
+.connection-stack,
+.settings-stack {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
   align-items: start;
 }
-.settings-grid form {
+.settings-stack form {
   display: grid;
   gap: 10px;
 }
@@ -2011,7 +2011,6 @@ label > small {
   }
   .two-column,
   .review-grid,
-  .settings-grid,
   .help-grid {
     grid-template-columns: 1fr;
   }
