@@ -1561,23 +1561,33 @@ label > small {
 }
 
 .digest {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin-bottom: 10px;
   padding: 10px 12px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 9px;
 }
-.digest > span {
-  color: var(--muted);
-  font-size: 10px;
+.plan-digest summary {
+  color: #344054;
+  cursor: pointer;
+  font-size: 12px;
   font-weight: 800;
-  text-transform: uppercase;
+  list-style: none;
 }
-.digest code {
+.plan-digest summary::-webkit-details-marker,
+.plan-detail summary::-webkit-details-marker {
+  display: none;
+}
+.plan-digest > div {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.plan-digest code {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .truth-banner {
   display: flex;
@@ -1636,6 +1646,55 @@ label > small {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+.plan-detail {
+  padding: 0;
+}
+.plan-detail summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  list-style: none;
+  padding: 20px;
+}
+.plan-detail summary > span:first-child {
+  display: grid;
+  gap: 4px;
+}
+.plan-detail .eyebrow {
+  margin: 0;
+}
+.plan-detail summary strong {
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1.25;
+}
+.plan-detail-toggle {
+  color: var(--brand);
+  flex: none;
+  font-size: 12px;
+  font-weight: 750;
+}
+.plan-detail-close {
+  display: none;
+}
+.plan-detail[open] .plan-detail-read-more {
+  display: none;
+}
+.plan-detail[open] .plan-detail-close {
+  display: inline;
+}
+.plan-detail-summary {
+  color: #475467;
+  font-size: 13px;
+  margin: -8px 20px 0;
+}
+.plan-detail-content {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding: 16px 20px 20px;
 }
 .readable-data {
   color: #344054;
@@ -2123,56 +2182,7 @@ label > small {
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    color-scheme: dark;
-    --canvas: #0b1220;
-    --surface: #101828;
-    --surface-subtle: #182230;
-    --ink: #f2f4f7;
-    --muted: #b3bdcb;
-    --faint: #8d99aa;
-    --line: #283548;
-    --line-strong: #344054;
-    --brand: #84adff;
-    --brand-strong: #b2ccff;
-    --brand-soft: #122744;
-    --success: #75e0a7;
-    --success-soft: #073b2a;
-    --danger-soft: #431714;
-    --warning-soft: #402b0a;
-  }
-  .topbar {
-    background: rgb(16 24 40 / 96%);
-  }
-  .button-primary {
-    color: #101828;
-  }
-  .button-secondary {
-    color: var(--ink);
-  }
-  .compact-list > div {
-    border-color: var(--line);
-  }
-  .readable-data,
-  label,
-  .empty-state strong {
-    color: #d0d5dd;
-  }
-  .public-page {
-    background: var(--surface);
-  }
-  .public-steps,
-  .public-steps li {
-    background: #050b16;
-  }
-  .plan-preview,
-  .notice.auth-status {
-    background: #0d1728;
-  }
-  .auth-context {
-    background: #050b16;
-  }
-  .auth-layout {
-    box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+    color-scheme: light;
   }
 }
 

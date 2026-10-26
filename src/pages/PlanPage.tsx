@@ -10,6 +10,42 @@ import { useAsync } from '../hooks/useAsync';
 
 type MutationBody = Record<string, unknown> | undefined;
 
+function PlanDetail({
+  eyebrow,
+  title,
+  summary,
+  value,
+  raw,
+}: {
+  eyebrow: string;
+  title: string;
+  summary: string;
+  value: unknown;
+  raw?: boolean;
+}) {
+  return (
+    <section className="panel plan-detail">
+      <details>
+        <summary>
+          <span>
+            <span className="eyebrow">{eyebrow}</span>
+            <strong>{title}</strong>
+          </span>
+          <span className="plan-detail-toggle">
+            <span className="plan-detail-read-more">Read details</span>
+            <span className="plan-detail-close">Close</span>
+          </span>
+        </summary>
+        <p className="plan-detail-summary">{summary}</p>
+        <div className="plan-detail-content">
+          <ReadableData value={value} />
+          {raw ? <RawData value={value} /> : null}
+        </div>
+      </details>
+    </section>
+  );
+}
+
 export default function PlanPage() {
   const { revisionId = '' } = useParams();
   const { api, profile } = useAuth();
@@ -94,17 +130,19 @@ export default function PlanPage() {
                 </button>
               </div>
             </div>
-            <div className="digest">
-              <span>Immutable digest</span>
-              <code>{review.content_digest}</code>
-              <button
-                className="button button-quiet"
-                type="button"
-                onClick={() => void navigator.clipboard.writeText(review.content_digest)}
-              >
-                Copy
-              </button>
-            </div>
+            <details className="digest plan-digest">
+              <summary>View immutable plan digest</summary>
+              <div>
+                <code>{review.content_digest}</code>
+                <button
+                  className="button button-quiet"
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(review.content_digest)}
+                >
+                  Copy
+                </button>
+              </div>
+            </details>
             <div className="truth-banner">
               <strong>
                 {review.state === 'APPROVED'
@@ -149,43 +187,47 @@ export default function PlanPage() {
               </div>
             </section>
             <div className="review-grid">
-              <section className="panel">
-                <p className="eyebrow">Application evidence</p>
-                <h2>Interpreted requirements</h2>
-                <ReadableData value={review.content.application_analysis} />
-                <RawData value={review.content.application_analysis} />
-              </section>
-              <section className="panel">
-                <p className="eyebrow">Cost</p>
-                <h2>Estimated range and assumptions</h2>
-                <ReadableData value={review.content.cost_estimate} />
-                <RawData value={review.content.cost_estimate} />
-              </section>
-              <section className="panel">
-                <p className="eyebrow">Security</p>
-                <h2>Controls in the plan</h2>
-                <ReadableData value={review.content.security} />
-              </section>
-              <section className="panel">
-                <p className="eyebrow">Observability</p>
-                <h2>Prometheus and Grafana</h2>
-                <ReadableData value={review.content.observability} />
-              </section>
-              <section className="panel">
-                <p className="eyebrow">Deployment strategy</p>
-                <h2>Governed path</h2>
-                <ReadableData value={review.content.deployment_strategy} />
-              </section>
-              <section className="panel">
-                <p className="eyebrow">Risk and uncertainty</p>
-                <h2>Known limits and policy</h2>
-                <ReadableData
-                  value={{
-                    risks: review.content.risks_and_limitations,
-                    policy_findings: review.content.policy_findings,
-                  }}
-                />
-              </section>
+              <PlanDetail
+                eyebrow="Application evidence"
+                title="Interpreted requirements"
+                summary="Repository, workload, and constraints used for this plan."
+                value={review.content.application_analysis}
+                raw
+              />
+              <PlanDetail
+                eyebrow="Cost"
+                title="Estimated range and assumptions"
+                summary="A planning estimate, not an AWS bill."
+                value={review.content.cost_estimate}
+                raw
+              />
+              <PlanDetail
+                eyebrow="Security"
+                title="Controls in the plan"
+                summary="The protections the selected architecture is designed to use."
+                value={review.content.security}
+              />
+              <PlanDetail
+                eyebrow="Observability"
+                title="Metrics and dashboards"
+                summary="What the plan proposes to measure and make visible."
+                value={review.content.observability}
+              />
+              <PlanDetail
+                eyebrow="Deployment strategy"
+                title="Governed path"
+                summary="The review and approval path before any future execution."
+                value={review.content.deployment_strategy}
+              />
+              <PlanDetail
+                eyebrow="Risk and uncertainty"
+                title="Known limits and policy"
+                summary="Limits, assumptions, and checks that need attention."
+                value={{
+                  risks: review.content.risks_and_limitations,
+                  policy_findings: review.content.policy_findings,
+                }}
+              />
             </div>
             <section className="panel governance-panel">
               <div className="section-heading">
@@ -306,20 +348,19 @@ export default function PlanPage() {
                 </button>
               </form>
             </section>
-            <section className="panel">
-              <p className="eyebrow">Evidence inventory</p>
-              <h2>Generated and observed records</h2>
-              <ReadableData
-                value={{
-                  desired_state_publications: review.desired_state_publications ?? [],
-                  terraform_plan_renders: review.terraform_plan_renders ?? [],
-                  cloud_readiness_preflights: review.cloud_readiness_preflights ?? [],
-                  terraform_plan_reviews: review.terraform_plan_reviews ?? [],
-                  cloud_execution_runs: review.cloud_execution_runs ?? [],
-                  local_executions: review.local_executions ?? [],
-                }}
-              />
-            </section>
+            <PlanDetail
+              eyebrow="Evidence inventory"
+              title="Generated and observed records"
+              summary="Open this when you need the detailed audit inventory."
+              value={{
+                desired_state_publications: review.desired_state_publications ?? [],
+                terraform_plan_renders: review.terraform_plan_renders ?? [],
+                cloud_readiness_preflights: review.cloud_readiness_preflights ?? [],
+                terraform_plan_reviews: review.terraform_plan_reviews ?? [],
+                cloud_execution_runs: review.cloud_execution_runs ?? [],
+                local_executions: review.local_executions ?? [],
+              }}
+            />
           </>
         ) : null}
       </AsyncRegion>

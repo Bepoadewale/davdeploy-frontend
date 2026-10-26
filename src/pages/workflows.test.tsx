@@ -203,6 +203,35 @@ describe('customer workflows', () => {
     expect(await screen.findByText(/approval persisted/i)).toBeInTheDocument();
   });
 
+  it('keeps plan evidence compact until a reviewer chooses to read details', async () => {
+    auth.profile.user.role = 'developer';
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'DRAFT',
+      content: {
+        ...review.content,
+        application_analysis: { repository: 'example/support-api', workload: 'API' },
+      },
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const applicationDetails = (await screen.findByText('Interpreted requirements')).closest(
+      'details',
+    );
+    expect(applicationDetails).not.toHaveAttribute('open');
+    expect(screen.getAllByText('Read details')).toHaveLength(7);
+    await user.click(screen.getAllByText('Read details')[0]);
+    expect(applicationDetails).toHaveAttribute('open');
+    expect(screen.getByText('example/support-api')).toBeVisible();
+  });
+
   it('groups audit evidence and exposes inspectable event detail', async () => {
     auth.api.request.mockResolvedValue([
       {
