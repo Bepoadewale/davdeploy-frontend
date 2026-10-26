@@ -29,11 +29,8 @@ describe('workspace session resolution', () => {
     );
   });
 
-  it('falls back to onboarding only when an existing sign-in has no membership', async () => {
-    const request = vi
-      .fn()
-      .mockRejectedValueOnce(new ApiError('Membership required', { status: 403 }))
-      .mockResolvedValueOnce(profile);
+  it('onboards an invited identity without a redundant profile request', async () => {
+    const request = vi.fn().mockResolvedValue(profile);
 
     const result = await resolveWorkspaceProfile({ request } as never, {
       identityName: 'invitee@example.com',
@@ -42,13 +39,29 @@ describe('workspace session resolution', () => {
     });
 
     expect(result.onboarded).toBe(true);
-    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/me');
-    expect(request).toHaveBeenNthCalledWith(
-      2,
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
       '/api/v1/onboarding',
       expect.objectContaining({
         body: { workspace_name: 'invitee', invitation_token: 'invitation-token' },
       }),
     );
+  });
+
+  it('falls back to onboarding for an existing signed-in identity without membership', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError('Membership required', { status: 403 }))
+      .mockResolvedValueOnce(profile);
+
+    const result = await resolveWorkspaceProfile({ request } as never, {
+      identityName: 'founder@example.com',
+      invitationToken: null,
+      createWorkspace: false,
+    });
+
+    expect(result.onboarded).toBe(true);
+    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/me');
+    expect(request).toHaveBeenNthCalledWith(2, '/api/v1/onboarding', expect.anything());
   });
 });
