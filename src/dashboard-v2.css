@@ -608,8 +608,28 @@
   background: #e5f1ec;
 }
 
-.workspace-overview .compact-list > div {
+.workspace-overview .compact-list > :is(div, a) {
   border-color: #ebe7de;
+}
+
+.workspace-overview .workspace-project-row,
+.workspace-overview .workspace-audit-row {
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.workspace-overview .workspace-project-row:hover b,
+.workspace-overview .workspace-audit-row:hover b,
+.workspace-overview .workspace-project-row:hover .workspace-project-arrow,
+.workspace-overview .workspace-audit-row:hover .workspace-project-arrow {
+  color: var(--workspace-green);
+}
+
+.workspace-project-arrow {
+  color: #8e968b;
+  font-weight: 800;
+  margin-left: auto;
 }
 
 .workspace-onboarding {

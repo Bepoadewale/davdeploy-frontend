@@ -157,7 +157,46 @@ describe('application routes', () => {
     expect(screen.getByRole('link', { name: 'Create a plan' })).toBeInTheDocument();
     expect(screen.queryByText('Plans requiring a decision')).not.toBeInTheDocument();
     expect(screen.queryByText('Cloud work in progress')).not.toBeInTheDocument();
-    expect(screen.queryByText('Latest evidence')).not.toBeInTheDocument();
+    expect(screen.queryByText('Latest recorded changes')).not.toBeInTheDocument();
+  });
+
+  it('links a recent project to its latest plan and names activity as an audit trail', async () => {
+    auth.profile = {
+      user: { subject: 'developer', role: 'developer' },
+      workspace: { id: 'workspace-1', name: 'Founder workspace' },
+    };
+    auth.api.request.mockResolvedValue({
+      workspace: { id: 'workspace-1', name: 'Founder workspace' },
+      projects: [
+        { id: 'project-1', name: 'Support API', repository_url: 'https://github.com/example/api' },
+      ],
+      cloud_connections: [],
+      plans: [
+        {
+          id: 'revision-1',
+          project_id: 'project-1',
+          title: 'Support API plan',
+          revision: 1,
+          state: 'DRAFT',
+          created_at: '2026-10-26T20:48:00Z',
+        },
+      ],
+      recent_activity: [
+        { id: 'event-1', action: 'infrastructure.plan.draft.created', at: '2026-10-26T20:48:00Z' },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={['/overview']}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(
+      await screen.findByRole('link', { name: /support api open latest plan draft/i }),
+    ).toHaveAttribute('href', '/plans/revision-1');
+    expect(screen.getByRole('heading', { name: 'Latest recorded changes' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /infrastructure plan draft created/i }),
+    ).toHaveAttribute('href', '/activity');
   });
 
   it('does not offer approval controls to a developer', async () => {

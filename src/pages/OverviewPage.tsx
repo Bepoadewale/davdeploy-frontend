@@ -15,6 +15,10 @@ function formatDate(value?: string) {
     : 'Date unavailable';
 }
 
+function formatAuditAction(action: string) {
+  return action.replaceAll(/[._]/g, ' ');
+}
+
 export default function OverviewPage() {
   const { api, profile } = useAuth();
   const administrator = profile?.user.role === 'administrator';
@@ -276,15 +280,31 @@ export default function OverviewPage() {
                   </div>
                   {state.data.dashboard.projects.length ? (
                     <div className="compact-list">
-                      {state.data.dashboard.projects.slice(0, 5).map((project) => (
-                        <div key={project.id}>
-                          <span className="compact-mark">P</span>
-                          <span>
-                            <b>{project.name}</b>
-                            <small>{project.repository_url || 'Repository not connected'}</small>
-                          </span>
-                        </div>
-                      ))}
+                      {state.data.dashboard.projects.slice(0, 5).map((project) => {
+                        const plan = state.data?.dashboard.plans.find(
+                          (candidate) => candidate.project_id === project.id,
+                        );
+                        return (
+                          <Link
+                            className="workspace-project-row"
+                            key={project.id}
+                            to={`/plans/${plan?.id ?? 'new'}`}
+                          >
+                            <span className="compact-mark">P</span>
+                            <span>
+                              <b>{project.name}</b>
+                              <small>
+                                {plan
+                                  ? 'Open latest plan draft'
+                                  : project.repository_url || 'Repository not connected'}
+                              </small>
+                            </span>
+                            <span className="workspace-project-arrow" aria-hidden="true">
+                              →
+                            </span>
+                          </Link>
+                        );
+                      })}
                     </div>
                   ) : (
                     <EmptyState
@@ -297,21 +317,28 @@ export default function OverviewPage() {
                 <section className="panel">
                   <div className="section-heading">
                     <div>
-                      <p className="eyebrow">Recent activity</p>
-                      <h2>Latest evidence</h2>
+                      <p className="eyebrow">Audit trail</p>
+                      <h2>Latest recorded changes</h2>
                     </div>
-                    <Link to="/activity">Activity</Link>
+                    <Link to="/activity">View audit trail</Link>
                   </div>
                   {state.data.dashboard.recent_activity?.length ? (
                     <div className="compact-list">
                       {state.data.dashboard.recent_activity.slice(0, 5).map((event, index) => (
-                        <div key={event.id ?? index}>
+                        <Link
+                          className="workspace-audit-row"
+                          to="/activity"
+                          key={event.id ?? index}
+                        >
                           <span className="compact-mark">A</span>
                           <span>
-                            <b>{event.action.replaceAll('_', ' ')}</b>
+                            <b>{formatAuditAction(event.action)}</b>
                             <small>{formatDate(event.at)}</small>
                           </span>
-                        </div>
+                          <span className="workspace-project-arrow" aria-hidden="true">
+                            →
+                          </span>
+                        </Link>
                       ))}
                     </div>
                   ) : (
