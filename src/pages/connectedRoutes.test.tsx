@@ -48,6 +48,8 @@ describe('authenticated connected-route acceptance', () => {
     );
 
     expect(await screen.findByText('acme')).toBeInTheDocument();
+    expect(document.querySelector('.connection-stack')).toBeInTheDocument();
+    expect(document.querySelector('.two-column')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open GitHub authorization' })).toHaveAttribute(
       'href',
       'https://github.com/apps/davdeploy/installations/new',

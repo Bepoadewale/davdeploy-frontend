@@ -317,6 +317,8 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText(/does not collect payment details/i)).toBeInTheDocument();
+    expect(document.querySelector('.settings-stack')).toBeInTheDocument();
+    expect(document.querySelector('.settings-grid')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/card number/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /request deletion/i })).toBeDisabled();
   });

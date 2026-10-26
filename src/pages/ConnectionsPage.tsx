@@ -103,7 +103,7 @@ export default function ConnectionsPage() {
         label="connections"
       >
         {state.data ? (
-          <div className="two-column align-start">
+          <div className="connection-stack">
             <section className="panel">
               <div className="section-heading">
                 <div>

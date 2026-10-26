@@ -153,7 +153,7 @@ export default function SettingsPage() {
         label="workspace settings"
       >
         {state.data ? (
-          <div className="settings-grid">
+          <div className="settings-stack">
             <section className="panel">
               <div className="section-heading">
                 <div>
