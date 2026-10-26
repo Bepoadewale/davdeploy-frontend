@@ -4,10 +4,12 @@ Public static React client for [davdeploy](https://github.com/Bepoadewale/davdep
 the governed control plane for planning, approving, deploying, and observing customer-cloud
 infrastructure.
 
-The verified static deployment is available at
-[davdeploy-frontend.pages.dev](https://davdeploy-frontend.pages.dev). Authenticated
-product workflows remain intentionally unavailable until the cloud API and OIDC settings are
-configured.
+The canonical production application is [davdeploy.tech](https://davdeploy.tech). It is a
+Cloudflare Pages deployment configured with the hosted API and Cognito/OIDC public values.
+`davdeploy-frontend.pages.dev` remains reachable as a technical Pages hostname, but is not an
+authenticated application origin: backend CORS intentionally permits only `https://davdeploy.tech`.
+The hosted configuration is live; a recorded end-to-end browser invitation journey remains a
+separate acceptance task.
 
 This repository owns presentation, browser-safe input validation, route state, API consumption,
 and accessibility. The backend owns identity verification, memberships, tenant isolation, planning,

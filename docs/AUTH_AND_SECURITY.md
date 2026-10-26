@@ -22,7 +22,9 @@ organization, email, or role claims are not treated as authorization. The backen
 audience, signature, expiry, server membership, tenant scope, and operation-specific policy.
 
 Google is federated through Cognito, so both sign-in methods produce the same trusted issuer and
-backend membership lookup. Live providers are not configured or proven by this repository.
+backend membership lookup. The production client is configured for the hosted Cognito provider at
+`https://davdeploy.tech`; a full live invitation, sign-in, workspace, plan, approval, and sign-out
+journey still needs recorded browser acceptance evidence.
 
 ## Local fixture
 
@@ -43,9 +45,9 @@ cannot turn this development control into an authorization bypass.
 - Bearer authentication avoids cookie-based CSRF. If a future deployment moves to cookies, it must
   add SameSite/secure cookie and CSRF defenses before release.
 
-The CSP currently allows HTTPS API/identity connections. Once the final API and identity origins are
-known, tighten `connect-src` to those exact hosts and validate sign-in at both `pages.dev` and the
-future custom domain.
+The CSP permits the deployed HTTPS API/identity connections. Keep `connect-src` limited to the
+exact production hosts and validate sign-in at `https://davdeploy.tech`; the `pages.dev` hostname is
+not an authenticated application origin.
 
 See `docs/CONFIGURATION_SECURITY.md` for the enforced boundary between public `VITE_*` values,
 GitHub Actions configuration, and confidential backend/provider credentials.

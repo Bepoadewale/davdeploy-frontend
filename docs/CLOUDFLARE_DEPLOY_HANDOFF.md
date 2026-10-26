@@ -8,20 +8,23 @@ completed successfully on October 17, 2026.
 - Project: `davdeploy-frontend`
 - Repository: private `Bepoadewale/davdeploy-frontend`
 - Production branch: `main`
-- Production URL: <https://davdeploy-frontend.pages.dev>
+- Canonical production URL: <https://davdeploy.tech>
+- Technical Pages URL: <https://davdeploy-frontend.pages.dev> (not an authenticated API origin)
 - Build command: `npm run build`
 - Output directory: `dist`
 - Runtime: static assets only; no Pages Functions or Workers
 - Automatic production and preview deployments: enabled
 
-The public shell is live. The API and OIDC variables below remain unset until their cloud-backed
-values exist, so authenticated workflows fail closed rather than using placeholder services.
+The public shell and hosted API/OIDC configuration are live at `https://davdeploy.tech`. The
+backend has exact-origin CORS and Cognito callback/logout URLs for that canonical domain only.
+The `pages.dev` hostname remains useful for static-hosting diagnostics but cannot call the API by
+design.
 
-## Before starting
+## Current production configuration
 
-Obtain the deployed cloud API HTTPS origin and complete the backend's exact-origin CORS and identity
-callback configuration. The static site can build without these values, but authenticated live
-workflows cannot operate without them.
+The Cloudflare Pages production environment contains the public API and Cognito/OIDC values. They
+are browser-visible identifiers, never credentials. Do not add preview URLs or the `pages.dev`
+hostname to production API CORS or Cognito allowlists without a separately reviewed reason.
 
 ## Recreate the project if needed
 
@@ -68,9 +71,9 @@ configuration is available.
 If authentication or API calls fail, verify the exact Pages origin in API CORS and OIDC callback
 allowlists. Preview URLs should not be broadly wildcarded into production tenant access.
 
-## Custom domain later
+## Custom-domain changes
 
-In the Pages project, choose **Custom domains**, add the purchased hostname, and follow Cloudflare's
-DNS ownership steps. Add the exact new origin to backend CORS and exact callback/logout URLs to the
-identity provider; update the three URL environment values and redeploy. No code or hosting
-architecture change is required.
+`davdeploy.tech` is the active custom domain. If a further production origin is ever added, add the
+exact new origin to backend CORS and exact callback/logout URLs to the identity provider, update the
+three URL environment values, redeploy, and run an authenticated acceptance check. No wildcard
+origin should be added.
