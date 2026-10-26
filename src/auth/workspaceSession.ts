@@ -21,7 +21,9 @@ export async function resolveWorkspaceProfile(
       retrySafe: false,
     });
 
-  if (options.createWorkspace) return { profile: await onboard(), onboarded: true };
+  if (options.createWorkspace || options.invitationToken) {
+    return { profile: await onboard(), onboarded: true };
+  }
 
   try {
     return { profile: await api.request<WorkspaceProfile>('/api/v1/me'), onboarded: false };
