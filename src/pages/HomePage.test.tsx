@@ -18,28 +18,21 @@ describe('public product overview', () => {
       screen.getByRole('figure', { name: /illustrative davdeploy decision brief/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Recommended approach')).toBeInTheDocument();
-    expect(screen.getByText(/from intent to running infrastructure/i)).toBeInTheDocument();
+    expect(screen.getByText(/three clear steps/i)).toBeInTheDocument();
     expect(screen.getByText(/governed infrastructure for your cloud/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/plan, approve, and deploy the right infrastructure/i),
+      screen.getByText(/plan the right cloud infrastructure, with cost, risk, and approval/i),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('img', { name: /simple cloud architecture/i })).toHaveLength(2);
     expect(
-      screen.getByRole('heading', { name: /less second-guessing\. more forward motion/i }),
+      screen.getByRole('heading', { name: /founders and product teams making cloud decisions/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Technical founders')).toBeInTheDocument();
-    expect(screen.getByText('Growing product teams')).toBeInTheDocument();
-    expect(screen.getByText('Teams with real stakes')).toBeInTheDocument();
-    expect(screen.getByText(/infrastructure stays in your account/i)).toBeInTheDocument();
+    expect(screen.getByText('Customer-cloud')).toBeInTheDocument();
     expect(screen.queryByText(/AWS/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/customers trust/i)).not.toBeInTheDocument();
     for (const link of screen.getAllByRole('link', { name: /open workspace/i })) {
       expect(link).toHaveAttribute('href', '/login');
     }
-    expect(screen.getByRole('link', { name: /see the product/i })).toHaveAttribute(
-      'href',
-      '#product',
-    );
+    expect(screen.queryByRole('link', { name: /see the product/i })).not.toBeInTheDocument();
   });
 
   it('has no automatically detectable WCAG 2.2 A/AA violations', async () => {
