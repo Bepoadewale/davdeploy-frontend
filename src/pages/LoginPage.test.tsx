@@ -29,13 +29,9 @@ describe('hosted workspace sign-in', () => {
     );
 
     expect(screen.getByRole('heading', { name: /sign in to your workspace/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: /plan with evidence. deploy with control/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/architecture to observed state/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: /policy and approval checkpoint/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /clear cloud decisions/i })).toBeInTheDocument();
+    expect(screen.getByText(/sign in to continue with your workspace/i)).toBeInTheDocument();
+    expect(screen.getByText('Verified membership')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign in with email' })).toBeDisabled();
     expect(screen.getByText('Workspace access is not configured')).toBeInTheDocument();
@@ -76,5 +72,12 @@ describe('hosted workspace sign-in', () => {
     expect(css).toContain('-webkit-text-fill-color: #172019;');
     expect(css).toContain('.email-auth-form input:-webkit-autofill');
     expect(css).toContain('box-shadow: 0 0 0 1000px #fffefa inset !important;');
+  });
+
+  it('uses explicit dark foreground colours for OTP instructions and controls', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/public-v3.css'), 'utf8');
+    expect(css).toContain('.auth-code-recipient');
+    expect(css).toContain('color: #4f584f;');
+    expect(css).toContain('color: #29483b;');
   });
 });

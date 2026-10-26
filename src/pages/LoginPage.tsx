@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import type { EmailOtpChallenge } from '../auth/cognitoEmail';
 import BrandMark from '../components/BrandMark';
-import { ProductVisual } from '../components/ProductVisual';
 import { config, emailOtpConfigured, googleSignInConfigured } from '../config';
 
 function CheckIcon() {
@@ -64,35 +63,20 @@ export default function LoginPage() {
       <div className="auth-layout auth-layout-v2">
         <section className="auth-context auth-context-v2" aria-labelledby="auth-context-heading">
           <div>
-            <p className="auth-eyebrow-v2">Governed customer-cloud infrastructure</p>
-            <h1 id="auth-context-heading">Plan with evidence. Deploy with control.</h1>
-            <p>One accountable path from architecture to observed state.</p>
-          </div>
-
-          <div className="auth-decision-v2" aria-label="Workspace decision record">
-            <div className="auth-decision-heading-v2">
-              <span>Decision record</span>
-              <small>Ready for review</small>
-            </div>
-            <div className="auth-decision-flow-v2">
-              <span>Intent</span>
-              <i />
-              <span>Approval</span>
-              <i />
-              <span>Customer cloud</span>
-            </div>
-            <ProductVisual kind="governance" compact />
+            <p className="auth-eyebrow-v2">DavDeploy</p>
+            <h1 id="auth-context-heading">Clear cloud decisions.</h1>
+            <p>Sign in to continue with your workspace.</p>
           </div>
 
           <ul className="auth-principles auth-principles-v2" aria-label="Workspace safeguards">
             <li>
-              <CheckIcon /> Backend-verified membership
+              <CheckIcon /> Verified membership
             </li>
             <li>
-              <CheckIcon /> Immutable approval history
+              <CheckIcon /> Clear approvals
             </li>
             <li>
-              <CheckIcon /> No cloud credentials in the browser
+              <CheckIcon /> Private by design
             </li>
           </ul>
         </section>
@@ -104,8 +88,8 @@ export default function LoginPage() {
           </h1>
           <p>
             {mode === 'sign-in'
-              ? 'Your identity is verified before membership and permissions are resolved.'
-              : 'Verify your work email to create your account and first governed workspace.'}
+              ? 'Use your work email to access your workspace.'
+              : 'Start with your work email.'}
           </p>
 
           {error ? (
@@ -180,7 +164,7 @@ export default function LoginPage() {
                       value={code}
                       onChange={(event) => setCode(event.target.value)}
                     />
-                    <small>Code sent to {challenge.email}</small>
+                    <small className="auth-code-recipient">Code sent to {challenge.email}</small>
                   </>
                 ) : (
                   <>
@@ -271,7 +255,7 @@ export default function LoginPage() {
 
           <div className="auth-assurance-v2">
             <CheckIcon />
-            <small>No cloud credentials are accepted on this screen.</small>
+            <small>Your cloud credentials are never requested here.</small>
           </div>
         </section>
       </div>
