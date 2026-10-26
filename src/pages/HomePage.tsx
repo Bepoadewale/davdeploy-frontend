@@ -5,6 +5,7 @@ const workflow = [
   ['01', 'Connect'],
   ['02', 'Plan'],
   ['03', 'Review'],
+  ['04', 'Deploy'],
 ];
 
 function ArrowIcon() {

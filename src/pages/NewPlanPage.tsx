@@ -31,6 +31,12 @@ interface FormState {
   prompt: string;
 }
 
+interface PlanningFeedback {
+  title: string;
+  message: string;
+  technicalDetail?: string;
+}
+
 const initialForm: FormState = {
   repository: '',
   publicRepository: '',
@@ -52,6 +58,30 @@ function slug(): string {
   return `project-${Date.now().toString().slice(-8)}`;
 }
 
+function explainPlanningFailure(reason: unknown, budget: string): PlanningFeedback {
+  const technicalDetail = reason instanceof Error ? reason.message : 'Plan generation failed.';
+  if (technicalDetail.includes('no viable architecture')) {
+    if (technicalDetail.includes('hard monthly budget')) {
+      const nextBudget = Number(budget) < 250 ? '$250 or more' : 'a higher budget';
+      return {
+        title: 'This plan needs a larger budget.',
+        message: `The workload and required monitoring do not fit within the $${budget}/month limit. Choose ${nextBudget}, then try again.`,
+        technicalDetail,
+      };
+    }
+    return {
+      title: 'These choices do not fit together yet.',
+      message: 'Adjust the workload, reliability target, or budget, then create the plan again.',
+      technicalDetail,
+    };
+  }
+  return {
+    title: 'We could not create this plan.',
+    message: 'Check the information above and try again.',
+    technicalDetail,
+  };
+}
+
 export default function NewPlanPage() {
   const { api } = useAuth();
   const navigate = useNavigate();
@@ -62,7 +92,7 @@ export default function NewPlanPage() {
   const [branches, setBranches] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PlanningFeedback | null>(null);
   const state = useAsync(
     async (signal) => ({
       github: await api.request<GitHubConnection>('/api/v1/github/connection', { signal }),
@@ -90,7 +120,11 @@ export default function NewPlanPage() {
           }));
       })
       .catch((reason: unknown) =>
-        setError(reason instanceof Error ? reason.message : 'Repository discovery failed.'),
+        setError({
+          title: 'Repository discovery failed.',
+          message: 'Check the repository connection and try again.',
+          technicalDetail: reason instanceof Error ? reason.message : undefined,
+        }),
       );
     return () => controller.abort();
   }, [api, installation]);
@@ -118,7 +152,11 @@ export default function NewPlanPage() {
         }));
       })
       .catch((reason: unknown) =>
-        setError(reason instanceof Error ? reason.message : 'Branch discovery failed.'),
+        setError({
+          title: 'Branch discovery failed.',
+          message: 'Choose another repository or branch, then try again.',
+          technicalDetail: reason instanceof Error ? reason.message : undefined,
+        }),
       );
     return () => controller.abort();
   }, [api, installation, repository]);
@@ -138,7 +176,11 @@ export default function NewPlanPage() {
       setBranches(result.branches);
       setForm((current) => ({ ...current, branch: result.default_branch }));
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Public repository check failed.');
+      setError({
+        title: 'Repository check failed.',
+        message: 'Check the public GitHub URL and try again.',
+        technicalDetail: reason instanceof Error ? reason.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -193,7 +235,7 @@ export default function NewPlanPage() {
       );
       navigate(`/plans/${review.id}`);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Plan generation failed.');
+      setError(explainPlanningFailure(reason, form.budget));
     } finally {
       setBusy(false);
       setProgress('');
@@ -483,7 +525,16 @@ export default function NewPlanPage() {
             </section>
             {error ? (
               <div className="notice notice-error" role="alert">
-                {error}
+                <div>
+                  <strong>{error.title}</strong>
+                  <p>{error.message}</p>
+                  {error.technicalDetail ? (
+                    <details className="planning-error-detail">
+                      <summary>Technical details</summary>
+                      <p>{error.technicalDetail}</p>
+                    </details>
+                  ) : null}
+                </div>
               </div>
             ) : null}
             {progress ? (
