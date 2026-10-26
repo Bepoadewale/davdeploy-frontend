@@ -120,7 +120,6 @@ export default function PlanPage() {
               <div>
                 <p className="eyebrow">Infrastructure plan · revision {review.revision}</p>
                 <h1>{review.title ?? review.content.summary.selected_profile}</h1>
-                <p>{review.content.summary.why}</p>
               </div>
               <ProductVisual kind="architecture" />
               <div className="heading-actions">
