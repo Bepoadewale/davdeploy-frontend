@@ -18,7 +18,7 @@ describe('public product overview', () => {
       screen.getByRole('figure', { name: /illustrative davdeploy decision brief/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Recommended approach')).toBeInTheDocument();
-    expect(screen.getByText(/three clear steps/i)).toBeInTheDocument();
+    expect(screen.getByText('Four clear steps')).toBeInTheDocument();
     expect(screen.getByText(/governed infrastructure for your cloud/i)).toBeInTheDocument();
     expect(
       screen.getByText(/plan the right cloud infrastructure, with cost, risk, and approval/i),
