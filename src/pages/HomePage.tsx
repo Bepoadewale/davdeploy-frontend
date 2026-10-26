@@ -113,7 +113,7 @@ export default function HomePage() {
       <section id="workflow" className="ac3-workflow" aria-labelledby="workflow-heading">
         <div className="ac3-workflow-heading">
           <p className="ac3-eyebrow">How it works</p>
-          <h2 id="workflow-heading">Three clear steps.</h2>
+          <h2 id="workflow-heading">Four clear steps</h2>
         </div>
         <ol>
           {workflow.map(([number, title]) => (
