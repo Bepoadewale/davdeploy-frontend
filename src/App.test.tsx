@@ -160,7 +160,7 @@ describe('application routes', () => {
     expect(screen.queryByText('Latest recorded changes')).not.toBeInTheDocument();
   });
 
-  it('links a recent project to its latest plan and names activity as an audit trail', async () => {
+  it('keeps overview navigation in one compact quick-links panel', async () => {
     auth.profile = {
       user: { subject: 'developer', role: 'developer' },
       workspace: { id: 'workspace-1', name: 'Founder workspace' },
@@ -190,13 +190,19 @@ describe('application routes', () => {
         <App />
       </MemoryRouter>,
     );
+    expect(await screen.findByRole('heading', { name: 'Quick links' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('link', { name: /support api open latest plan draft/i }),
-    ).toHaveAttribute('href', '/plans/revision-1');
-    expect(screen.getByRole('heading', { name: 'Latest recorded changes' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /infrastructure plan draft created/i }),
-    ).toHaveAttribute('href', '/activity');
+      screen
+        .getAllByRole('link', { name: 'Connections' })
+        .find((link) => link.getAttribute('href') === '/connections'),
+    ).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Recent projects' })).toHaveAttribute(
+      'href',
+      '/history',
+    );
+    expect(screen.getByRole('link', { name: 'Audit trail' })).toHaveAttribute('href', '/activity');
+    expect(screen.queryByText('Cloud work in progress')).not.toBeInTheDocument();
+    expect(screen.queryByText('Latest recorded changes')).not.toBeInTheDocument();
   });
 
   it('does not offer approval controls to a developer', async () => {

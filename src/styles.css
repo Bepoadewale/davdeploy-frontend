@@ -1100,14 +1100,14 @@ code {
 .compact-list {
   display: grid;
 }
-.compact-list > :is(div, a) {
+.compact-list > div {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 0;
   border-top: 1px solid #f2f4f7;
 }
-.compact-list > :is(div, a):first-child {
+.compact-list > div:first-child {
   border-top: 0;
 }
 .compact-list b,

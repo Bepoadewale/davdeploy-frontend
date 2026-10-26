@@ -15,10 +15,6 @@ function formatDate(value?: string) {
     : 'Date unavailable';
 }
 
-function formatAuditAction(action: string) {
-  return action.replaceAll(/[._]/g, ' ');
-}
-
 export default function OverviewPage() {
   const { api, profile } = useAuth();
   const administrator = profile?.user.role === 'administrator';
@@ -42,12 +38,10 @@ export default function OverviewPage() {
     ? {
         eyebrow: 'Administrator workspace',
         title: 'Keep the next cloud decision moving.',
-        description: 'Review the plan, make the call, and keep the story clear.',
       }
     : {
         eyebrow: 'Developer workspace',
         title: 'Turn the next big idea into a clear plan.',
-        description: 'Bring the context. We help make the next move easier to review.',
       };
   const emptyWorkspace =
     state.data != null &&
@@ -62,7 +56,6 @@ export default function OverviewPage() {
         <div>
           <p className="eyebrow">{roleCopy.eyebrow}</p>
           <h1>{roleCopy.title}</h1>
-          <p>{roleCopy.description}</p>
         </div>
         <ProductVisual kind="overview" />
         <Link className="button button-primary" to="/plans/new">
@@ -94,23 +87,18 @@ export default function OverviewPage() {
                   <span>1</span>
                   <div>
                     <b>Choose a repository</b>
-                    <small>Give the plan the codebase and outcome it should consider.</small>
                   </div>
                 </li>
                 <li>
                   <span>2</span>
                   <div>
                     <b>Connect AWS when ready</b>
-                    <small>Use scoped account context for a more grounded review.</small>
                   </div>
                 </li>
                 <li>
                   <span>3</span>
                   <div>
                     <b>Review the next action</b>
-                    <small>
-                      Costs, trade-offs, and approval stay in one clear decision record.
-                    </small>
                   </div>
                 </li>
               </ol>
@@ -208,8 +196,8 @@ export default function OverviewPage() {
                 <aside className="panel workspace-readiness-panel">
                   <div className="section-heading">
                     <div>
-                      <p className="eyebrow">Workspace readiness</p>
-                      <h2>What is ready</h2>
+                      <p className="eyebrow">Workspace</p>
+                      <h2>Quick links</h2>
                     </div>
                   </div>
                   <div className="readiness-list">
@@ -219,31 +207,21 @@ export default function OverviewPage() {
                         aria-hidden="true"
                       />
                       <span>
-                        <b>Cloud context</b>
-                        <small>
-                          {state.data.dashboard.cloud_connections.length
-                            ? `${state.data.dashboard.cloud_connections.length} connection${state.data.dashboard.cloud_connections.length === 1 ? '' : 's'} available`
-                            : 'Connect scoped account metadata'}
-                        </small>
+                        <b>Connections</b>
                       </span>
                       <i aria-hidden="true">→</i>
                     </Link>
-                    <Link to="/plans/new">
+                    <Link to="/history">
                       <span
                         className={
-                          state.data.dashboard.projects.some((project) => project.repository_url)
+                          state.data.dashboard.projects.length || state.data.dashboard.plans.length
                             ? 'ready'
                             : ''
                         }
                         aria-hidden="true"
                       />
                       <span>
-                        <b>Repository evidence</b>
-                        <small>
-                          {state.data.dashboard.projects.some((project) => project.repository_url)
-                            ? 'Repository context available'
-                            : 'Choose a repository for analysis'}
-                        </small>
+                        <b>Recent projects</b>
                       </span>
                       <i aria-hidden="true">→</i>
                     </Link>
@@ -253,128 +231,13 @@ export default function OverviewPage() {
                         aria-hidden="true"
                       />
                       <span>
-                        <b>Decision trail</b>
-                        <small>
-                          {state.data.dashboard.recent_activity?.length
-                            ? 'Evidence is being recorded'
-                            : 'Activity will appear after your first action'}
-                        </small>
+                        <b>Audit trail</b>
                       </span>
                       <i aria-hidden="true">→</i>
                     </Link>
                   </div>
-                  <p className="readiness-note">
-                    Every important change has a clear decision record.
-                  </p>
                 </aside>
               </div>
-
-              <div className="two-column">
-                <section className="panel">
-                  <div className="section-heading">
-                    <div>
-                      <p className="eyebrow">Recent projects</p>
-                      <h2>Cloud work in progress</h2>
-                    </div>
-                    <Link to="/history">History</Link>
-                  </div>
-                  {state.data.dashboard.projects.length ? (
-                    <div className="compact-list">
-                      {state.data.dashboard.projects.slice(0, 5).map((project) => {
-                        const plan = state.data?.dashboard.plans.find(
-                          (candidate) => candidate.project_id === project.id,
-                        );
-                        return (
-                          <Link
-                            className="workspace-project-row"
-                            key={project.id}
-                            to={`/plans/${plan?.id ?? 'new'}`}
-                          >
-                            <span className="compact-mark">P</span>
-                            <span>
-                              <b>{project.name}</b>
-                              <small>
-                                {plan
-                                  ? 'Open latest plan draft'
-                                  : project.repository_url || 'Repository not connected'}
-                              </small>
-                            </span>
-                            <span className="workspace-project-arrow" aria-hidden="true">
-                              →
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      title="No projects yet"
-                      message="Start with an outcome and repository to create your first governed deployment plan."
-                      action={{ label: 'Create a plan', to: '/plans/new' }}
-                    />
-                  )}
-                </section>
-                <section className="panel">
-                  <div className="section-heading">
-                    <div>
-                      <p className="eyebrow">Audit trail</p>
-                      <h2>Latest recorded changes</h2>
-                    </div>
-                    <Link to="/activity">View audit trail</Link>
-                  </div>
-                  {state.data.dashboard.recent_activity?.length ? (
-                    <div className="compact-list">
-                      {state.data.dashboard.recent_activity.slice(0, 5).map((event, index) => (
-                        <Link
-                          className="workspace-audit-row"
-                          to="/activity"
-                          key={event.id ?? index}
-                        >
-                          <span className="compact-mark">A</span>
-                          <span>
-                            <b>{formatAuditAction(event.action)}</b>
-                            <small>{formatDate(event.at)}</small>
-                          </span>
-                          <span className="workspace-project-arrow" aria-hidden="true">
-                            →
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      title="No activity recorded"
-                      message="Governed actions will appear here with actor and entity evidence."
-                    />
-                  )}
-                </section>
-              </div>
-              {!state.data.dashboard.projects.length && !state.data.dashboard.plans.length ? (
-                <section className="onboarding panel workspace-onboarding">
-                  <div>
-                    <p className="eyebrow">Getting started</p>
-                    <h2>From repository to a confident next move</h2>
-                    <p>Connect, review, approve, move forward.</p>
-                  </div>
-                  <ol>
-                    <li>
-                      <span>1</span>
-                      <b>Connect code and cloud</b>
-                      <small>Choose authorized source and target context</small>
-                    </li>
-                    <li>
-                      <span>2</span>
-                      <b>Plan and approve</b>
-                      <small>Review cost, security, unknowns, and trade-offs</small>
-                    </li>
-                    <li>
-                      <span>3</span>
-                      <b>Move forward with confidence</b>
-                      <small>Keep the approved decision and its outcome together</small>
-                    </li>
-                  </ol>
-                </section>
-              ) : null}
             </>
           )
         ) : null}
