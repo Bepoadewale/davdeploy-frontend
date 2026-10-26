@@ -116,6 +116,48 @@ describe('customer workflows', () => {
     expect(screen.getByText(/no traffic forecast is required/i)).toBeInTheDocument();
   });
 
+  it('explains an unworkable budget in plain English and keeps technical detail optional', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/github/connection')
+        return Promise.resolve({ execution: 'SIMULATED', installations: [] });
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
+      if (path.startsWith('/api/v1/github/public-repository?'))
+        return Promise.resolve({
+          full_name: 'example/support-api',
+          html_url: 'https://github.com/example/support-api',
+          default_branch: 'main',
+          branches: ['main'],
+        });
+      if (path === '/api/v1/projects') return Promise.resolve({ id: 'project-1' });
+      if (path.endsWith('/repository-discovery')) return Promise.resolve({ evidence: [] });
+      if (path === '/api/v1/intents') return Promise.resolve({ id: 'intent-1' });
+      if (path.endsWith('/plans'))
+        return Promise.reject(
+          new Error(
+            'no viable architecture: estimated upper cost including required Prometheus/Grafana monitoring exceeds the hard monthly budget',
+          ),
+        );
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <NewPlanPage />
+      </MemoryRouter>,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Public GitHub URL' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Public GitHub repository' }),
+      'https://github.com/example/support-api',
+    );
+    await user.click(screen.getByRole('button', { name: 'Check repository' }));
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Monthly budget' }), '100');
+    await user.click(await screen.findByRole('button', { name: /analyze and create plan/i }));
+    expect(await screen.findByText('This plan needs a larger budget.')).toBeInTheDocument();
+    expect(screen.getByText(/choose \$250 or more, then try again/i)).toBeInTheDocument();
+    expect(screen.getByText('Technical details')).toBeInTheDocument();
+  });
+
   it('verifies and plans from a customer-selected public repository', async () => {
     auth.profile.user.role = 'administrator';
     auth.api.request.mockImplementation((path: string) => {
