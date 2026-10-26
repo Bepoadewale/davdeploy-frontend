@@ -30,6 +30,7 @@
 .ac3-header,
 .ac3-hero,
 .ac3-trust,
+.ac3-who,
 .ac3-audience,
 .ac3-product,
 .ac3-workflow,
@@ -41,8 +42,8 @@
 
 .ac3-header {
   align-items: center;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
+  justify-content: space-between;
   min-height: 78px;
 }
 
@@ -404,12 +405,12 @@
   border-bottom: 1px solid var(--ac3-line);
   border-top: 1px solid var(--ac3-line);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .ac3-trust div {
   display: grid;
-  gap: 5px;
+  place-items: center;
   padding: 25px 28px;
 }
 
@@ -421,9 +422,28 @@
   font-size: 0.84rem;
 }
 
-.ac3-trust span {
-  color: #747a74;
-  font-size: 0.72rem;
+.ac3-who {
+  max-width: 820px;
+  padding: 112px 0;
+}
+
+.ac3-who .ac3-eyebrow {
+  margin-bottom: 16px;
+}
+
+.ac3-who h2 {
+  font-size: clamp(2.15rem, 4vw, 3.8rem);
+  letter-spacing: -0.055em;
+  line-height: 1.04;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.ac3-who > p:last-child {
+  color: var(--ac3-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 20px 0 0;
 }
 
 .ac3-audience {
@@ -653,7 +673,7 @@
 
 .ac3-workflow li {
   border-top: 1px solid rgb(255 255 255 / 19%);
-  min-height: 180px;
+  min-height: 128px;
   padding: 22px 26px 0 0;
 }
 
@@ -670,7 +690,7 @@
 
 .ac3-workflow h3 {
   font-size: 1.22rem;
-  margin: 38px 0 10px;
+  margin: 30px 0 0;
 }
 
 .ac3-workflow li p {
@@ -762,6 +782,7 @@
   .ac3-header,
   .ac3-hero,
   .ac3-trust,
+  .ac3-who,
   .ac3-audience,
   .ac3-product,
   .ac3-workflow,
@@ -864,6 +885,7 @@
   .ac3-header,
   .ac3-hero,
   .ac3-trust,
+  .ac3-who,
   .ac3-audience,
   .ac3-product,
   .ac3-workflow,
