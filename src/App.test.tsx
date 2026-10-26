@@ -78,8 +78,7 @@ describe('application routes', () => {
     expect(
       await screen.findByRole('heading', { name: /keep the next cloud decision moving/i }),
     ).toBeInTheDocument();
-    expect(await screen.findByText('Plans requiring a decision')).toBeInTheDocument();
-    expect(screen.getByText('Support API')).toBeInTheDocument();
+    expect(await screen.findByText('Support API')).toBeInTheDocument();
     const result = await axe.run(container, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] },
     });
@@ -130,7 +129,9 @@ describe('application routes', () => {
       recent_activity: [],
     });
     resolveQueue([]);
-    expect(await screen.findByText('Plans requiring a decision')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /start with a clear cloud plan/i }),
+    ).toBeInTheDocument();
   });
 
   it('prioritizes plan continuity for a developer workspace', async () => {
@@ -151,10 +152,12 @@ describe('application routes', () => {
       </MemoryRouter>,
     );
     expect(
-      await screen.findByRole('heading', { name: /turn the next big idea into a clear plan/i }),
+      await screen.findByRole('heading', { name: /start with a clear cloud plan/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Continue where you left off')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Create a plan' })).toBeInTheDocument();
     expect(screen.queryByText('Plans requiring a decision')).not.toBeInTheDocument();
+    expect(screen.queryByText('Cloud work in progress')).not.toBeInTheDocument();
+    expect(screen.queryByText('Latest evidence')).not.toBeInTheDocument();
   });
 
   it('does not offer approval controls to a developer', async () => {

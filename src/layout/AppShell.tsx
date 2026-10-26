@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import BrandMark from '../components/BrandMark';
 import { publicConfigurationIssues } from '../config';
@@ -62,6 +62,7 @@ const primary = [
 
 export function AppShell() {
   const { profile, signOut } = useAuth();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const issues = publicConfigurationIssues();
   return (
@@ -77,9 +78,11 @@ export function AppShell() {
         <span className="workspace-topbar-divider" aria-hidden="true" />
         <span className="workspace-topbar-context">{profile?.workspace.name ?? 'Workspace'}</span>
         <div className="workspace-topbar-actions">
-          <Link className="workspace-create-button" to="/plans/new">
-            <span aria-hidden="true">+</span> New plan
-          </Link>
+          {location.pathname !== '/overview' ? (
+            <Link className="workspace-create-button" to="/plans/new">
+              <span aria-hidden="true">+</span> New plan
+            </Link>
+          ) : null}
           <span className="workspace-user" title={profile?.user.subject}>
             {profile?.user.subject.slice(0, 1).toUpperCase() ?? 'A'}
           </span>
@@ -141,8 +144,8 @@ export function AppShell() {
           <div className="sidebar-session">
             <span className="online-dot" aria-hidden="true" />
             <span>
-              <b>{profile?.user.subject ?? 'Authenticated'}</b>
-              <small>Verified by the control plane</small>
+              <b>Secure session</b>
+              <small>Verified by DavDeploy</small>
             </span>
           </div>
           <button type="button" className="button button-quiet" onClick={() => void signOut()}>
