@@ -16,6 +16,7 @@ export default function ConnectionsPage() {
     }),
     [api],
   );
+  const [cloudProvider, setCloudProvider] = useState('aws');
   const [accountId, setAccountId] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -24,10 +25,10 @@ export default function ConnectionsPage() {
     setBusy(true);
     setMessage(null);
     try {
-      if (!/^\d{12}$/.test(accountId)) throw new Error('Enter a 12-digit cloud account ID.');
+      if (!/^\d{12}$/.test(accountId)) throw new Error('Enter a 12-digit AWS account ID.');
       const connection = await api.request<CloudConnection>('/api/v1/cloud-connections', {
         method: 'POST',
-        body: { display_name: `Cloud account ${accountId}` },
+        body: { display_name: `AWS account ${accountId}`, provider: 'aws' },
         retrySafe: false,
       });
       const setup = await api.request<{ quick_create_url: string }>(
@@ -36,7 +37,7 @@ export default function ConnectionsPage() {
       );
       window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
       setMessage(
-        'The provider opened a review page for a read-only discovery role. No workload resources were requested.',
+        'AWS opened a review page for a read-only discovery role. No workload resources were requested.',
       );
       state.reload();
     } catch (error) {
@@ -155,28 +156,53 @@ export default function ConnectionsPage() {
                 </div>
               </div>
               <p className="muted">
-                davdeploy never asks the browser for provider access keys. Setup creates scoped role
-                metadata through provider review.
+                DavDeploy never asks the browser for provider access keys. AWS setup creates scoped
+                role metadata through an AWS review.
               </p>
               <div className="inline-form">
                 <label>
-                  Cloud account ID
-                  <input
-                    inputMode="numeric"
-                    maxLength={12}
-                    value={accountId}
-                    onChange={(event) => setAccountId(event.target.value.replace(/\D/g, ''))}
-                    placeholder="123456789012"
-                  />
+                  Cloud provider
+                  <select
+                    value={cloudProvider}
+                    onChange={(event) => setCloudProvider(event.target.value)}
+                  >
+                    <option value="aws">AWS</option>
+                    <option value="azure">Azure — coming soon</option>
+                    <option value="gcp">Google Cloud — coming soon</option>
+                    <option value="other">Other cloud — coming soon</option>
+                  </select>
                 </label>
-                <button
-                  className="button button-primary"
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void beginCloudConnection()}
-                >
-                  Review cloud setup
-                </button>
+                {cloudProvider === 'aws' ? (
+                  <>
+                    <label>
+                      AWS account ID
+                      <input
+                        inputMode="numeric"
+                        maxLength={12}
+                        value={accountId}
+                        onChange={(event) => setAccountId(event.target.value.replace(/\D/g, ''))}
+                        placeholder="123456789012"
+                      />
+                    </label>
+                    <button
+                      className="button button-primary"
+                      type="button"
+                      disabled={busy || !accountId}
+                      onClick={() => void beginCloudConnection()}
+                    >
+                      Connect Account
+                    </button>
+                  </>
+                ) : (
+                  <p className="cloud-provider-coming-soon" role="status">
+                    {cloudProvider === 'azure'
+                      ? 'Azure'
+                      : cloudProvider === 'gcp'
+                        ? 'Google Cloud'
+                        : 'This cloud'}{' '}
+                    connections are coming soon. Choose AWS to connect an account today.
+                  </p>
+                )}
               </div>
               {state.data.cloud.length ? (
                 <div className="connection-list">
@@ -184,7 +210,10 @@ export default function ConnectionsPage() {
                     <article key={item.id}>
                       <div>
                         <b>{item.display_name}</b>
-                        <small>{item.account_id ?? 'Account setup pending'}</small>
+                        <small>
+                          {item.provider.toUpperCase()} ·{' '}
+                          {item.account_id ?? 'Account setup pending'}
+                        </small>
                       </div>
                       <StatusBadge state={item.setup_state} />
                       {item.setup_state === 'SETUP_LINK_GENERATED' ? (
@@ -211,7 +240,7 @@ export default function ConnectionsPage() {
               ) : (
                 <EmptyState
                   title="No cloud connection"
-                  message="Local planning remains available without a connected cloud account."
+                  message="Connect an AWS account when you are ready to create a targeted plan."
                 />
               )}
             </section>
