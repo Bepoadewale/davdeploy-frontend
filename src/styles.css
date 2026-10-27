@@ -1696,6 +1696,9 @@ label > small {
   margin-top: 16px;
   padding: 16px 20px 20px;
 }
+.plan-detail-close-bottom {
+  margin: 0 20px 20px;
+}
 .readable-data {
   color: #344054;
   font-size: 12px;

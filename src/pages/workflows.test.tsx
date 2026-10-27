@@ -117,6 +117,10 @@ describe('customer workflows', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Choose the closest fit' })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Project name' })).toHaveAttribute(
+      'maxlength',
+      '64',
+    );
     expect(screen.getByRole('textbox', { name: 'Project name' })).toBeRequired();
     expect(screen.getByRole('combobox', { name: /expected usage/i })).toHaveValue('5');
     expect(screen.getByRole('combobox', { name: /peak pattern/i })).toHaveValue('4');
@@ -285,6 +289,8 @@ describe('customer workflows', () => {
     await user.click(screen.getAllByText('Read details')[0]);
     expect(applicationDetails).toHaveAttribute('open');
     expect(screen.getByText('example/support-api')).toBeVisible();
+    await user.click(screen.getAllByRole('button', { name: 'Close details' })[0]);
+    expect(applicationDetails).not.toHaveAttribute('open');
   });
 
   it('groups audit evidence and exposes inspectable event detail', async () => {
