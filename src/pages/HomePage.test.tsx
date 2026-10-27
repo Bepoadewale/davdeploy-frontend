@@ -19,13 +19,14 @@ describe('public product overview', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Recommended approach')).toBeInTheDocument();
     expect(screen.getByText('Four clear steps')).toBeInTheDocument();
-    expect(screen.getByText(/governed infrastructure for your cloud/i)).toBeInTheDocument();
-    expect(screen.getByText(/describe your product in natural language/i)).toBeInTheDocument();
+    expect(screen.getByText(/governed infrastructure for every cloud/i)).toBeInTheDocument();
+    expect(screen.getByText(/deploy, across any cloud/i)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /founders and product teams making cloud decisions/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Customer-cloud')).toBeInTheDocument();
-    expect(screen.getByText(/browser, automate from the command line/i)).toBeInTheDocument();
+    expect(screen.getByText('Multi-cloud')).toBeInTheDocument();
+    expect(screen.getByText(/choose your cloud, then start in the browser/i)).toBeInTheDocument();
     expect(screen.queryByText(/AWS/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/customers trust/i)).not.toBeInTheDocument();
     for (const link of screen.getAllByRole('link', { name: /open workspace/i })) {
