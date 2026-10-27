@@ -316,8 +316,8 @@ export default function NewPlanPage() {
                     onChange={(event) => update('projectName', event.target.value)}
                     placeholder="French Pattern Cramming"
                     minLength={3}
-                    maxLength={80}
-                    pattern="[A-Za-z0-9][A-Za-z0-9 .,'()&-]{2,79}"
+                    maxLength={64}
+                    pattern="[A-Za-z0-9][A-Za-z0-9 .,'()&-]{2,63}"
                     aria-describedby="project-name-help"
                     required
                   />

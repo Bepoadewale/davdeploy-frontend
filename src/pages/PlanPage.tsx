@@ -41,6 +41,16 @@ function PlanDetail({
           <ReadableData value={value} />
           {raw ? <RawData value={value} /> : null}
         </div>
+        <button
+          className="button button-quiet plan-detail-close-bottom"
+          type="button"
+          onClick={(event) => {
+            const detail = event.currentTarget.closest('details');
+            if (detail) detail.open = false;
+          }}
+        >
+          Close details
+        </button>
       </details>
     </section>
   );
