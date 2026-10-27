@@ -18,6 +18,7 @@ import { useAsync } from '../hooks/useAsync';
 interface FormState {
   repository: string;
   publicRepository: string;
+  projectName: string;
   branch: string;
   cloudConnectionId: string;
   region: string;
@@ -40,6 +41,7 @@ interface PlanningFeedback {
 const initialForm: FormState = {
   repository: '',
   publicRepository: '',
+  projectName: '',
   branch: '',
   cloudConnectionId: '',
   region: 'us-east-1',
@@ -53,10 +55,6 @@ const initialForm: FormState = {
   prompt:
     'Deploy this product in the cloud. Keep customer data private. Enable monitoring and operational alerts.',
 };
-
-function slug(): string {
-  return `project-${Date.now().toString().slice(-8)}`;
-}
 
 function explainPlanningFailure(reason: unknown, budget: string): PlanningFeedback {
   const technicalDetail = reason instanceof Error ? reason.message : 'Plan generation failed.';
@@ -205,7 +203,11 @@ export default function NewPlanPage() {
       const project = await api.request<ProjectSummary>('/api/v1/projects', {
         method: 'POST',
         retrySafe: false,
-        body: { name: slug(), repository_url: selectedRepository, repository_branch: form.branch },
+        body: {
+          name: form.projectName.trim(),
+          repository_url: selectedRepository,
+          repository_branch: form.branch,
+        },
       });
       setProgress('Collecting repository evidence…');
       await api.request(`/api/v1/projects/${project.id}/repository-discovery`);
@@ -306,6 +308,21 @@ export default function NewPlanPage() {
                 </button>
               </div>
               <div className="form-grid two">
+                <div className="form-field">
+                  <label htmlFor="project-name">Project name</label>
+                  <input
+                    id="project-name"
+                    value={form.projectName}
+                    onChange={(event) => update('projectName', event.target.value)}
+                    placeholder="French Pattern Cramming"
+                    minLength={3}
+                    maxLength={80}
+                    pattern="[A-Za-z0-9][A-Za-z0-9 .,'()&-]{2,79}"
+                    aria-describedby="project-name-help"
+                    required
+                  />
+                  <small id="project-name-help">Use a name your team will recognise.</small>
+                </div>
                 {repositorySource === 'authorized' ? (
                   <label>
                     GitHub repository

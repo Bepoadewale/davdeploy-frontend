@@ -78,8 +78,16 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByRole('option', { name: 'example/support-api' })).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'Support API');
     await user.click(screen.getByRole('button', { name: /analyze and create plan/i }));
     expect(await screen.findByText('Review opened')).toBeInTheDocument();
+    expect(auth.api.request).toHaveBeenCalledWith(
+      '/api/v1/projects',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({ name: 'Support API' }),
+      }),
+    );
     expect(auth.api.request).toHaveBeenCalledWith(
       '/api/v1/intents',
       expect.objectContaining({
@@ -109,6 +117,7 @@ describe('customer workflows', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Choose the closest fit' })).toBeVisible();
+    expect(screen.getByRole('textbox', { name: 'Project name' })).toBeRequired();
     expect(screen.getByRole('combobox', { name: /expected usage/i })).toHaveValue('5');
     expect(screen.getByRole('combobox', { name: /peak pattern/i })).toHaveValue('4');
     expect(screen.getByRole('combobox', { name: /monthly budget/i })).toHaveValue('500');
@@ -152,6 +161,7 @@ describe('customer workflows', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Check repository' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Monthly budget' }), '100');
+    await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'Support API');
     await user.click(await screen.findByRole('button', { name: /analyze and create plan/i }));
     expect(await screen.findByText('This plan needs a larger budget.')).toBeInTheDocument();
     expect(screen.getByText(/choose \$250 or more, then try again/i)).toBeInTheDocument();
@@ -204,6 +214,7 @@ describe('customer workflows', () => {
     expect(
       await screen.findByText('Bepoadewale/ai-platform-control-plane verified read-only'),
     ).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'AI Control Plane');
     await user.click(screen.getByRole('button', { name: /analyze and create plan/i }));
 
     expect(await screen.findByText('Public review opened')).toBeInTheDocument();
@@ -232,6 +243,8 @@ describe('customer workflows', () => {
         </Routes>
       </MemoryRouter>,
     );
+    await screen.findByRole('button', { name: /approve exact digest/i });
+    expect(screen.queryByText('Lowest-complexity viable profile')).not.toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: /approve exact digest/i }));
     await waitFor(() =>
       expect(auth.api.request).toHaveBeenCalledWith(
