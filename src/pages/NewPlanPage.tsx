@@ -67,10 +67,10 @@ function explainPlanningFailure(reason: unknown, budget: string): PlanningFeedba
       technicalDetail,
     };
   }
-  if (technicalDetail.includes('Review AWS setup')) {
+  if (technicalDetail.includes('Connect Account')) {
     return {
       title: 'Finish AWS setup first.',
-      message: 'Select Review AWS setup, complete the AWS review, then return to create this plan.',
+      message: 'Select Connect Account, complete the AWS review, then return to create this plan.',
       technicalDetail,
     };
   }
@@ -267,7 +267,7 @@ export default function NewPlanPage() {
         throw new Error('Enter the 12-digit AWS account ID where you want this plan to run.');
       if (!selectedCloudConnection)
         throw new Error(
-          'Review AWS setup for this account and complete verification before creating a targeted plan.',
+          'Connect Account for this AWS account and complete verification before creating a targeted plan.',
         );
       if (!selectedRepository || !form.branch)
         throw new Error('Choose an authorized repository and branch.');
@@ -508,7 +508,7 @@ export default function NewPlanPage() {
                         disabled={busy || !form.cloudAccountId || Boolean(selectedCloudConnection)}
                         onClick={() => void beginAWSSetup()}
                       >
-                        {selectedCloudConnection ? 'AWS account verified' : 'Review AWS setup'}
+                        {selectedCloudConnection ? 'AWS account verified' : 'Connect Account'}
                       </button>
                       <small>
                         {selectedCloudConnection
