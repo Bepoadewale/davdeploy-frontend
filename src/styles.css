@@ -1854,7 +1854,9 @@ label > small {
   border-color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
-.connection-access-options small { color: var(--muted); }
+.connection-access-options small {
+  color: var(--muted);
+}
 .invitation-list {
   display: grid;
   gap: 0;

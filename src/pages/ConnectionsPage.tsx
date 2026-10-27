@@ -18,7 +18,9 @@ export default function ConnectionsPage() {
   );
   const [cloudProvider, setCloudProvider] = useState('aws');
   const [accountId, setAccountId] = useState('');
-  const [accessMode, setAccessMode] = useState<'existing-role' | 'discovery' | 'administrator-pilot'>('discovery');
+  const [accessMode, setAccessMode] = useState<
+    'existing-role' | 'discovery' | 'administrator-pilot'
+  >('discovery');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -33,12 +35,15 @@ export default function ConnectionsPage() {
         retrySafe: false,
       });
       if (accessMode === 'existing-role') {
-        setMessage('Role contract created. Configure your existing role, then verify this connection.');
+        setMessage(
+          'Role contract created. Configure your existing role, then verify this connection.',
+        );
         state.reload();
         return;
       }
       const setup = await api.request<{ quick_create_url: string }>(
-        `/api/v1/cloud-connections/${connection.id}/aws-quick-create`, {
+        `/api/v1/cloud-connections/${connection.id}/aws-quick-create`,
+        {
           method: 'POST',
           body: { account_id: accountId, access_mode: accessMode },
           retrySafe: false,
@@ -128,11 +133,19 @@ export default function ConnectionsPage() {
                 Repository discovery is read-only. Desired-state writes require a separate reviewed
                 backend capability.
               </p>
-              <div className="connection-access-options" role="radiogroup" aria-label="AWS access type">
+              <div
+                className="connection-access-options"
+                role="radiogroup"
+                aria-label="AWS access type"
+              >
                 {[
                   ['existing-role', 'Use an existing role', 'Bring a customer-managed role.'],
                   ['discovery', 'Create read-only access', 'Recommended for planning.'],
-                  ['administrator-pilot', 'Enable deployment pilot', 'Creates a separate AdministratorAccess role.'],
+                  [
+                    'administrator-pilot',
+                    'Enable deployment pilot',
+                    'Creates a separate AdministratorAccess role.',
+                  ],
                 ].map(([value, title, detail]) => (
                   <button
                     key={value}
@@ -140,12 +153,16 @@ export default function ConnectionsPage() {
                     className={accessMode === value ? 'is-selected' : ''}
                     onClick={() => setAccessMode(value as typeof accessMode)}
                   >
-                    <b>{title}</b><small>{detail}</small>
+                    <b>{title}</b>
+                    <small>{detail}</small>
                   </button>
                 ))}
               </div>
               {accessMode === 'administrator-pilot' ? (
-                <p className="notice notice-error">Pilot access can create, change, and delete AWS resources. Use it only for a reviewed deployment pilot.</p>
+                <p className="notice notice-error">
+                  Pilot access can create, change, and delete AWS resources. Use it only for a
+                  reviewed deployment pilot.
+                </p>
               ) : null}
               {state.data.github.installations.length ? (
                 <div className="compact-list">
@@ -220,7 +237,11 @@ export default function ConnectionsPage() {
                       disabled={busy || !accountId}
                       onClick={() => void beginCloudConnection()}
                     >
-                      {accessMode === 'existing-role' ? 'Use role contract' : accessMode === 'administrator-pilot' ? 'Enable pilot access' : 'Connect Account'}
+                      {accessMode === 'existing-role'
+                        ? 'Use role contract'
+                        : accessMode === 'administrator-pilot'
+                          ? 'Enable pilot access'
+                          : 'Connect Account'}
                     </button>
                   </>
                 ) : (
