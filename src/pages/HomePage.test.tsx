@@ -12,7 +12,7 @@ describe('public product overview', () => {
       </MemoryRouter>,
     );
     expect(
-      screen.getByRole('heading', { name: /cloud decisions, built on evidence/i }),
+      screen.getByRole('heading', { name: /write what you need. we build the path/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('figure', { name: /illustrative davdeploy decision brief/i }),
@@ -20,13 +20,12 @@ describe('public product overview', () => {
     expect(screen.getByText('Recommended approach')).toBeInTheDocument();
     expect(screen.getByText('Four clear steps')).toBeInTheDocument();
     expect(screen.getByText(/governed infrastructure for your cloud/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/plan the right cloud infrastructure, with cost, risk, and approval/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/describe your product in natural language/i)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /founders and product teams making cloud decisions/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Customer-cloud')).toBeInTheDocument();
+    expect(screen.getByText(/browser, automate from the command line/i)).toBeInTheDocument();
     expect(screen.queryByText(/AWS/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/customers trust/i)).not.toBeInTheDocument();
     for (const link of screen.getAllByRole('link', { name: /open workspace/i })) {
