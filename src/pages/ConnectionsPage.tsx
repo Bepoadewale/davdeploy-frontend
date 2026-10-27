@@ -18,6 +18,7 @@ export default function ConnectionsPage() {
   );
   const [cloudProvider, setCloudProvider] = useState('aws');
   const [accountId, setAccountId] = useState('');
+  const [accessMode, setAccessMode] = useState<'existing-role' | 'discovery' | 'administrator-pilot'>('discovery');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -31,13 +32,23 @@ export default function ConnectionsPage() {
         body: { display_name: `AWS account ${accountId}`, provider: 'aws' },
         retrySafe: false,
       });
+      if (accessMode === 'existing-role') {
+        setMessage('Role contract created. Configure your existing role, then verify this connection.');
+        state.reload();
+        return;
+      }
       const setup = await api.request<{ quick_create_url: string }>(
-        `/api/v1/cloud-connections/${connection.id}/aws-quick-create`,
-        { method: 'POST', body: { account_id: accountId }, retrySafe: false },
+        `/api/v1/cloud-connections/${connection.id}/aws-quick-create`, {
+          method: 'POST',
+          body: { account_id: accountId, access_mode: accessMode },
+          retrySafe: false,
+        },
       );
       window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
       setMessage(
-        'AWS opened a review page for a read-only discovery role. No workload resources were requested.',
+        accessMode === 'administrator-pilot'
+          ? 'AWS opened a review page for a separate AdministratorAccess pilot role.'
+          : 'AWS opened a review page for a read-only discovery role. No workload resources were requested.',
       );
       state.reload();
     } catch (error) {
@@ -117,6 +128,25 @@ export default function ConnectionsPage() {
                 Repository discovery is read-only. Desired-state writes require a separate reviewed
                 backend capability.
               </p>
+              <div className="connection-access-options" role="radiogroup" aria-label="AWS access type">
+                {[
+                  ['existing-role', 'Use an existing role', 'Bring a customer-managed role.'],
+                  ['discovery', 'Create read-only access', 'Recommended for planning.'],
+                  ['administrator-pilot', 'Enable deployment pilot', 'Creates a separate AdministratorAccess role.'],
+                ].map(([value, title, detail]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={accessMode === value ? 'is-selected' : ''}
+                    onClick={() => setAccessMode(value as typeof accessMode)}
+                  >
+                    <b>{title}</b><small>{detail}</small>
+                  </button>
+                ))}
+              </div>
+              {accessMode === 'administrator-pilot' ? (
+                <p className="notice notice-error">Pilot access can create, change, and delete AWS resources. Use it only for a reviewed deployment pilot.</p>
+              ) : null}
               {state.data.github.installations.length ? (
                 <div className="compact-list">
                   {state.data.github.installations.map((item) => (
@@ -190,7 +220,7 @@ export default function ConnectionsPage() {
                       disabled={busy || !accountId}
                       onClick={() => void beginCloudConnection()}
                     >
-                      Connect Account
+                      {accessMode === 'existing-role' ? 'Use role contract' : accessMode === 'administrator-pilot' ? 'Enable pilot access' : 'Connect Account'}
                     </button>
                   </>
                 ) : (
