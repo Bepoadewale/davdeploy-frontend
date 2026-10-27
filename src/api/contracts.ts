@@ -82,6 +82,7 @@ export interface GitHubRepository {
 export interface CloudConnection {
   id: string;
   display_name: string;
+  provider: string;
   account_id?: string | null;
   role_arn?: string | null;
   setup_state: string;

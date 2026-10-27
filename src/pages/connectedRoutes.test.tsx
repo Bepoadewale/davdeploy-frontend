@@ -55,15 +55,15 @@ describe('authenticated connected-route acceptance', () => {
       'https://github.com/apps/davdeploy/installations/new',
     );
 
-    await user.click(screen.getByRole('button', { name: 'Review cloud setup' }));
-    expect(await screen.findByText('Enter a 12-digit cloud account ID.')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Cloud provider' })).toHaveValue('aws');
+    expect(screen.getByText(/no cloud connection/i)).toBeInTheDocument();
     expect(state.api.request).not.toHaveBeenCalledWith(
       '/api/v1/cloud-connections',
       expect.objectContaining({ method: 'POST' }),
     );
 
-    await user.type(screen.getByRole('textbox', { name: 'Cloud account ID' }), '123456789012');
-    await user.click(screen.getByRole('button', { name: 'Review cloud setup' }));
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
+    await user.click(screen.getByRole('button', { name: 'Connect Account' }));
     await waitFor(() =>
       expect(openWindow).toHaveBeenCalledWith(
         'https://console.aws.amazon.com/cloudformation/review',
@@ -72,8 +72,20 @@ describe('authenticated connected-route acceptance', () => {
       ),
     );
     expect(
-      await screen.findByText(/read-only discovery role. no workload resources were requested/i),
+      await screen.findByText(/aws opened a review page for a read-only discovery role/i),
     ).toBeInTheDocument();
+    expect(state.api.request).toHaveBeenCalledWith(
+      '/api/v1/cloud-connections',
+      expect.objectContaining({
+        method: 'POST',
+        body: { display_name: 'AWS account 123456789012', provider: 'aws' },
+      }),
+    );
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Cloud provider' }), 'gcp');
+    expect(screen.getByText(/google cloud connections are coming soon/i)).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'AWS account ID' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Connect Account' })).not.toBeInTheDocument();
   });
 
   it('filters and compares immutable plan history', async () => {

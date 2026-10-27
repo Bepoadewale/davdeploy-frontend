@@ -92,7 +92,7 @@ export default function OverviewPage() {
                 <li>
                   <span>2</span>
                   <div>
-                    <b>Connect AWS when ready</b>
+                    <b>Connect your cloud account</b>
                   </div>
                 </li>
                 <li>

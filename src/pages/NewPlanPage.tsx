@@ -549,7 +549,7 @@ export default function NewPlanPage() {
                 </div>
                 <div className="form-grid three">
                   <label>
-                    Region
+                    AWS region
                     <select
                       value={form.region}
                       onChange={(event) => update('region', event.target.value)}
