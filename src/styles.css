@@ -1500,6 +1500,27 @@ label > small {
 .span-two {
   grid-column: span 2;
 }
+.cloud-target-fields {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(200px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+.cloud-target-action {
+  display: grid;
+  gap: 6px;
+}
+.cloud-target-action small,
+.cloud-provider-coming-soon {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.cloud-provider-coming-soon {
+  grid-column: span 2;
+  margin: 0;
+}
 .advanced {
   margin-top: 18px;
   border: 1px solid var(--line);
@@ -2114,6 +2135,12 @@ label > small {
     flex-direction: column;
   }
   .span-two {
+    grid-column: auto;
+  }
+  .cloud-target-fields {
+    grid-template-columns: 1fr;
+  }
+  .cloud-provider-coming-soon {
     grid-column: auto;
   }
   .onboarding ol {

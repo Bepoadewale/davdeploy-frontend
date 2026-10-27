@@ -36,6 +36,13 @@ const review = {
   },
 };
 
+const verifiedAwsConnection = {
+  id: 'connection-1',
+  display_name: 'AWS account 123456789012',
+  account_id: '123456789012',
+  setup_state: 'VERIFIED',
+};
+
 describe('customer workflows', () => {
   it('completes the supported repository-to-review planning contract', async () => {
     auth.profile.user.role = 'developer';
@@ -45,7 +52,7 @@ describe('customer workflows', () => {
           execution: 'SIMULATED',
           installations: [{ id: 'install-1', account_login: 'demo', account_type: 'Organization' }],
         });
-      if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([verifiedAwsConnection]);
       if (path.endsWith('/repositories'))
         return Promise.resolve([
           {
@@ -79,6 +86,7 @@ describe('customer workflows', () => {
     );
     expect(await screen.findByRole('option', { name: 'example/support-api' })).toBeInTheDocument();
     await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'Support API');
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
     await user.click(screen.getByRole('button', { name: /analyze and create plan/i }));
     expect(await screen.findByText('Review opened')).toBeInTheDocument();
     expect(auth.api.request).toHaveBeenCalledWith(
@@ -95,6 +103,7 @@ describe('customer workflows', () => {
         retrySafe: false,
         body: expect.objectContaining({
           project_id: 'project-1',
+          cloud_connection_id: 'connection-1',
           source_repository: 'https://github.com/example/support-api',
           prompt: expect.stringContaining('average_rps=5; peak_rps=20'),
         }),
@@ -106,7 +115,7 @@ describe('customer workflows', () => {
     auth.api.request.mockImplementation((path: string) => {
       if (path === '/api/v1/github/connection')
         return Promise.resolve({ execution: 'SIMULATED', installations: [] });
-      if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([verifiedAwsConnection]);
       return Promise.resolve([]);
     });
 
@@ -122,6 +131,8 @@ describe('customer workflows', () => {
       '64',
     );
     expect(screen.getByRole('textbox', { name: 'Project name' })).toBeRequired();
+    expect(screen.getByRole('combobox', { name: 'Cloud provider' })).toHaveValue('aws');
+    expect(screen.getByRole('textbox', { name: 'AWS account ID' })).toBeRequired();
     expect(screen.getByRole('combobox', { name: /expected usage/i })).toHaveValue('5');
     expect(screen.getByRole('combobox', { name: /peak pattern/i })).toHaveValue('4');
     expect(screen.getByRole('combobox', { name: /monthly budget/i })).toHaveValue('500');
@@ -129,11 +140,76 @@ describe('customer workflows', () => {
     expect(screen.getByText(/no traffic forecast is required/i)).toBeInTheDocument();
   });
 
-  it('explains an unworkable budget in plain English and keeps technical detail optional', async () => {
+  it('keeps future cloud providers visible without presenting them as available', async () => {
     auth.api.request.mockImplementation((path: string) => {
       if (path === '/api/v1/github/connection')
         return Promise.resolve({ execution: 'SIMULATED', installations: [] });
       if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
+      return Promise.resolve([]);
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <NewPlanPage />
+      </MemoryRouter>,
+    );
+
+    const provider = await screen.findByRole('combobox', { name: 'Cloud provider' });
+    await user.selectOptions(provider, 'azure');
+    expect(screen.getByText(/azure connections are coming soon/i)).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'AWS account ID' })).not.toBeInTheDocument();
+  });
+
+  it('starts the existing AWS review from an account ID entered in the plan flow', async () => {
+    auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path === '/api/v1/github/connection')
+        return Promise.resolve({ execution: 'SIMULATED', installations: [] });
+      if (path === '/api/v1/cloud-connections' && options?.method === 'POST')
+        return Promise.resolve({ id: 'connection-2', setup_state: 'PENDING' });
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
+      if (path === '/api/v1/cloud-connections/connection-2/aws-quick-create')
+        return Promise.resolve({
+          quick_create_url: 'https://console.aws.amazon.com/cloudformation',
+        });
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <NewPlanPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(await screen.findByRole('textbox', { name: 'AWS account ID' }), '123456789012');
+    await user.click(screen.getByRole('button', { name: 'Review AWS setup' }));
+
+    await waitFor(() =>
+      expect(auth.api.request).toHaveBeenCalledWith(
+        '/api/v1/cloud-connections',
+        expect.objectContaining({
+          method: 'POST',
+          body: { display_name: 'AWS account 123456789012', provider: 'aws' },
+        }),
+      ),
+    );
+    expect(auth.api.request).toHaveBeenCalledWith(
+      '/api/v1/cloud-connections/connection-2/aws-quick-create',
+      expect.objectContaining({ body: { account_id: '123456789012' } }),
+    );
+    expect(open).toHaveBeenCalledWith(
+      'https://console.aws.amazon.com/cloudformation',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    open.mockRestore();
+  });
+
+  it('explains an unworkable budget in plain English and keeps technical detail optional', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/github/connection')
+        return Promise.resolve({ execution: 'SIMULATED', installations: [] });
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([verifiedAwsConnection]);
       if (path.startsWith('/api/v1/github/public-repository?'))
         return Promise.resolve({
           full_name: 'example/support-api',
@@ -166,6 +242,7 @@ describe('customer workflows', () => {
     await user.click(screen.getByRole('button', { name: 'Check repository' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Monthly budget' }), '100');
     await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'Support API');
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
     await user.click(await screen.findByRole('button', { name: /analyze and create plan/i }));
     expect(await screen.findByText('This plan needs a larger budget.')).toBeInTheDocument();
     expect(screen.getByText(/choose \$250 or more, then try again/i)).toBeInTheDocument();
@@ -177,7 +254,7 @@ describe('customer workflows', () => {
     auth.api.request.mockImplementation((path: string) => {
       if (path === '/api/v1/github/connection')
         return Promise.resolve({ execution: 'SIMULATED', installations: [] });
-      if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([verifiedAwsConnection]);
       if (path.startsWith('/api/v1/github/public-repository?'))
         return Promise.resolve({
           full_name: 'Bepoadewale/ai-platform-control-plane',
@@ -219,6 +296,7 @@ describe('customer workflows', () => {
       await screen.findByText('Bepoadewale/ai-platform-control-plane verified read-only'),
     ).toBeInTheDocument();
     await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'AI Control Plane');
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
     await user.click(screen.getByRole('button', { name: /analyze and create plan/i }));
 
     expect(await screen.findByText('Public review opened')).toBeInTheDocument();

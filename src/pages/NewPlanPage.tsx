@@ -20,7 +20,8 @@ interface FormState {
   publicRepository: string;
   projectName: string;
   branch: string;
-  cloudConnectionId: string;
+  cloudProvider: string;
+  cloudAccountId: string;
   region: string;
   dataClassification: string;
   budget: string;
@@ -43,7 +44,8 @@ const initialForm: FormState = {
   publicRepository: '',
   projectName: '',
   branch: '',
-  cloudConnectionId: '',
+  cloudProvider: 'aws',
+  cloudAccountId: '',
   region: 'us-east-1',
   dataClassification: 'restricted',
   budget: '500',
@@ -58,6 +60,20 @@ const initialForm: FormState = {
 
 function explainPlanningFailure(reason: unknown, budget: string): PlanningFeedback {
   const technicalDetail = reason instanceof Error ? reason.message : 'Plan generation failed.';
+  if (technicalDetail.includes('connections are coming soon')) {
+    return {
+      title: 'This cloud provider is coming soon.',
+      message: 'Choose AWS to create a plan today.',
+      technicalDetail,
+    };
+  }
+  if (technicalDetail.includes('Review AWS setup')) {
+    return {
+      title: 'Finish AWS setup first.',
+      message: 'Select Review AWS setup, complete the AWS review, then return to create this plan.',
+      technicalDetail,
+    };
+  }
   if (technicalDetail.includes('no viable architecture')) {
     if (technicalDetail.includes('hard monthly budget')) {
       const nextBudget = Number(budget) < 250 ? '$250 or more' : 'a higher budget';
@@ -131,6 +147,13 @@ export default function NewPlanPage() {
     () => repositories.find((item) => item.html_url === form.repository),
     [form.repository, repositories],
   );
+  const selectedCloudConnection = useMemo(
+    () =>
+      state.data?.cloud.find(
+        (item) => item.account_id === form.cloudAccountId && item.setup_state === 'VERIFIED',
+      ) ?? null,
+    [form.cloudAccountId, state.data?.cloud],
+  );
   useEffect(() => {
     if (!installation || !repository) return;
     const controller = new AbortController();
@@ -184,6 +207,51 @@ export default function NewPlanPage() {
     }
   }
 
+  async function beginAWSSetup() {
+    if (!/^\d{12}$/.test(form.cloudAccountId)) {
+      setError({
+        title: 'Enter a 12-digit AWS account ID.',
+        message: 'Use the account where you want DavDeploy to plan the deployment.',
+      });
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const existing = state.data?.cloud.find((item) => item.account_id === form.cloudAccountId);
+      const connection =
+        existing ??
+        (await api.request<CloudConnection>('/api/v1/cloud-connections', {
+          method: 'POST',
+          body: { display_name: `AWS account ${form.cloudAccountId}`, provider: 'aws' },
+          retrySafe: false,
+        }));
+      if (connection.setup_state !== 'VERIFIED') {
+        const setup = await api.request<{ quick_create_url: string }>(
+          `/api/v1/cloud-connections/${connection.id}/aws-quick-create`,
+          {
+            method: 'POST',
+            body: { account_id: form.cloudAccountId },
+            retrySafe: false,
+          },
+        );
+        window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
+        setProgress('Finish the AWS review, then return here to create the targeted plan.');
+      } else {
+        setProgress('This AWS account is verified and ready for a targeted plan.');
+      }
+      state.reload();
+    } catch (reason) {
+      setError({
+        title: 'AWS setup could not start.',
+        message: 'Check the account ID and try again.',
+        technicalDetail: reason instanceof Error ? reason.message : undefined,
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -191,6 +259,16 @@ export default function NewPlanPage() {
     try {
       const selectedRepository =
         repositorySource === 'public' ? publicRepository?.html_url : form.repository;
+      if (form.cloudProvider !== 'aws')
+        throw new Error(
+          `${form.cloudProvider} connections are coming soon. Choose AWS to continue.`,
+        );
+      if (!/^\d{12}$/.test(form.cloudAccountId))
+        throw new Error('Enter the 12-digit AWS account ID where you want this plan to run.');
+      if (!selectedCloudConnection)
+        throw new Error(
+          'Review AWS setup for this account and complete verification before creating a targeted plan.',
+        );
       if (!selectedRepository || !form.branch)
         throw new Error('Choose an authorized repository and branch.');
       if (form.prompt.trim().length < 20)
@@ -221,7 +299,7 @@ export default function NewPlanPage() {
           project_id: project.id,
           prompt: `${form.prompt.trim()}${constraints}`,
           source_repository: selectedRepository,
-          cloud_connection_id: form.cloudConnectionId || null,
+          cloud_connection_id: selectedCloudConnection.id,
           idempotency_key: newIdempotencyKey(),
         },
       });
@@ -385,23 +463,61 @@ export default function NewPlanPage() {
                     ))}
                   </select>
                 </label>
-                <label className="span-two">
-                  Cloud target
-                  <select
-                    value={form.cloudConnectionId}
-                    onChange={(event) => update('cloudConnectionId', event.target.value)}
-                  >
-                    <option value="">Local planning only · no cloud account</option>
-                    {state.data.cloud.map((item) => (
-                      <option value={item.id} key={item.id}>
-                        {item.display_name} · {item.setup_state}
-                      </option>
-                    ))}
-                  </select>
-                  <small>
-                    A connected account is optional. Credentials never enter the browser.
-                  </small>
-                </label>
+                <div className="span-two cloud-target-fields">
+                  <label>
+                    Cloud provider
+                    <select
+                      value={form.cloudProvider}
+                      onChange={(event) => update('cloudProvider', event.target.value)}
+                    >
+                      <option value="aws">AWS</option>
+                      <option value="azure">Azure — coming soon</option>
+                      <option value="gcp">Google Cloud — coming soon</option>
+                      <option value="other">Other cloud — coming soon</option>
+                    </select>
+                  </label>
+                  {form.cloudProvider === 'aws' ? (
+                    <label>
+                      AWS account ID
+                      <input
+                        inputMode="numeric"
+                        maxLength={12}
+                        value={form.cloudAccountId}
+                        onChange={(event) =>
+                          update('cloudAccountId', event.target.value.replace(/\D/g, ''))
+                        }
+                        placeholder="123456789012"
+                        required
+                      />
+                    </label>
+                  ) : (
+                    <p className="cloud-provider-coming-soon" role="status">
+                      {form.cloudProvider === 'azure'
+                        ? 'Azure'
+                        : form.cloudProvider === 'gcp'
+                          ? 'Google Cloud'
+                          : 'This cloud'}{' '}
+                      connections are coming soon. Choose AWS to continue today.
+                    </p>
+                  )}
+                  {form.cloudProvider === 'aws' ? (
+                    <div className="cloud-target-action">
+                      <button
+                        className="button button-secondary"
+                        type="button"
+                        disabled={busy || !form.cloudAccountId || Boolean(selectedCloudConnection)}
+                        onClick={() => void beginAWSSetup()}
+                      >
+                        {selectedCloudConnection ? 'AWS account verified' : 'Review AWS setup'}
+                      </button>
+                      <small>
+                        {selectedCloudConnection
+                          ? 'This account is ready for planning.'
+                          : 'DavDeploy never asks your browser for cloud credentials.'}
+                      </small>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </section>
             <section className="panel">
@@ -561,7 +677,11 @@ export default function NewPlanPage() {
               </div>
             ) : null}
             <div className="form-actions">
-              <button className="button button-primary" type="submit" disabled={busy}>
+              <button
+                className="button button-primary"
+                type="submit"
+                disabled={busy || form.cloudProvider !== 'aws'}
+              >
                 {busy ? 'Building review…' : 'Analyze and create plan'}
               </button>
               <span>Creates a draft review record. No cloud resources are created.</span>
