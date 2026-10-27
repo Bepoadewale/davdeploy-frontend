@@ -88,6 +88,46 @@ describe('authenticated connected-route acceptance', () => {
     expect(screen.queryByRole('button', { name: 'Connect Account' })).not.toBeInTheDocument();
   });
 
+  it('requires an explicit acknowledgement before opening the administrator pilot setup', async () => {
+    state.api.request.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path === '/api/v1/github/connection')
+        return Promise.resolve({ execution: 'LIVE_READ_ONLY', installations: [] });
+      if (path === '/api/v1/cloud-connections' && !options?.method) return Promise.resolve([]);
+      if (path === '/api/v1/cloud-connections' && options?.method === 'POST')
+        return Promise.resolve({ id: 'connection-1' });
+      if (path.endsWith('/aws-quick-create'))
+        return Promise.resolve({
+          quick_create_url: 'https://console.aws.amazon.com/cloudformation/review',
+        });
+      throw new Error(`Unexpected ${path}`);
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ConnectionsPage />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('Customer-owned environments');
+    await user.click(screen.getByRole('button', { name: /Enable deployment pilot/ }));
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
+    expect(screen.getByRole('button', { name: 'Enable pilot access' })).toBeDisabled();
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Enable pilot access' }));
+
+    await waitFor(() => expect(openWindow).toHaveBeenCalled());
+    expect(state.api.request).toHaveBeenCalledWith(
+      '/api/v1/cloud-connections/connection-1/aws-quick-create',
+      expect.objectContaining({
+        body: {
+          account_id: '123456789012',
+          access_mode: 'administrator-pilot',
+          acknowledge_administrator_access: true,
+        },
+      }),
+    );
+  });
+
   it('filters and compares immutable plan history', async () => {
     state.api.request.mockResolvedValue({
       workspace: { id: 'workspace-1', name: 'Acme' },
