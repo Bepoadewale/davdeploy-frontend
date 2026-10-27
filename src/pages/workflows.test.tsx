@@ -160,7 +160,7 @@ describe('customer workflows', () => {
     expect(screen.queryByRole('textbox', { name: 'AWS account ID' })).not.toBeInTheDocument();
   });
 
-  it('starts the existing AWS review from an account ID entered in the plan flow', async () => {
+  it('routes account setup from Create Plan into Connections', async () => {
     auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
       if (path === '/api/v1/github/connection')
         return Promise.resolve({ execution: 'SIMULATED', installations: [] });
@@ -184,24 +184,11 @@ describe('customer workflows', () => {
     await user.type(await screen.findByRole('textbox', { name: 'AWS account ID' }), '123456789012');
     await user.click(screen.getByRole('button', { name: 'Connect Account' }));
 
-    await waitFor(() =>
-      expect(auth.api.request).toHaveBeenCalledWith(
-        '/api/v1/cloud-connections',
-        expect.objectContaining({
-          method: 'POST',
-          body: { display_name: 'AWS account 123456789012', provider: 'aws' },
-        }),
-      ),
+    expect(auth.api.request).not.toHaveBeenCalledWith(
+      '/api/v1/cloud-connections',
+      expect.objectContaining({ method: 'POST' }),
     );
-    expect(auth.api.request).toHaveBeenCalledWith(
-      '/api/v1/cloud-connections/connection-2/aws-quick-create',
-      expect.objectContaining({ body: { account_id: '123456789012' } }),
-    );
-    expect(open).toHaveBeenCalledWith(
-      'https://console.aws.amazon.com/cloudformation',
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(open).not.toHaveBeenCalled();
     open.mockRestore();
   });
 

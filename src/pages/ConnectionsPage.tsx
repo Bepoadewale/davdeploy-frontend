@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import type { CloudConnection, GitHubConnection } from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
@@ -9,6 +10,7 @@ import { useAsync } from '../hooks/useAsync';
 
 export default function ConnectionsPage() {
   const { api } = useAuth();
+  const [searchParams] = useSearchParams();
   const state = useAsync(
     async (signal) => ({
       github: await api.request<GitHubConnection>('/api/v1/github/connection', { signal }),
@@ -17,10 +19,12 @@ export default function ConnectionsPage() {
     [api],
   );
   const [cloudProvider, setCloudProvider] = useState('aws');
-  const [accountId, setAccountId] = useState('');
+  const [accountId, setAccountId] = useState(searchParams.get('account') ?? '');
   const [accessMode, setAccessMode] = useState<
     'existing-role' | 'discovery' | 'administrator-pilot'
   >('discovery');
+  const [discoveryRoleArn, setDiscoveryRoleArn] = useState('');
+  const [executionRoleArn, setExecutionRoleArn] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -35,8 +39,21 @@ export default function ConnectionsPage() {
         retrySafe: false,
       });
       if (accessMode === 'existing-role') {
+        if (!discoveryRoleArn) throw new Error('Enter the existing read-only discovery role ARN.');
+        const setup = await api.request<{ external_id: string }>(
+          `/api/v1/cloud-connections/${connection.id}/aws-existing-role`,
+          {
+            method: 'POST',
+            body: {
+              account_id: accountId,
+              discovery_role_arn: discoveryRoleArn,
+              execution_role_arn: executionRoleArn || undefined,
+            },
+            retrySafe: false,
+          },
+        );
         setMessage(
-          'Role contract created. Configure your existing role, then verify this connection.',
+          `Role attached. Add this external ID to its trust policy, then verify: ${setup.external_id}`,
         );
         state.reload();
         return;
@@ -133,37 +150,6 @@ export default function ConnectionsPage() {
                 Repository discovery is read-only. Desired-state writes require a separate reviewed
                 backend capability.
               </p>
-              <div
-                className="connection-access-options"
-                role="radiogroup"
-                aria-label="AWS access type"
-              >
-                {[
-                  ['existing-role', 'Use an existing role', 'Bring a customer-managed role.'],
-                  ['discovery', 'Create read-only access', 'Recommended for planning.'],
-                  [
-                    'administrator-pilot',
-                    'Enable deployment pilot',
-                    'Creates a separate AdministratorAccess role.',
-                  ],
-                ].map(([value, title, detail]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={accessMode === value ? 'is-selected' : ''}
-                    onClick={() => setAccessMode(value as typeof accessMode)}
-                  >
-                    <b>{title}</b>
-                    <small>{detail}</small>
-                  </button>
-                ))}
-              </div>
-              {accessMode === 'administrator-pilot' ? (
-                <p className="notice notice-error">
-                  Pilot access can create, change, and delete AWS resources. Use it only for a
-                  reviewed deployment pilot.
-                </p>
-              ) : null}
               {state.data.github.installations.length ? (
                 <div className="compact-list">
                   {state.data.github.installations.map((item) => (
@@ -206,6 +192,57 @@ export default function ConnectionsPage() {
                 DavDeploy never asks the browser for provider access keys. AWS setup creates scoped
                 role metadata through an AWS review.
               </p>
+              <div
+                className="connection-access-options"
+                role="radiogroup"
+                aria-label="AWS access type"
+              >
+                {[
+                  ['existing-role', 'Use an existing role', 'Bring a customer-managed role.'],
+                  ['discovery', 'Create read-only access', 'Recommended for planning.'],
+                  [
+                    'administrator-pilot',
+                    'Enable deployment pilot',
+                    'Creates a separate AdministratorAccess role.',
+                  ],
+                ].map(([value, title, detail]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={accessMode === value ? 'is-selected' : ''}
+                    onClick={() => setAccessMode(value as typeof accessMode)}
+                  >
+                    <b>{title}</b>
+                    <small>{detail}</small>
+                  </button>
+                ))}
+              </div>
+              {accessMode === 'administrator-pilot' ? (
+                <p className="notice notice-error">
+                  Pilot access can create, change, and delete AWS resources. Use it only for a
+                  reviewed deployment pilot.
+                </p>
+              ) : null}
+              {accessMode === 'existing-role' ? (
+                <div className="form-grid">
+                  <label>
+                    Discovery role ARN
+                    <input
+                      value={discoveryRoleArn}
+                      onChange={(event) => setDiscoveryRoleArn(event.target.value)}
+                      placeholder="arn:aws:iam::123456789012:role/DavDeployDiscovery"
+                    />
+                  </label>
+                  <label>
+                    Deployment role ARN <small>(optional)</small>
+                    <input
+                      value={executionRoleArn}
+                      onChange={(event) => setExecutionRoleArn(event.target.value)}
+                      placeholder="arn:aws:iam::123456789012:role/DavDeployExecution"
+                    />
+                  </label>
+                </div>
+              ) : null}
               <div className="inline-form">
                 <label>
                   Cloud provider

@@ -207,7 +207,7 @@ export default function NewPlanPage() {
     }
   }
 
-  async function beginAWSSetup() {
+  function beginAWSSetup() {
     if (!/^\d{12}$/.test(form.cloudAccountId)) {
       setError({
         title: 'Enter a 12-digit AWS account ID.',
@@ -215,41 +215,7 @@ export default function NewPlanPage() {
       });
       return;
     }
-    setBusy(true);
-    setError(null);
-    try {
-      const existing = state.data?.cloud.find((item) => item.account_id === form.cloudAccountId);
-      const connection =
-        existing ??
-        (await api.request<CloudConnection>('/api/v1/cloud-connections', {
-          method: 'POST',
-          body: { display_name: `AWS account ${form.cloudAccountId}`, provider: 'aws' },
-          retrySafe: false,
-        }));
-      if (connection.setup_state !== 'VERIFIED') {
-        const setup = await api.request<{ quick_create_url: string }>(
-          `/api/v1/cloud-connections/${connection.id}/aws-quick-create`,
-          {
-            method: 'POST',
-            body: { account_id: form.cloudAccountId },
-            retrySafe: false,
-          },
-        );
-        window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
-        setProgress('Finish the AWS review, then return here to create the targeted plan.');
-      } else {
-        setProgress('This AWS account is verified and ready for a targeted plan.');
-      }
-      state.reload();
-    } catch (reason) {
-      setError({
-        title: 'AWS setup could not start.',
-        message: 'Check the account ID and try again.',
-        technicalDetail: reason instanceof Error ? reason.message : undefined,
-      });
-    } finally {
-      setBusy(false);
-    }
+    navigate(`/connections?account=${encodeURIComponent(form.cloudAccountId)}`);
   }
 
   async function submit(event: FormEvent) {
@@ -506,7 +472,7 @@ export default function NewPlanPage() {
                         className="button button-secondary"
                         type="button"
                         disabled={busy || !form.cloudAccountId || Boolean(selectedCloudConnection)}
-                        onClick={() => void beginAWSSetup()}
+                        onClick={beginAWSSetup}
                       >
                         {selectedCloudConnection ? 'AWS account verified' : 'Connect Account'}
                       </button>
