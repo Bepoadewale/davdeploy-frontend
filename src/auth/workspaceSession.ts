@@ -7,6 +7,11 @@ interface ResolveWorkspaceOptions {
   createWorkspace: boolean;
 }
 
+// A cold hosted database can take longer than the general UI request budget.
+// Authentication must not discard a valid Cognito session while that first
+// workspace lookup is waking the control plane.
+const AUTH_WORKSPACE_TIMEOUT_MS = 45_000;
+
 export async function resolveWorkspaceProfile(
   api: Pick<ApiClient, 'request'>,
   options: ResolveWorkspaceOptions,
@@ -18,6 +23,7 @@ export async function resolveWorkspaceProfile(
         workspace_name: options.identityName.split('@')[0] || 'My workspace',
         invitation_token: options.invitationToken || undefined,
       },
+      timeoutMs: AUTH_WORKSPACE_TIMEOUT_MS,
       retrySafe: false,
     });
 
@@ -26,7 +32,12 @@ export async function resolveWorkspaceProfile(
   }
 
   try {
-    return { profile: await api.request<WorkspaceProfile>('/api/v1/me'), onboarded: false };
+    return {
+      profile: await api.request<WorkspaceProfile>('/api/v1/me', {
+        timeoutMs: AUTH_WORKSPACE_TIMEOUT_MS,
+      }),
+      onboarded: false,
+    };
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 403) throw error;
     return { profile: await onboard(), onboarded: true };

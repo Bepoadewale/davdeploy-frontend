@@ -25,6 +25,7 @@ describe('workspace session resolution', () => {
       expect.objectContaining({
         method: 'POST',
         body: { workspace_name: 'founder', invitation_token: undefined },
+        timeoutMs: 45_000,
       }),
     );
   });
@@ -44,6 +45,7 @@ describe('workspace session resolution', () => {
       '/api/v1/onboarding',
       expect.objectContaining({
         body: { workspace_name: 'invitee', invitation_token: 'invitation-token' },
+        timeoutMs: 45_000,
       }),
     );
   });
@@ -61,7 +63,7 @@ describe('workspace session resolution', () => {
     });
 
     expect(result.onboarded).toBe(true);
-    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/me');
+    expect(request).toHaveBeenNthCalledWith(1, '/api/v1/me', { timeoutMs: 45_000 });
     expect(request).toHaveBeenNthCalledWith(2, '/api/v1/onboarding', expect.anything());
   });
 });
