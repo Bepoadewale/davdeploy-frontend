@@ -42,9 +42,10 @@ export default function HomePage() {
           <p className="ac3-kicker">
             <span /> Governed infrastructure for your cloud
           </p>
-          <h1 id="hero-heading">Cloud decisions, built on evidence.</h1>
+          <h1 id="hero-heading">Write what you need. We build the path.</h1>
           <p className="ac3-hero-summary">
-            Plan the right cloud infrastructure, with cost, risk, and approval in one place.
+            Describe your product in natural language. DavDeploy turns it into a cloud plan you can
+            review and deploy.
           </p>
           <div className="ac3-actions">
             <Link className="ac3-button ac3-button-primary" to="/login">
@@ -107,7 +108,10 @@ export default function HomePage() {
       <section className="ac3-who" aria-labelledby="audience-heading">
         <p className="ac3-eyebrow">Who it is for</p>
         <h2 id="audience-heading">Founders and product teams making cloud decisions.</h2>
-        <p>Get a clear plan before complexity and cost get ahead of you.</p>
+        <p>
+          Start in the browser, automate from the command line, or bring DavDeploy into your AI
+          tools with MCP.
+        </p>
       </section>
 
       <section id="workflow" className="ac3-workflow" aria-labelledby="workflow-heading">
