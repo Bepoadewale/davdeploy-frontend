@@ -182,7 +182,7 @@ describe('customer workflows', () => {
     );
 
     await user.type(await screen.findByRole('textbox', { name: 'AWS account ID' }), '123456789012');
-    await user.click(screen.getByRole('button', { name: 'Review AWS setup' }));
+    await user.click(screen.getByRole('button', { name: 'Connect Account' }));
 
     await waitFor(() =>
       expect(auth.api.request).toHaveBeenCalledWith(
