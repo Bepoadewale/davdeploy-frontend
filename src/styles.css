@@ -1857,6 +1857,19 @@ label > small {
 .connection-access-options small {
   color: var(--muted);
 }
+.administrator-acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.administrator-acknowledgement input {
+  width: auto;
+  margin: 3px 0 0;
+}
 .invitation-list {
   display: grid;
   gap: 0;

@@ -25,6 +25,7 @@ export default function ConnectionsPage() {
   >('discovery');
   const [discoveryRoleArn, setDiscoveryRoleArn] = useState('');
   const [executionRoleArn, setExecutionRoleArn] = useState('');
+  const [administratorAcknowledged, setAdministratorAcknowledged] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -62,7 +63,11 @@ export default function ConnectionsPage() {
         `/api/v1/cloud-connections/${connection.id}/aws-quick-create`,
         {
           method: 'POST',
-          body: { account_id: accountId, access_mode: accessMode },
+          body: {
+            account_id: accountId,
+            access_mode: accessMode,
+            acknowledge_administrator_access: administratorAcknowledged,
+          },
           retrySafe: false,
         },
       );
@@ -210,7 +215,10 @@ export default function ConnectionsPage() {
                     key={value}
                     type="button"
                     className={accessMode === value ? 'is-selected' : ''}
-                    onClick={() => setAccessMode(value as typeof accessMode)}
+                    onClick={() => {
+                      setAccessMode(value as typeof accessMode);
+                      setAdministratorAcknowledged(false);
+                    }}
                   >
                     <b>{title}</b>
                     <small>{detail}</small>
@@ -218,10 +226,20 @@ export default function ConnectionsPage() {
                 ))}
               </div>
               {accessMode === 'administrator-pilot' ? (
-                <p className="notice notice-error">
-                  Pilot access can create, change, and delete AWS resources. Use it only for a
-                  reviewed deployment pilot.
-                </p>
+                <div className="notice notice-error">
+                  <p>
+                    Pilot access can create, change, and delete AWS resources. Use it only for a
+                    reviewed deployment pilot.
+                  </p>
+                  <label className="administrator-acknowledgement">
+                    <input
+                      type="checkbox"
+                      checked={administratorAcknowledged}
+                      onChange={(event) => setAdministratorAcknowledged(event.target.checked)}
+                    />
+                    <span>I understand this creates an AdministratorAccess role.</span>
+                  </label>
+                </div>
               ) : null}
               {accessMode === 'existing-role' ? (
                 <div className="form-grid">
@@ -271,7 +289,12 @@ export default function ConnectionsPage() {
                     <button
                       className="button button-primary"
                       type="button"
-                      disabled={busy || !accountId}
+                      disabled={
+                        busy ||
+                        !accountId ||
+                        (accessMode === 'existing-role' && !discoveryRoleArn) ||
+                        (accessMode === 'administrator-pilot' && !administratorAcknowledged)
+                      }
                       onClick={() => void beginCloudConnection()}
                     >
                       {accessMode === 'existing-role'
