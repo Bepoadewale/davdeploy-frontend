@@ -1,6 +1,6 @@
 # Activity grouping, support lifecycle, and boundary coverage
 
-PR: pending
+PR: [#61 — Support history and Activity grouping](https://github.com/Bepoadewale/davdeploy-frontend/pull/61)
 Branch: `feat/support-activity-boundaries`
 
 ## Problem / goal
