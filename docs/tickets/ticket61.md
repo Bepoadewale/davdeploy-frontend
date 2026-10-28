@@ -32,11 +32,12 @@ authenticated AWS-only messaging.
 - [x] A member can view only their own support history; workspace managers can update state.
 - [x] Auth email success/failure and pilot gating have direct fixture coverage.
 - [x] Authenticated screens keep non-AWS providers explicitly unavailable while public marketing remains future-facing.
-- [ ] Full validation and CI pass.
+- [x] Full validation and CI passed.
 
 ## Acceptance status
 
-Implementation complete locally; validation and CI are pending.
+Completed: local verification, PR CI, review, merge and Cloudflare Pages production deployment
+passed. AWS remains the only active provider.
 
 ## Tests / validation performed
 
