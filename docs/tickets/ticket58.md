@@ -1,6 +1,6 @@
 # Browser acceptance, onboarding, and support hardening
 
-PR: pending
+PR: [#58 — Fixture browser acceptance and onboarding hardening](https://github.com/Bepoadewale/davdeploy-frontend/pull/58)
 
 ## Problem / goal
 
