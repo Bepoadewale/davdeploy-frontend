@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import type {
   Subscription,
+  SupportTicket,
   UsageSummary,
   WorkspaceInvitation,
   WorkspaceMember,
@@ -15,6 +16,8 @@ import { useAsync } from '../hooks/useAsync';
 export default function SettingsPage() {
   const { api, profile } = useAuth();
   const admin = profile?.user.role === 'administrator';
+  const supportManager =
+    profile?.user.role === 'administrator' || profile?.user.role === 'operator';
   const state = useAsync(
     async (signal) => ({
       members: await api.request<WorkspaceMember[]>('/api/v1/workspace/members', { signal }),
@@ -23,6 +26,7 @@ export default function SettingsPage() {
         : [],
       usage: await api.request<UsageSummary>('/api/v1/usage', { signal }),
       subscription: await api.request<Subscription>('/api/v1/billing/subscription', { signal }),
+      supportTickets: await api.request<SupportTicket[]>('/api/v1/support/tickets', { signal }),
     }),
     [admin, api],
   );
@@ -113,17 +117,38 @@ export default function SettingsPage() {
 
   async function support(event: FormEvent) {
     event.preventDefault();
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const ticket = await api.request<SupportTicket>('/api/v1/support/tickets', {
+        method: 'POST',
+        retrySafe: false,
+        body: { subject: supportSubject, body: supportBody },
+      });
+      setMessage(
+        `Support request recorded as ${ticket.state.toLowerCase()}. Use email support for urgent follow-up.`,
+      );
+      setSupportSubject('');
+      setSupportBody('');
+      state.reload();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Support request failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateSupportTicket(ticketId: string, stateValue: string) {
     await action(
       () =>
-        api.request('/api/v1/support/tickets', {
-          method: 'POST',
+        api.request(`/api/v1/support/tickets/${ticketId}`, {
+          method: 'PATCH',
           retrySafe: false,
-          body: { subject: supportSubject, body: supportBody },
+          body: { state: stateValue },
         }),
-      'Support request recorded. Use email support for urgent follow-up.',
+      `Support status updated to ${stateValue.toLowerCase().replaceAll('_', ' ')}.`,
     );
-    setSupportSubject('');
-    setSupportBody('');
   }
 
   return (
@@ -331,7 +356,7 @@ export default function SettingsPage() {
             </section>
             <section className="panel">
               <p className="eyebrow">Support</p>
-              <h2>Request product support</h2>
+              <h2>Support requests</h2>
               <p className="muted">
                 Record a workspace-scoped request here, or email support for access and incident
                 help. Never include passwords, one-time codes, keys, or cloud credentials.
@@ -361,6 +386,43 @@ export default function SettingsPage() {
               <a className="button button-quiet" href="mailto:support@davdeploy.tech">
                 Email support instead
               </a>
+              <div className="invitation-list" aria-label="Support request history">
+                {state.data.supportTickets.length ? (
+                  state.data.supportTickets.map((ticket) => (
+                    <div className="invitation-row" key={ticket.id}>
+                      <span>
+                        <b>{ticket.subject}</b>
+                        <small>
+                          {ticket.state.toLowerCase().replaceAll('_', ' ')} ·{' '}
+                          {ticket.created_by_subject}
+                        </small>
+                      </span>
+                      {supportManager ? (
+                        <label>
+                          Status
+                          <select
+                            aria-label={`Status for ${ticket.subject}`}
+                            value={ticket.state}
+                            disabled={busy}
+                            onChange={(event) =>
+                              void updateSupportTicket(ticket.id, event.target.value)
+                            }
+                          >
+                            <option value="OPEN">Open</option>
+                            <option value="IN_PROGRESS">In progress</option>
+                            <option value="RESOLVED">Resolved</option>
+                            <option value="CLOSED">Closed</option>
+                          </select>
+                        </label>
+                      ) : (
+                        <StatusBadge state={ticket.state} />
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="muted">No support requests yet.</p>
+                )}
+              </div>
             </section>
           </div>
         ) : null}

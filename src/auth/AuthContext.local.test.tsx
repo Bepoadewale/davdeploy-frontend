@@ -4,14 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const fixture = vi.hoisted(() => ({
   request: vi.fn(),
   resolveWorkspaceProfile: vi.fn(),
+  startEmailSignIn: vi.fn(),
+  verifyEmailChallenge: vi.fn(),
 }));
 
 vi.mock('../config', () => ({
   config: {
     localLoginEnabled: true,
     oidc: { authority: '', clientId: '', redirectUri: '', postLogoutRedirectUri: '' },
+    cognito: { region: 'test-region', clientId: 'test-client' },
   },
-  emailOtpConfigured: false,
+  emailOtpConfigured: true,
   oidcConfigured: false,
 }));
 
@@ -25,6 +28,11 @@ vi.mock('./workspaceSession', () => ({
   resolveWorkspaceProfile: fixture.resolveWorkspaceProfile,
 }));
 
+vi.mock('./cognitoEmail', () => ({
+  startEmailSignIn: fixture.startEmailSignIn,
+  verifyEmailChallenge: fixture.verifyEmailChallenge,
+}));
+
 import { AuthProvider, useAuth } from './AuthContext';
 
 function Probe() {
@@ -33,7 +41,18 @@ function Probe() {
     <>
       <output data-testid="subject">{auth.profile?.user.subject ?? ''}</output>
       <output data-testid="token">{auth.token ?? ''}</output>
+      <output data-testid="error">{auth.error ?? ''}</output>
       <button onClick={() => void auth.localSignIn('founder')}>Local sign in</button>
+      <button onClick={() => void auth.startEmailSignIn('person@example.com')}>
+        Email sign in
+      </button>
+      <button
+        onClick={() =>
+          void auth.verifyEmailCode({ email: 'person@example.com', kind: 'SIGN_UP' }, '123456')
+        }
+      >
+        Verify email code
+      </button>
       <button onClick={() => void auth.signOut()}>Sign out</button>
     </>
   );
@@ -43,6 +62,8 @@ describe('AuthProvider local fixture boundary', () => {
   beforeEach(() => {
     fixture.request.mockReset();
     fixture.resolveWorkspaceProfile.mockReset();
+    fixture.startEmailSignIn.mockReset();
+    fixture.verifyEmailChallenge.mockReset();
     fixture.request.mockResolvedValue({ access_token: 'fixture-token' });
     fixture.resolveWorkspaceProfile.mockResolvedValue({
       profile: {
@@ -50,6 +71,14 @@ describe('AuthProvider local fixture boundary', () => {
         workspace: { id: 'workspace-1', name: 'Fixture workspace' },
       },
       onboarded: false,
+    });
+    fixture.startEmailSignIn.mockResolvedValue({
+      status: 'AUTHENTICATED',
+      identityToken: 'email-token',
+    });
+    fixture.verifyEmailChallenge.mockResolvedValue({
+      status: 'AUTHENTICATED',
+      identityToken: 'verified-token',
     });
   });
 
@@ -79,5 +108,47 @@ describe('AuthProvider local fixture boundary', () => {
 
     expect(screen.getByTestId('subject')).toBeEmptyDOMElement();
     expect(screen.getByTestId('token')).toBeEmptyDOMElement();
+  });
+
+  it('adopts an authenticated email token and retains a plain-English failure when email sign-in fails', async () => {
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await act(async () => screen.getByRole('button', { name: 'Email sign in' }).click());
+    expect(fixture.startEmailSignIn).toHaveBeenCalledWith(
+      'test-region',
+      'test-client',
+      'person@example.com',
+    );
+    expect(screen.getByTestId('token')).toHaveTextContent('email-token');
+
+    fixture.startEmailSignIn.mockRejectedValueOnce(new Error('Email code sign-in is unavailable.'));
+    await act(async () => screen.getByRole('button', { name: 'Email sign in' }).click());
+    expect(screen.getByTestId('error')).toHaveTextContent('Email code sign-in is unavailable.');
+  });
+
+  it('creates a workspace only after a verified sign-up code returns an identity token', async () => {
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await act(async () => screen.getByRole('button', { name: 'Verify email code' }).click());
+
+    expect(fixture.verifyEmailChallenge).toHaveBeenCalledWith(
+      'test-region',
+      'test-client',
+      { email: 'person@example.com', kind: 'SIGN_UP' },
+      '123456',
+    );
+    expect(fixture.resolveWorkspaceProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ identityName: 'person@example.com', createWorkspace: true }),
+    );
+    expect(screen.getByTestId('token')).toHaveTextContent('verified-token');
   });
 });

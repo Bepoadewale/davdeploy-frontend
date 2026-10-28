@@ -1794,6 +1794,14 @@ label > small {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+.activity-environment {
+  margin-top: 20px;
+}
+
+.activity-date-heading {
+  margin-top: 10px;
+}
 .approved-actions .notice {
   flex: 1 0 100%;
   margin: 0;

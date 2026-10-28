@@ -178,3 +178,12 @@ export interface Subscription {
   limits?: Record<string, number>;
   [key: string]: unknown;
 }
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  body: string;
+  state: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | string;
+  created_by_subject: string;
+  created_at?: string;
+}
