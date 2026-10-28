@@ -7,8 +7,8 @@ export default function HelpPage() {
       <div className="page-heading visual-page-heading">
         <div>
           <p className="eyebrow">Help & updates</p>
-          <h1>Plan. Approve. Deploy.</h1>
-          <p>The product lifecycle at a glance.</p>
+          <h1>Plan. Approve. Prepare.</h1>
+          <p>Clear decisions before any cloud change.</p>
         </div>
         <ProductVisual kind="help" />
       </div>
@@ -27,20 +27,26 @@ export default function HelpPage() {
         </article>
         <article className="panel">
           <span className="feature-icon">03</span>
-          <h2>Execution</h2>
-          <p>Run the approved change and verify the observed result.</p>
+          <h2>Execution pilot</h2>
+          <p>
+            Approved plans can prepare a bounded next action. Customer deployment is separately
+            authorised.
+          </p>
           <Link to="/activity">Inspect activity</Link>
         </article>
       </div>
       <section className="panel changelog">
         <p className="eyebrow">Current release</p>
-        <h2>Governed cloud lifecycle</h2>
+        <h2>What is available today</h2>
         <ul>
-          <li>Static React application prepared for Cloudflare Pages Free.</li>
-          <li>The versioned cloud backend remains the authority for protected operations.</li>
-          <li>OIDC/PKCE seam supports future Google Workspace and Cognito configuration.</li>
-          <li>Cloudflare compute, storage, and paid add-ons are not required.</li>
+          <li>Plan with repository and cloud-account context.</li>
+          <li>Review immutable evidence and record an approval decision.</li>
+          <li>Connect AWS through a customer-owned role; no browser access keys are requested.</li>
+          <li>Contact support if a workspace invitation, connection, or plan needs help.</li>
         </ul>
+        <a className="button button-secondary" href="mailto:support@davdeploy.tech">
+          Contact support
+        </a>
       </section>
     </div>
   );

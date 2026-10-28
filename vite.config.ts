@@ -33,6 +33,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    exclude: ['**/node_modules/**', 'browser-tests/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json-summary'],

@@ -47,5 +47,6 @@ Cloudflare Worker, Function, storage, database, or paid plan.
 - [Local development](docs/LOCAL_DEVELOPMENT.md)
 - [Testing](docs/TESTING.md)
 - [Cloudflare deployment handoff](docs/CLOUDFLARE_DEPLOY_HANDOFF.md)
+- [GitHub App onboarding boundary](docs/GITHUB_ONBOARDING.md)
 - [Cloudflare Free guardrails](docs/CLOUDFLARE_FREE_COST_GUARDRAILS.md)
 - [Migration audit](docs/MIGRATION_AUDIT.md)

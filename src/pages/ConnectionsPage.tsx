@@ -185,6 +185,22 @@ export default function ConnectionsPage() {
                   Open GitHub authorization
                 </a>
               ) : null}
+              <div className="connection-guidance" aria-label="GitHub connection guidance">
+                <p>
+                  {state.data.github.webhooks_enabled
+                    ? 'Signed installation updates are available for this workspace.'
+                    : 'Repository discovery is available. Signed webhook updates are not enabled yet.'}
+                </p>
+                {state.data.github.installation_states?.length ? (
+                  <ul>
+                    {state.data.github.installation_states.map((installation) => (
+                      <li key={installation.installation_id}>
+                        {installation.account_login ?? 'GitHub installation'}: {installation.state}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
             </section>
             <section className="panel">
               <div className="section-heading">
