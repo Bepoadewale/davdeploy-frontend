@@ -17,6 +17,16 @@ function metadataValue(event: AuditEvent, names: string[]) {
   return '';
 }
 
+function activityProject(event: AuditEvent) {
+  return metadataValue(event, ['project_name', 'project_id']) || 'Unassigned project';
+}
+
+function activityEnvironment(event: AuditEvent) {
+  return metadataValue(event, ['environment', 'environment_name']) || 'No environment';
+}
+
+type ActivityGroups = Record<string, Record<string, Record<string, AuditEvent[]>>>;
+
 export default function ActivityPage() {
   const { api } = useAuth();
   const state = useAsync(
@@ -28,23 +38,11 @@ export default function ActivityPage() {
   const [environment, setEnvironment] = useState('');
   const [selected, setSelected] = useState<AuditEvent | null>(null);
   const projects = useMemo(
-    () =>
-      [
-        ...new Set(
-          (state.data ?? []).map((event) => metadataValue(event, ['project_name', 'project_id'])),
-        ),
-      ].filter(Boolean),
+    () => [...new Set((state.data ?? []).map(activityProject))].filter(Boolean),
     [state.data],
   );
   const environments = useMemo(
-    () =>
-      [
-        ...new Set(
-          (state.data ?? []).map((event) =>
-            metadataValue(event, ['environment', 'environment_name']),
-          ),
-        ),
-      ].filter(Boolean),
+    () => [...new Set((state.data ?? []).map(activityEnvironment))].filter(Boolean),
     [state.data],
   );
   const events = useMemo(
@@ -52,17 +50,20 @@ export default function ActivityPage() {
       (state.data ?? []).filter(
         (event) =>
           JSON.stringify(event).toLowerCase().includes(query.toLowerCase()) &&
-          (!project || metadataValue(event, ['project_name', 'project_id']) === project) &&
-          (!environment ||
-            metadataValue(event, ['environment', 'environment_name']) === environment),
+          (!project || activityProject(event) === project) &&
+          (!environment || activityEnvironment(event) === environment),
       ),
     [environment, project, query, state.data],
   );
-  const grouped = events.reduce<Record<string, AuditEvent[]>>((result, event) => {
+  const grouped = events.reduce<ActivityGroups>((result, event) => {
+    const projectName = activityProject(event);
+    const environmentName = activityEnvironment(event);
     const day = event.at
       ? new Date(event.at).toLocaleDateString(undefined, { dateStyle: 'long' })
       : 'Date unavailable';
-    (result[day] ??= []).push(event);
+    const environmentGroups = (result[projectName] ??= {});
+    const dayGroups = (environmentGroups[environmentName] ??= {});
+    (dayGroups[day] ??= []).push(event);
     return result;
   }, {});
   return (
@@ -129,37 +130,47 @@ export default function ActivityPage() {
       >
         {events.length ? (
           <div className="activity-groups">
-            {Object.entries(grouped).map(([date, items]) => (
-              <section key={date}>
+            {Object.entries(grouped).map(([projectName, environments]) => (
+              <section key={projectName}>
                 <div className="group-heading">
-                  <b>{date}</b>
-                  <small>{items.length} events</small>
+                  <b>{projectName}</b>
+                  <small>Project</small>
                 </div>
-                <div className="timeline">
-                  {items.map((event, index) => (
-                    <button
-                      type="button"
-                      key={event.id ?? index}
-                      onClick={() => setSelected(event)}
-                    >
-                      <span className="timeline-dot" />
-                      <span>
-                        <b>{event.action.replaceAll('_', ' ')}</b>
-                        <small>
-                          {event.actor_subject ?? 'system'} · {event.entity_type ?? 'event'} ·{' '}
-                          {event.at ? new Date(event.at).toLocaleTimeString() : 'time unavailable'}
-                          {metadataValue(event, ['project_name', 'project_id'])
-                            ? ` · ${metadataValue(event, ['project_name', 'project_id'])}`
-                            : ''}
-                          {metadataValue(event, ['environment', 'environment_name'])
-                            ? ` · ${metadataValue(event, ['environment', 'environment_name'])}`
-                            : ''}
-                        </small>
-                      </span>
-                      <span aria-hidden="true">›</span>
-                    </button>
-                  ))}
-                </div>
+                {Object.entries(environments).map(([environmentName, dates]) => (
+                  <div className="activity-environment" key={environmentName}>
+                    <p className="eyebrow">{environmentName}</p>
+                    {Object.entries(dates).map(([date, items]) => (
+                      <div key={date}>
+                        <div className="group-heading activity-date-heading">
+                          <b>{date}</b>
+                          <small>{items.length} events</small>
+                        </div>
+                        <div className="timeline">
+                          {items.map((event, index) => (
+                            <button
+                              type="button"
+                              key={event.id ?? index}
+                              onClick={() => setSelected(event)}
+                            >
+                              <span className="timeline-dot" />
+                              <span>
+                                <b>{event.action.replaceAll('_', ' ')}</b>
+                                <small>
+                                  {event.actor_subject ?? 'system'} · {event.entity_type ?? 'event'}{' '}
+                                  ·{' '}
+                                  {event.at
+                                    ? new Date(event.at).toLocaleTimeString()
+                                    : 'time unavailable'}
+                                </small>
+                              </span>
+                              <span aria-hidden="true">›</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </section>
             ))}
           </div>

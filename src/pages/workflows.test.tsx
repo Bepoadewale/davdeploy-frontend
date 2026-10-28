@@ -381,6 +381,21 @@ describe('customer workflows', () => {
     expect(applicationDetails).not.toHaveAttribute('open');
   });
 
+  it('keeps approved plans visibly separate from local evidence and deployment', async () => {
+    auth.api.request.mockResolvedValue({ ...review, state: 'APPROVED' });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/local evidence only/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Queue local dry-run' })).toBeEnabled();
+    expect(screen.getByText('Approved, not deployed.')).toBeInTheDocument();
+  });
+
   it('groups audit evidence and exposes inspectable event detail', async () => {
     auth.api.request.mockResolvedValue([
       {
@@ -425,8 +440,9 @@ describe('customer workflows', () => {
         return Promise.resolve([{ subject: 'developer', role: 'developer' }]);
       if (path.endsWith('/usage')) return Promise.resolve({});
       if (path.endsWith('/subscription')) return Promise.resolve({});
+      if (path === '/api/v1/support/tickets' && !options?.method) return Promise.resolve([]);
       if (path === '/api/v1/support/tickets' && options?.method === 'POST')
-        return Promise.resolve({});
+        return Promise.resolve({ id: 'support-1', state: 'OPEN' });
       return Promise.reject(new Error(`Unexpected ${path}`));
     });
     const user = userEvent.setup();
@@ -436,7 +452,7 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByRole('heading', { name: 'Request product support' });
+    await screen.findByRole('heading', { name: 'Support requests' });
     await user.type(screen.getByLabelText('Subject'), 'Need help with a plan');
     await user.type(screen.getByLabelText('Details'), 'The review needs clarification.');
     await user.click(screen.getByRole('button', { name: 'Record support request' }));
@@ -454,6 +470,43 @@ describe('customer workflows', () => {
       'href',
       'mailto:support@davdeploy.tech',
     );
+    expect(await screen.findByRole('status')).toHaveTextContent('recorded as open');
+  });
+
+  it('lets workspace support managers update a ticket status without exposing another workspace', async () => {
+    auth.profile.user.role = 'administrator';
+    auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path.endsWith('/members')) return Promise.resolve([]);
+      if (path.endsWith('/workspace/invitations')) return Promise.resolve([]);
+      if (path.endsWith('/usage') || path.endsWith('/subscription')) return Promise.resolve({});
+      if (path === '/api/v1/support/tickets' && !options?.method)
+        return Promise.resolve([
+          {
+            id: 'support-1',
+            subject: 'Need plan help',
+            body: 'Please review the plan.',
+            state: 'OPEN',
+            created_by_subject: 'developer',
+          },
+        ]);
+      if (path === '/api/v1/support/tickets/support-1' && options?.method === 'PATCH')
+        return Promise.resolve({ id: 'support-1', state: 'RESOLVED' });
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>,
+    );
+
+    await user.selectOptions(await screen.findByLabelText('Status for Need plan help'), 'RESOLVED');
+    await waitFor(() =>
+      expect(auth.api.request).toHaveBeenCalledWith(
+        '/api/v1/support/tickets/support-1',
+        expect.objectContaining({ method: 'PATCH', body: { state: 'RESOLVED' } }),
+      ),
+    );
   });
 
   it('keeps payment collection out of billing-ready settings', async () => {
@@ -468,6 +521,7 @@ describe('customer workflows', () => {
           state: 'ACTIVE',
           limits: { plans: 20 },
         });
+      if (path === '/api/v1/support/tickets') return Promise.resolve([]);
       return Promise.resolve({});
     });
     render(
@@ -504,6 +558,7 @@ describe('customer workflows', () => {
       if (path.endsWith('/usage')) return Promise.resolve({});
       if (path.endsWith('/subscription'))
         return Promise.resolve({ plan_name: 'private-beta', state: 'ACTIVE', limits: {} });
+      if (path === '/api/v1/support/tickets') return Promise.resolve([]);
       if (path.endsWith('/resend') || path.endsWith('/cancel')) return Promise.resolve({});
       return Promise.reject(new Error(`Unexpected ${path}`));
     });
