@@ -151,4 +151,37 @@ describe('AuthProvider local fixture boundary', () => {
     );
     expect(screen.getByTestId('token')).toHaveTextContent('verified-token');
   });
+
+  it('keeps local sign-in failures understandable and does not retain a token', async () => {
+    fixture.request.mockRejectedValueOnce(new Error('Local fixture sign-in is disabled.'));
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await act(async () => screen.getByRole('button', { name: 'Local sign in' }).click());
+
+    expect(screen.getByTestId('error')).toHaveTextContent('Local fixture sign-in is disabled.');
+    expect(screen.getByTestId('token')).toBeEmptyDOMElement();
+  });
+
+  it('keeps failed code verification understandable and does not create a workspace', async () => {
+    fixture.verifyEmailChallenge.mockRejectedValueOnce(
+      new Error('That code has expired. Request a new one.'),
+    );
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await act(async () => screen.getByRole('button', { name: 'Verify email code' }).click());
+
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'That code has expired. Request a new one.',
+    );
+    expect(screen.getByTestId('token')).toBeEmptyDOMElement();
+    expect(fixture.resolveWorkspaceProfile).not.toHaveBeenCalled();
+  });
 });
