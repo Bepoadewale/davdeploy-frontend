@@ -3,25 +3,44 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './LoginPage';
 
+const auth = vi.hoisted(() => ({
+  profile: null as { workspace: { id: string } } | null,
+  loading: false,
+  error: null as string | null,
+  signInWithGoogle: vi.fn<() => Promise<void>>(),
+  startEmailSignIn: vi.fn(),
+  startEmailSignUp: vi.fn(),
+  verifyEmailCode: vi.fn(),
+  localSignIn: vi.fn(),
+}));
+
 vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({
-    profile: null,
-    loading: false,
-    error: null,
-    signInWithGoogle: vi.fn(),
-    startEmailSignIn: vi.fn(),
-    startEmailSignUp: vi.fn(),
-    verifyEmailCode: vi.fn(),
-    localSignIn: vi.fn(),
-  }),
+  useAuth: () => auth,
+}));
+
+vi.mock('../config', () => ({
+  config: { authMode: 'oidc', localLoginEnabled: false },
+  emailOtpConfigured: true,
+  googleSignInConfigured: true,
 }));
 
 describe('hosted workspace sign-in', () => {
-  it('fails closed with a clear configuration state', () => {
+  beforeEach(() => {
+    auth.profile = null;
+    auth.loading = false;
+    auth.error = null;
+    auth.signInWithGoogle.mockReset().mockResolvedValue();
+    auth.startEmailSignIn.mockReset();
+    auth.startEmailSignUp.mockReset();
+    auth.verifyEmailCode.mockReset();
+    auth.localSignIn.mockReset();
+  });
+
+  it('presents configured email and Google workspace access', () => {
     render(
       <MemoryRouter>
         <LoginPage />
@@ -32,10 +51,9 @@ describe('hosted workspace sign-in', () => {
     expect(screen.getByRole('heading', { name: /clear cloud decisions/i })).toBeInTheDocument();
     expect(screen.getByText(/sign in to continue with your workspace/i)).toBeInTheDocument();
     expect(screen.getByText('Verified membership')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Continue with Google' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Sign in with email' })).toBeDisabled();
-    expect(screen.getByText('Workspace access is not configured')).toBeInTheDocument();
-    expect(screen.getByText(/Cognito is connected/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Sign in with email' })).toBeEnabled();
+    expect(screen.queryByText('Workspace access is not configured')).not.toBeInTheDocument();
   });
 
   it('presents explicit sign-in and account-creation paths', async () => {
@@ -53,6 +71,87 @@ describe('hosted workspace sign-in', () => {
     expect(createAccount).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('heading', { name: 'Create your workspace.' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Create account' })).toHaveLength(2);
+  });
+
+  it('starts email sign-in, presents the code step, and verifies the same challenge', async () => {
+    auth.startEmailSignIn.mockResolvedValue({
+      status: 'CHALLENGE',
+      challenge: { email: 'person@example.com', kind: 'SIGN_IN', session: 'session-1' },
+      message: 'Enter the code sent to your email.',
+    });
+    auth.verifyEmailCode.mockResolvedValue({ status: 'AUTHENTICATED', identityToken: 'token' });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText('Work email'), 'person@example.com');
+    await user.click(screen.getByRole('button', { name: 'Sign in with email' }));
+    expect(auth.startEmailSignIn).toHaveBeenCalledWith('person@example.com');
+    expect(await screen.findByLabelText('Email verification code')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Enter the code sent to your email.');
+
+    await user.type(screen.getByLabelText('Email verification code'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Verify and continue' }));
+    expect(auth.verifyEmailCode).toHaveBeenCalledWith(
+      { email: 'person@example.com', kind: 'SIGN_IN', session: 'session-1' },
+      '123456',
+    );
+  });
+
+  it('starts account creation and lets a customer return to a different email', async () => {
+    auth.startEmailSignUp.mockResolvedValue({
+      status: 'CHALLENGE',
+      challenge: { email: 'new@example.com', kind: 'SIGN_UP' },
+      message: 'Enter the code sent to your email to create your workspace.',
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    await user.type(screen.getByLabelText('Work email'), 'new@example.com');
+    await user.click(screen.getAllByRole('button', { name: 'Create account' })[1]);
+    expect(auth.startEmailSignUp).toHaveBeenCalledWith('new@example.com');
+    expect(await screen.findByText('Code sent to new@example.com')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Use a different email' }));
+    expect(screen.getByLabelText('Work email')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('starts Google sign-in and makes provider errors visible', async () => {
+    auth.error = 'Google sign-in could not be started.';
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Google sign-in could not be started.');
+    await user.click(screen.getByRole('button', { name: 'Continue with Google' }));
+    expect(auth.signInWithGoogle).toHaveBeenCalledTimes(1);
+  });
+
+  it('redirects an established workspace instead of showing login controls', () => {
+    auth.profile = { workspace: { id: 'workspace-1' } };
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/overview" element={<p>Workspace overview</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Workspace overview')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sign in with email' })).not.toBeInTheDocument();
   });
 
   it('has no automatically detectable WCAG 2.2 A/AA violations', async () => {
