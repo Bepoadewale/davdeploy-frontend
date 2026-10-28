@@ -128,6 +128,36 @@ describe('authenticated connected-route acceptance', () => {
     );
   });
 
+  it('keeps incomplete role setup disabled and shows a clear API failure', async () => {
+    state.api.request.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path === '/api/v1/github/connection')
+        return Promise.resolve({ execution: 'LIVE_READ_ONLY', installations: [] });
+      if (path === '/api/v1/cloud-connections' && !options?.method) return Promise.resolve([]);
+      if (path === '/api/v1/cloud-connections' && options?.method === 'POST')
+        return Promise.resolve({ id: 'connection-1' });
+      if (path.endsWith('/aws-existing-role'))
+        return Promise.reject(new Error('Role trust needs the external ID.'));
+      throw new Error(`Unexpected ${path}`);
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <ConnectionsPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: /use an existing role/i }));
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
+    expect(screen.getByRole('button', { name: 'Use role contract' })).toBeDisabled();
+    await user.type(
+      screen.getByRole('textbox', { name: 'Discovery role ARN' }),
+      'arn:aws:iam::123456789012:role/DavDeployDiscovery',
+    );
+    await user.click(screen.getByRole('button', { name: 'Use role contract' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Role trust needs the external ID.');
+  });
+
   it('filters and compares immutable plan history', async () => {
     state.api.request.mockResolvedValue({
       workspace: { id: 'workspace-1', name: 'Acme' },

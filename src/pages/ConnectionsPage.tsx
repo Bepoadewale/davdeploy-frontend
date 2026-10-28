@@ -27,20 +27,24 @@ export default function ConnectionsPage() {
   const [executionRoleArn, setExecutionRoleArn] = useState('');
   const [administratorAcknowledged, setAdministratorAcknowledged] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function beginCloudConnection() {
     setBusy(true);
     setMessage(null);
+    setError(null);
     try {
       if (!/^\d{12}$/.test(accountId)) throw new Error('Enter a 12-digit AWS account ID.');
+      if (accessMode === 'existing-role' && !discoveryRoleArn) {
+        throw new Error('Enter the existing read-only discovery role ARN.');
+      }
       const connection = await api.request<CloudConnection>('/api/v1/cloud-connections', {
         method: 'POST',
         body: { display_name: `AWS account ${accountId}`, provider: 'aws' },
         retrySafe: false,
       });
       if (accessMode === 'existing-role') {
-        if (!discoveryRoleArn) throw new Error('Enter the existing read-only discovery role ARN.');
         const setup = await api.request<{ external_id: string }>(
           `/api/v1/cloud-connections/${connection.id}/aws-existing-role`,
           {
@@ -79,7 +83,7 @@ export default function ConnectionsPage() {
       );
       state.reload();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Connection setup failed.');
+      setError(error instanceof Error ? error.message : 'Connection setup failed.');
     } finally {
       setBusy(false);
     }
@@ -88,12 +92,13 @@ export default function ConnectionsPage() {
   async function disconnect(id: string) {
     setBusy(true);
     setMessage(null);
+    setError(null);
     try {
       await api.request(`/api/v1/cloud-connections/${id}`, { method: 'DELETE', retrySafe: false });
       setMessage('Connection metadata disconnected.');
       state.reload();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Disconnect failed.');
+      setError(error instanceof Error ? error.message : 'Disconnect failed.');
     } finally {
       setBusy(false);
     }
@@ -102,6 +107,7 @@ export default function ConnectionsPage() {
   async function verifyConnection(id: string) {
     setBusy(true);
     setMessage(null);
+    setError(null);
     try {
       const job = await api.request<{ id: string; state: string }>(
         `/api/v1/cloud-connections/${id}/aws-verify`,
@@ -114,7 +120,7 @@ export default function ConnectionsPage() {
       );
       state.reload();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Connection verification failed.');
+      setError(error instanceof Error ? error.message : 'Connection verification failed.');
     } finally {
       setBusy(false);
     }
@@ -133,6 +139,11 @@ export default function ConnectionsPage() {
       {message ? (
         <div className="notice" role="status">
           {message}
+        </div>
+      ) : null}
+      {error ? (
+        <div className="notice notice-error" role="alert">
+          {error}
         </div>
       ) : null}
       <AsyncRegion

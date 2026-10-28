@@ -595,6 +595,47 @@ describe('customer workflows', () => {
     );
   });
 
+  it('filters support history by status while retaining requester and timestamp context', async () => {
+    auth.profile.user.role = 'administrator';
+    auth.api.request.mockImplementation((path: string) => {
+      if (path.endsWith('/members') || path.endsWith('/workspace/invitations'))
+        return Promise.resolve([]);
+      if (path.endsWith('/usage') || path.endsWith('/subscription')) return Promise.resolve({});
+      if (path === '/api/v1/support/tickets')
+        return Promise.resolve([
+          {
+            id: 'support-open',
+            subject: 'Open request',
+            body: 'Need help',
+            state: 'OPEN',
+            created_by_subject: 'developer',
+            created_at: '2026-10-28T12:00:00Z',
+          },
+          {
+            id: 'support-resolved',
+            subject: 'Resolved request',
+            body: 'Done',
+            state: 'RESOLVED',
+            created_by_subject: 'operator',
+            created_at: '2026-10-27T12:00:00Z',
+          },
+        ]);
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Open request')).toBeInTheDocument();
+    expect(screen.getByText(/developer ·/i)).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Filter support status'), 'RESOLVED');
+    expect(screen.queryByText('Open request')).not.toBeInTheDocument();
+    expect(screen.getByText('Resolved request')).toBeInTheDocument();
+  });
+
   it('keeps payment collection out of billing-ready settings', async () => {
     auth.profile.user.role = 'developer';
     auth.api.request.mockImplementation((path: string) => {
