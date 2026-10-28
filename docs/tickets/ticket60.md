@@ -25,11 +25,12 @@ Update only the historical ticket status and record local documentation validati
 
 - [x] Ticket #58 records its completed CI, merge and production deployment.
 - [x] The record does not claim a public webhook or customer workload deployment.
-- [x] Local documentation validation passes; PR CI remains pending.
+- [x] Local documentation validation and PR CI passed.
 
 ## Acceptance status
 
-Implementation and local validation complete; PR CI is pending.
+Completed: local validation, PR CI, review, merge and Cloudflare Pages production deployment
+passed. The deployment contained documentation only.
 
 ## Tests / validation performed
 
