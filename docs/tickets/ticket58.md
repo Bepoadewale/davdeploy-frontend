@@ -33,8 +33,9 @@ clarify help content, add a support route, and apply safe dependency patch updat
 
 ## Acceptance status
 
-Local validation passed. CI, review, merge, and Cloudflare Pages production deployment remain
-pending.
+Completed: local validation, CI, review, merge, and Cloudflare Pages production deployment passed.
+The production deployment is available at `https://davdeploy.tech`; this did not enable a public
+webhook or customer workload execution.
 
 ## Tests / validation performed
 
