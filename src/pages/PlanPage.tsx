@@ -7,6 +7,7 @@ import { ReadableData, RawData } from '../components/ReadableData';
 import { StatusBadge } from '../components/StatusBadge';
 import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
+import { downloadJson } from '../utils/downloadJson';
 
 type MutationBody = Record<string, unknown> | undefined;
 
@@ -92,16 +93,11 @@ export default function PlanPage() {
 
   function exportSummary() {
     if (!review) return;
-    const blob = new Blob(
-      [JSON.stringify({ exported_at: new Date().toISOString(), revision: review }, null, 2)],
-      { type: 'application/json' },
-    );
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `davdeploy-plan-${review.id}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadJson(`davdeploy-plan-${review.id}.json`, {
+      exported_at: new Date().toISOString(),
+      export_type: 'plan-review-evidence',
+      revision: review,
+    });
   }
 
   async function addComment(event: FormEvent) {
@@ -135,7 +131,7 @@ export default function PlanPage() {
               <div className="heading-actions">
                 <StatusBadge state={review.state} />
                 <button className="button button-secondary" type="button" onClick={exportSummary}>
-                  Export review
+                  Download plan evidence
                 </button>
               </div>
             </div>
@@ -411,8 +407,10 @@ function ApprovedActions({
   return (
     <div className="approved-actions">
       <div className="notice">
-        <strong>Bounded local actions</strong>
-        <span>These create evidence or fixture runs. They do not imply a cloud deployment.</span>
+        <strong>01 · Local evidence only</strong>
+        <span>
+          These create fixture evidence. They do not contact or deploy to a cloud account.
+        </span>
       </div>
       <button
         className="button button-secondary"
@@ -440,7 +438,7 @@ function ApprovedActions({
           )
         }
       >
-        Create desired-state review
+        Record desired-state review
       </button>
       <button
         className="button button-secondary"
@@ -454,10 +452,13 @@ function ApprovedActions({
           )
         }
       >
-        Generate Terraform contract
+        Generate plan-only contract
       </button>
       {admin ? (
         <>
+          <p className="execution-stage-label">
+            02 · Pilot preparation — no customer resources change
+          </p>
           <button
             className="button button-secondary"
             disabled={busy}
@@ -477,7 +478,7 @@ function ApprovedActions({
               )
             }
           >
-            Run readiness preflight
+            Run local readiness preflight
           </button>
           <button
             className="button button-secondary"
@@ -497,7 +498,7 @@ function ApprovedActions({
               )
             }
           >
-            Record plan-only review
+            Record local plan-only review
           </button>
           <button
             className="button button-secondary"
@@ -519,13 +520,13 @@ function ApprovedActions({
               )
             }
           >
-            Request guarded run record
+            Record guarded-run request
           </button>
-          <div className="notice notice-success">
-            <strong>Reviewed cloud lifecycle</strong>
+          <div className="notice execution-pilot-notice">
+            <strong>03 · Separately authorised customer pilot</strong>
             <span>
-              This path is available only for a verified connection. It creates a saved plan for
-              review before an administrator can queue an exact apply or destroy operation.
+              This path is available only for a verified connection and an enabled operator runtime.
+              A saved cloud plan still needs review before any apply or destroy.
             </span>
           </div>
           <button
@@ -548,7 +549,7 @@ function ApprovedActions({
               )
             }
           >
-            Check cloud readiness
+            Check customer-pilot readiness
           </button>
           <button
             className="button button-primary"
@@ -569,7 +570,7 @@ function ApprovedActions({
               )
             }
           >
-            Create real cloud plan
+            Create reviewed cloud plan
           </button>
           <button
             className="button button-primary"
@@ -596,7 +597,7 @@ function ApprovedActions({
               );
             }}
           >
-            Create reviewed deployment
+            Create reviewed deployment request
           </button>
           <button
             className="button button-primary"
@@ -664,7 +665,7 @@ function ApprovedActions({
               );
             }}
           >
-            Create reviewed teardown
+            Create reviewed teardown request
           </button>
         </>
       ) : null}

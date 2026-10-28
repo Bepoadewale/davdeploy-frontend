@@ -6,6 +6,16 @@ import { EmptyState } from '../components/EmptyState';
 import { RawData } from '../components/ReadableData';
 import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
+import { downloadJson } from '../utils/downloadJson';
+
+function metadataValue(event: AuditEvent, names: string[]) {
+  const metadata = event.metadata ?? {};
+  for (const name of names) {
+    const value = metadata[name];
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return '';
+}
 
 export default function ActivityPage() {
   const { api } = useAuth();
@@ -14,13 +24,39 @@ export default function ActivityPage() {
     [api],
   );
   const [query, setQuery] = useState('');
+  const [project, setProject] = useState('');
+  const [environment, setEnvironment] = useState('');
   const [selected, setSelected] = useState<AuditEvent | null>(null);
+  const projects = useMemo(
+    () =>
+      [
+        ...new Set(
+          (state.data ?? []).map((event) => metadataValue(event, ['project_name', 'project_id'])),
+        ),
+      ].filter(Boolean),
+    [state.data],
+  );
+  const environments = useMemo(
+    () =>
+      [
+        ...new Set(
+          (state.data ?? []).map((event) =>
+            metadataValue(event, ['environment', 'environment_name']),
+          ),
+        ),
+      ].filter(Boolean),
+    [state.data],
+  );
   const events = useMemo(
     () =>
-      (state.data ?? []).filter((event) =>
-        JSON.stringify(event).toLowerCase().includes(query.toLowerCase()),
+      (state.data ?? []).filter(
+        (event) =>
+          JSON.stringify(event).toLowerCase().includes(query.toLowerCase()) &&
+          (!project || metadataValue(event, ['project_name', 'project_id']) === project) &&
+          (!environment ||
+            metadataValue(event, ['environment', 'environment_name']) === environment),
       ),
-    [query, state.data],
+    [environment, project, query, state.data],
   );
   const grouped = events.reduce<Record<string, AuditEvent[]>>((result, event) => {
     const day = event.at
@@ -42,7 +78,7 @@ export default function ActivityPage() {
           Refresh
         </button>
       </div>
-      <div className="filter-bar single">
+      <div className="filter-bar">
         <label>
           Search activity
           <input
@@ -51,6 +87,39 @@ export default function ActivityPage() {
             placeholder="Action, actor, or entity"
           />
         </label>
+        <label>
+          Project
+          <select value={project} onChange={(event) => setProject(event.target.value)}>
+            <option value="">All projects</option>
+            {projects.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Environment
+          <select value={environment} onChange={(event) => setEnvironment(event.target.value)}>
+            <option value="">All environments</option>
+            {environments.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          className="button button-secondary"
+          type="button"
+          disabled={!events.length}
+          onClick={() =>
+            downloadJson('davdeploy-audit-evidence.json', {
+              exported_at: new Date().toISOString(),
+              export_type: 'filtered-audit-evidence',
+              filters: { query, project: project || null, environment: environment || null },
+              events,
+            })
+          }
+        >
+          Download evidence
+        </button>
       </div>
       <AsyncRegion
         loading={state.loading}
@@ -79,6 +148,12 @@ export default function ActivityPage() {
                         <small>
                           {event.actor_subject ?? 'system'} · {event.entity_type ?? 'event'} ·{' '}
                           {event.at ? new Date(event.at).toLocaleTimeString() : 'time unavailable'}
+                          {metadataValue(event, ['project_name', 'project_id'])
+                            ? ` · ${metadataValue(event, ['project_name', 'project_id'])}`
+                            : ''}
+                          {metadataValue(event, ['environment', 'environment_name'])
+                            ? ` · ${metadataValue(event, ['environment', 'environment_name'])}`
+                            : ''}
                         </small>
                       </span>
                       <span aria-hidden="true">›</span>

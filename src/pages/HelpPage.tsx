@@ -29,8 +29,8 @@ export default function HelpPage() {
           <span className="feature-icon">03</span>
           <h2>Execution pilot</h2>
           <p>
-            Approved plans can prepare a bounded next action. Customer deployment is separately
-            authorised.
+            Approved plans can prepare a bounded next action. Deployment needs a separately
+            authorised customer pilot and independently observed results.
           </p>
           <Link to="/activity">Inspect activity</Link>
         </article>
@@ -42,11 +42,19 @@ export default function HelpPage() {
           <li>Plan with repository and cloud-account context.</li>
           <li>Review immutable evidence and record an approval decision.</li>
           <li>Connect AWS through a customer-owned role; no browser access keys are requested.</li>
+          <li>
+            AWS is available today. Azure, Google Cloud, and other providers are planned, not
+            active.
+          </li>
+          <li>Approval, a plan, and pilot access are not a deployment.</li>
           <li>Contact support if a workspace invitation, connection, or plan needs help.</li>
         </ul>
         <a className="button button-secondary" href="mailto:support@davdeploy.tech">
           Contact support
         </a>
+        <Link className="button button-quiet" to="/settings">
+          Record a support request
+        </Link>
       </section>
     </div>
   );

@@ -13,6 +13,8 @@ describe('static hosting and responsive contract', () => {
     expect(css).toContain('prefers-reduced-motion');
     expect(css).toContain('forced-colors');
     expect(css).toContain('prefers-color-scheme: dark');
+    expect(css).toContain('.execution-stage-label');
+    expect(css).toContain('.filter-bar');
   });
 
   it('ships browser security headers without a Cloudflare runtime', () => {

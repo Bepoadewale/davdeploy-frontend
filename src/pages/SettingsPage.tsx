@@ -120,7 +120,7 @@ export default function SettingsPage() {
           retrySafe: false,
           body: { subject: supportSubject, body: supportBody },
         }),
-      'Support request recorded by the backend.',
+      'Support request recorded. Use email support for urgent follow-up.',
     );
     setSupportSubject('');
     setSupportBody('');
@@ -331,7 +331,11 @@ export default function SettingsPage() {
             </section>
             <section className="panel">
               <p className="eyebrow">Support</p>
-              <h2>Contact the product team</h2>
+              <h2>Request product support</h2>
+              <p className="muted">
+                Record a workspace-scoped request here, or email support for access and incident
+                help. Never include passwords, one-time codes, keys, or cloud credentials.
+              </p>
               <form onSubmit={(event) => void support(event)}>
                 <label>
                   Subject
@@ -351,9 +355,12 @@ export default function SettingsPage() {
                   />
                 </label>
                 <button className="button button-primary" disabled={busy} type="submit">
-                  Send request
+                  Record support request
                 </button>
               </form>
+              <a className="button button-quiet" href="mailto:support@davdeploy.tech">
+                Email support instead
+              </a>
             </section>
           </div>
         ) : null}
