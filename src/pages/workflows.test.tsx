@@ -327,6 +327,29 @@ describe('customer workflows', () => {
     expect(await screen.findByText(/approval persisted/i)).toBeInTheDocument();
   });
 
+  it('keeps a failed plan decision visible and understandable', async () => {
+    auth.profile.user.role = 'administrator';
+    auth.api.request.mockImplementation((_path: string, options?: { method?: string }) => {
+      if (options?.method === 'POST')
+        return Promise.reject(new Error('The plan changed. Refresh it first.'));
+      return Promise.resolve(review);
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: /approve exact digest/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The plan changed. Refresh it first.',
+    );
+  });
+
   it('keeps plan evidence compact until a reviewer chooses to read details', async () => {
     auth.profile.user.role = 'developer';
     auth.api.request.mockResolvedValue({
@@ -366,7 +389,15 @@ describe('customer workflows', () => {
         at: '2026-10-16T12:00:00Z',
         actor_subject: 'developer',
         entity_type: 'plan',
-        metadata: { digest: 'abc' },
+        metadata: { digest: 'abc', project_name: 'Payments', environment: 'production' },
+      },
+      {
+        id: 'event-2',
+        action: 'plan_created',
+        at: '2026-10-16T10:00:00Z',
+        actor_subject: 'developer',
+        entity_type: 'plan',
+        metadata: { project_name: 'Analytics', environment: 'staging' },
       },
     ]);
     const user = userEvent.setup();
@@ -379,6 +410,50 @@ describe('customer workflows', () => {
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByRole('heading', { name: /plan submitted/i })).toBeInTheDocument();
     expect(within(dialog).getByText(/event evidence/i)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+
+    await user.selectOptions(screen.getByLabelText('Project'), 'Payments');
+    await user.selectOptions(screen.getByLabelText('Environment'), 'production');
+    expect(screen.queryByRole('button', { name: /plan created/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download evidence' })).toBeEnabled();
+  });
+
+  it('records a support request without claiming it sends an email', async () => {
+    auth.profile.user.role = 'developer';
+    auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path.endsWith('/members'))
+        return Promise.resolve([{ subject: 'developer', role: 'developer' }]);
+      if (path.endsWith('/usage')) return Promise.resolve({});
+      if (path.endsWith('/subscription')) return Promise.resolve({});
+      if (path === '/api/v1/support/tickets' && options?.method === 'POST')
+        return Promise.resolve({});
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('heading', { name: 'Request product support' });
+    await user.type(screen.getByLabelText('Subject'), 'Need help with a plan');
+    await user.type(screen.getByLabelText('Details'), 'The review needs clarification.');
+    await user.click(screen.getByRole('button', { name: 'Record support request' }));
+
+    await waitFor(() =>
+      expect(auth.api.request).toHaveBeenCalledWith(
+        '/api/v1/support/tickets',
+        expect.objectContaining({
+          method: 'POST',
+          body: { subject: 'Need help with a plan', body: 'The review needs clarification.' },
+        }),
+      ),
+    );
+    expect(screen.getByRole('link', { name: 'Email support instead' })).toHaveAttribute(
+      'href',
+      'mailto:support@davdeploy.tech',
+    );
   });
 
   it('keeps payment collection out of billing-ready settings', async () => {

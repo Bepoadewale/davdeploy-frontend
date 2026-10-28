@@ -1,6 +1,6 @@
 # Customer evidence, support, and provider-boundary experience
 
-PR: pending
+PR: [#59 — Customer evidence, support, and provider-boundary experience](https://github.com/Bepoadewale/davdeploy-frontend/pull/59)
 Branch: `feat/customer-evidence-support`
 
 ## Problem / goal
@@ -26,15 +26,15 @@ and extend direct component tests without enabling a provider integration or clo
 
 ## Acceptance criteria
 
-- [ ] Users can download browser-rendered plan/audit evidence without exposing secrets.
-- [ ] Plans and activity can be grouped/filtered by project and environment where the API provides it.
-- [ ] Support guidance creates no fake ticket or deployment state and exposes the public contact path.
-- [ ] AWS is the only operational provider; future providers remain clearly unavailable.
-- [ ] Auth, plan, errors, and responsive layouts receive direct test coverage.
+- [x] Users can download browser-rendered plan/audit evidence without exposing secrets.
+- [x] Plans and activity can be grouped/filtered by project and environment where the API provides it.
+- [x] Support guidance creates no fake ticket or deployment state and exposes the public contact path.
+- [x] AWS is the only operational provider; future providers remain clearly unavailable.
+- [x] Auth, plan, errors, and responsive layouts receive direct test coverage.
 
 ## Acceptance status
 
-Draft; implementation has not started.
+Implementation complete locally; full verification and PR CI are pending.
 
 ## Tests / validation performed
 
