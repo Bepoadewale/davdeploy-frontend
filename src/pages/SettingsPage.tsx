@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import type {
   Subscription,
@@ -37,6 +37,14 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [supportState, setSupportState] = useState('');
+  const supportTickets = useMemo(
+    () =>
+      (state.data?.supportTickets ?? []).filter(
+        (ticket) => !supportState || ticket.state === supportState,
+      ),
+    [state.data?.supportTickets, supportState],
+  );
 
   async function action(task: () => Promise<unknown>, success: string) {
     setBusy(true);
@@ -386,15 +394,33 @@ export default function SettingsPage() {
               <a className="button button-quiet" href="mailto:support@davdeploy.tech">
                 Email support instead
               </a>
+              {state.data.supportTickets.length ? (
+                <label>
+                  Filter support status
+                  <select
+                    value={supportState}
+                    onChange={(event) => setSupportState(event.target.value)}
+                  >
+                    <option value="">All requests</option>
+                    <option value="OPEN">Open</option>
+                    <option value="IN_PROGRESS">In progress</option>
+                    <option value="RESOLVED">Resolved</option>
+                    <option value="CLOSED">Closed</option>
+                  </select>
+                </label>
+              ) : null}
               <div className="invitation-list" aria-label="Support request history">
-                {state.data.supportTickets.length ? (
-                  state.data.supportTickets.map((ticket) => (
+                {supportTickets.length ? (
+                  supportTickets.map((ticket) => (
                     <div className="invitation-row" key={ticket.id}>
                       <span>
                         <b>{ticket.subject}</b>
                         <small>
                           {ticket.state.toLowerCase().replaceAll('_', ' ')} ·{' '}
                           {ticket.created_by_subject}
+                          {ticket.created_at
+                            ? ` · ${new Date(ticket.created_at).toLocaleString()}`
+                            : ''}
                         </small>
                       </span>
                       {supportManager ? (
@@ -420,7 +446,11 @@ export default function SettingsPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="muted">No support requests yet.</p>
+                  <p className="muted">
+                    {state.data.supportTickets.length
+                      ? 'No support requests match this status.'
+                      : 'No support requests yet.'}
+                  </p>
                 )}
               </div>
             </section>
