@@ -1857,6 +1857,23 @@ label > small {
 .connection-access-options small {
   color: var(--muted);
 }
+.connection-guidance {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+.connection-guidance p,
+.connection-guidance ul {
+  margin: 0;
+}
+.connection-guidance ul {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  padding-left: 18px;
+}
 .administrator-acknowledgement {
   display: flex;
   align-items: flex-start;

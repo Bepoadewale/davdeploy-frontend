@@ -21,6 +21,17 @@ Mocked tests prove browser behavior, not live Google/Cognito authentication, Git
 role assumption, provider deployment, or infrastructure correctness. Those require the separate
 backend integration environment and are reported explicitly as live-environment validation.
 
+## Fixture-backed browser acceptance
+
+`npm run test:browser` starts a local Vite development server with only the explicit local-fixture
+login enabled. Playwright intercepts the fixture API host, so the suite never contacts Cognito,
+GitHub, AWS, Cloudflare, or the hosted API. It covers fixture sign-in, the first-plan state, the
+administrator-pilot acknowledgement boundary, plan provider/input errors, and mobile access to
+product/support guidance.
+
+Install the local browser once with `npx playwright install chromium`. CI installs Chromium and runs
+the same suite after `npm run verify`.
+
 Every runnable PR records focused local validation in its PR-numbered evidence. Releases and
 changes affecting dependencies, build/bootstrap behavior, authentication/session handling, API
 contracts, routing, static hosting, or runtime security controls also record one clean local

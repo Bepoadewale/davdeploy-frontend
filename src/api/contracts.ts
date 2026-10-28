@@ -64,12 +64,20 @@ export interface GitHubInstallation {
   account_type: string;
 }
 
+export interface GitHubInstallationState {
+  installation_id: string;
+  state: string;
+  account_login?: string;
+  repository_selection?: string;
+  last_event?: { event?: string; action?: string };
+}
+
 export interface GitHubConnection {
   execution: 'SIMULATED' | 'LIVE' | string;
   installations: GitHubInstallation[];
   install_url?: string | null;
   webhooks_enabled?: boolean;
-  installation_states?: Array<Record<string, unknown>>;
+  installation_states?: GitHubInstallationState[];
   recent_webhook_deliveries?: Array<Record<string, unknown>>;
 }
 
