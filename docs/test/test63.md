@@ -22,7 +22,7 @@ audit.
 
 Passed.
 
-## Limitations
+## Known limitations
 
 The tests validate browser request boundaries and messages; server-side authorisation remains the
 backend's responsibility.
