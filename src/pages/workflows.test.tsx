@@ -396,6 +396,92 @@ describe('customer workflows', () => {
     expect(screen.getByText('Approved, not deployed.')).toBeInTheDocument();
   });
 
+  it('requires the exact confirmation before creating a reviewed deployment request', async () => {
+    auth.profile.user.role = 'administrator';
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      content: { ...review.content, target: { account_id: '123456789012', region: 'us-east-1' } },
+      terraform_plan_renders: [{ id: 'render-1' }],
+      cloud_readiness_preflights: [{ id: 'preflight-1' }],
+      terraform_plan_reviews: [{ id: 'plan-review-1', state: 'AUTHENTICATED_PLAN_REVIEWED' }],
+    });
+    const prompt = vi.spyOn(window, 'prompt').mockReturnValue('not the confirmation');
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Create reviewed deployment request' }),
+    );
+    expect(prompt).toHaveBeenCalled();
+    expect(auth.api.request).not.toHaveBeenCalledWith(
+      '/api/v1/customer-plan-revisions/revision-1/cloud-execution-runs',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    prompt.mockRestore();
+  });
+
+  it('records the exact reviewed deployment request only after confirmation', async () => {
+    auth.profile.user.role = 'administrator';
+    auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
+      if (path === '/api/v1/customer-plan-revisions/revision-1' && !options?.method)
+        return Promise.resolve({
+          ...review,
+          state: 'APPROVED',
+          content: {
+            ...review.content,
+            target: { account_id: '123456789012', region: 'us-east-1' },
+          },
+          terraform_plan_renders: [{ id: 'render-1' }],
+          cloud_readiness_preflights: [{ id: 'preflight-1' }],
+          terraform_plan_reviews: [{ id: 'plan-review-1', state: 'AUTHENTICATED_PLAN_REVIEWED' }],
+        });
+      if (path.endsWith('/cloud-execution-runs') && options?.method === 'POST')
+        return Promise.resolve({});
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const prompt = vi.spyOn(window, 'prompt').mockReturnValue('EXECUTE_APP_RUNNER_WORKLOAD');
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Create reviewed deployment request' }),
+    );
+    await waitFor(() =>
+      expect(auth.api.request).toHaveBeenCalledWith(
+        '/api/v1/customer-plan-revisions/revision-1/cloud-execution-runs',
+        expect.objectContaining({
+          method: 'POST',
+          retrySafe: false,
+          body: {
+            content_digest: 'a'.repeat(64),
+            terraform_render_id: 'render-1',
+            preflight_id: 'preflight-1',
+            terraform_plan_review_id: 'plan-review-1',
+            expected_account_id: '123456789012',
+            expected_region: 'us-east-1',
+            mode: 'AUTHENTICATED_APP_RUNNER_APPLY',
+            confirmation: 'EXECUTE_APP_RUNNER_WORKLOAD',
+          },
+        }),
+      ),
+    );
+    expect(await screen.findByText(/reviewed deployment request created/i)).toBeInTheDocument();
+    prompt.mockRestore();
+  });
+
   it('groups audit evidence and exposes inspectable event detail', async () => {
     auth.api.request.mockResolvedValue([
       {
