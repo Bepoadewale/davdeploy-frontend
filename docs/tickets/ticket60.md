@@ -1,6 +1,6 @@
 # Historical deployment-record reconciliation
 
-PR: pending
+PR: [#60 — Reconcile frontend deployment evidence](https://github.com/Bepoadewale/davdeploy-frontend/pull/60)
 Branch: `docs/reconcile-pr58-deployment`
 
 ## Problem / goal
