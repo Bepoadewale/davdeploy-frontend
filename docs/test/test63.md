@@ -7,7 +7,7 @@ PR: [#63](https://github.com/Bepoadewale/davdeploy-frontend/pull/63)
 Local Vitest fixture tests only. No hosted identity provider, backend, customer account, cloud
 provider, or deployment endpoint is contacted.
 
-## Commands and result
+## Commands executed
 
 ```sh
 npx vitest run src/auth/AuthContext.local.test.tsx src/pages/workflows.test.tsx --coverage
@@ -17,6 +17,10 @@ npm run verify
 The focused suite passed 22 tests. Full verification passed 59 tests, including formatting, lint,
 typecheck, contract/public-environment/static-hosting/SPA checks, production build and dependency
 audit.
+
+## Result
+
+Passed.
 
 ## Limitations
 
