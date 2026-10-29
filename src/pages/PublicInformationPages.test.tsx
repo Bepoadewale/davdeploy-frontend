@@ -53,6 +53,14 @@ describe('public company information pages', () => {
       screen.getByRole('img', { name: /adewale ayeni-bepo, founder of davdeploy/i }),
     ).toHaveAttribute('src', '/images/adewale-ayeni-bepo.jpeg');
     expect(document.title).toBe('Team | DavDeploy');
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
+      'content',
+      'Meet Adewale Ayeni-Bepo, founder of DavDeploy, an evidence-led cloud infrastructure platform.',
+    );
+    expect(document.querySelector('meta[property="og:url"]')).toHaveAttribute(
+      'content',
+      'https://davdeploy.tech/team',
+    );
     expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
       'href',
       'https://davdeploy.tech/team',
@@ -91,6 +99,14 @@ describe('public company information pages', () => {
       screen.queryByRole('link', { name: 'bepoadewale@davdeploy.tech' }),
     ).not.toBeInTheDocument();
     expect(document.title).toBe('About Us | DavDeploy');
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
+      'content',
+      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans. AWS is available now.',
+    );
+    expect(document.querySelector('meta[property="og:url"]')).toHaveAttribute(
+      'content',
+      'https://davdeploy.tech/about',
+    );
     expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
       'href',
       'https://davdeploy.tech/about',

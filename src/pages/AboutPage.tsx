@@ -16,7 +16,8 @@ const principles = [
 export default function AboutPage() {
   usePublicMetadata({
     title: 'About Us | DavDeploy',
-    description: 'DavDeploy helps teams make clear, governed cloud infrastructure decisions.',
+    description:
+      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans. AWS is available now.',
     path: '/about',
   });
 

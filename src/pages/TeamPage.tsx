@@ -6,7 +6,8 @@ import { usePublicMetadata } from '../hooks/usePublicMetadata';
 export default function TeamPage() {
   usePublicMetadata({
     title: 'Team | DavDeploy',
-    description: 'Meet Adewale Ayeni-Bepo, founder and CEO of DavDeploy.',
+    description:
+      'Meet Adewale Ayeni-Bepo, founder of DavDeploy, an evidence-led cloud infrastructure platform.',
     path: '/team',
   });
 

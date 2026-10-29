@@ -6,3 +6,5 @@ Disallow: /activity
 Disallow: /connections
 Disallow: /settings
 
+Sitemap: https://davdeploy.tech/sitemap.xml
+
