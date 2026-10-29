@@ -29,7 +29,7 @@ describe('public product overview', () => {
     expect(screen.queryByText(/AWS/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/customers trust/i)).not.toBeInTheDocument();
     for (const link of screen.getAllByRole('link', { name: /open workspace/i })) {
-      expect(link).toHaveAttribute('href', '/login');
+      expect(link).toHaveAttribute('href', '/overview');
     }
     expect(screen.queryByRole('link', { name: /see the product/i })).not.toBeInTheDocument();
   });

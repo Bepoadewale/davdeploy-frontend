@@ -19,8 +19,9 @@ const HelpPage = lazy(() => import('./pages/HelpPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function ProtectedRoutes() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
   const location = useLocation();
+  if (loading) return <RouteLoading />;
   if (!profile) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return <AppShell />;
 }

@@ -13,7 +13,7 @@ export default function PublicFooter() {
         <Link to="/about">About Us</Link>
         <a href="mailto:support@davdeploy.tech">Contact Us</a>
       </nav>
-      <Link className="ac3-footer-sign-in" to="/login">
+      <Link className="ac3-footer-sign-in" to="/overview">
         Workspace sign in
       </Link>
     </footer>
