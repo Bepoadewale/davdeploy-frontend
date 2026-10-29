@@ -30,11 +30,14 @@ Add a same-origin `/api/v1/*` Pages Function that validates the login result, ke
 
 ## Acceptance status
 
-Implemented and locally verified; CI and the Pages production deployment remain to be confirmed.
+Merged and deployed to `https://davdeploy.tech` on October 29, 2026. Pull-request and `main` CI
+passed. A controlled Cognito email-OTP session was established against production, and a separate
+cookie-backed `/api/v1/me` request returned HTTP 200.
 
 ## Tests / validation performed
 
-Focused Pages Function fixtures, TypeScript, ESLint, and the full frontend verification command are recorded in `docs/test/test70.md`.
+Focused Pages Function fixtures, TypeScript, ESLint, full frontend verification, pull-request/main
+CI, and the controlled production cookie-session check are recorded in `docs/test/test70.md`.
 
 ## Evidence files produced
 
@@ -46,4 +49,6 @@ This uses the existing API Gateway and Cognito public client; it does not change
 
 ## Follow-up work
 
-After deployment, run one controlled production journey: email OTP sign-in, close all DavDeploy tabs, reopen the canonical domain, confirm restoration, sign out, and confirm restoration no longer occurs.
+Run a visual browser journey: email OTP sign-in, close all DavDeploy tabs, reopen the canonical
+domain, confirm restoration, sign out, and confirm restoration no longer occurs. The production
+HTTP-level cookie restoration contract is already verified.
