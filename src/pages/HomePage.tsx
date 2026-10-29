@@ -43,7 +43,9 @@ export default function HomePage() {
           <p className="ac3-kicker">
             <span /> Governed infrastructure for every cloud
           </p>
-          <h1 id="hero-heading">Write what you need. We build the path.</h1>
+          <h1 id="hero-heading" className="ac3-sr-only">
+            DavDeploy
+          </h1>
           <p className="ac3-hero-summary">
             Describe your product in natural language. DavDeploy turns it into a cloud plan you can
             review and deploy, across any cloud.

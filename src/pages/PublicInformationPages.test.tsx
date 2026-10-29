@@ -44,7 +44,7 @@ describe('public company information pages', () => {
       'href',
       'https://www.linkedin.com/in/adewale-ayeni-bepo/',
     );
-    expect(screen.getByText(/founded october 2026 · nigeria/i)).toBeInTheDocument();
+    expect(screen.queryByText(/founded october 2026 · nigeria/i)).not.toBeInTheDocument();
     expect(
       screen.getByRole('img', { name: /adewale ayeni-bepo, founder of davdeploy/i }),
     ).toHaveAttribute('src', '/images/adewale-ayeni-bepo.jpeg');
