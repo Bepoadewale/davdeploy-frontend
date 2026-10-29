@@ -101,7 +101,7 @@ describe('public company information pages', () => {
     expect(document.title).toBe('About Us | DavDeploy');
     expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
       'content',
-      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans. AWS is available now.',
+      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans and controlled paths to deployment.',
     );
     expect(document.querySelector('meta[property="og:url"]')).toHaveAttribute(
       'content',
