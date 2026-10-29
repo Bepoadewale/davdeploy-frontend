@@ -33,7 +33,7 @@ export default function HomePage() {
           <BrandMark />
           <span>davdeploy</span>
         </Link>
-        <Link className="ac3-header-action" to="/login">
+        <Link className="ac3-header-action" to="/overview">
           Sign in <ArrowIcon />
         </Link>
       </header>
@@ -51,7 +51,7 @@ export default function HomePage() {
             review and deploy, across any cloud.
           </p>
           <div className="ac3-actions">
-            <Link className="ac3-button ac3-button-primary" to="/login">
+            <Link className="ac3-button ac3-button-primary" to="/overview">
               Open workspace <ArrowIcon />
             </Link>
           </div>

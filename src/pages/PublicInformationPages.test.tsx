@@ -26,7 +26,7 @@ describe('public company information pages', () => {
     );
     expect(within(footer).getByRole('link', { name: 'Workspace sign in' })).toHaveAttribute(
       'href',
-      '/login',
+      '/overview',
     );
   });
 

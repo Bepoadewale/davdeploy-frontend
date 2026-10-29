@@ -87,7 +87,9 @@ async function createUserManager(): Promise<UserManager | null> {
 export function AuthProvider({ children }: PropsWithChildren) {
   const [profile, setProfile] = useState<WorkspaceProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Start in a restoring state in production so protected routes do not race a valid HttpOnly
+  // cookie session to the sign-in page before the first workspace lookup completes.
+  const [loading, setLoading] = useState(config.browserSessionProxy);
   const [error, setError] = useState<string | null>(null);
   const tokenRef = useRef<string | null>(null);
   const managerRef = useRef<Promise<UserManager | null> | null>(null);

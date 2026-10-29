@@ -27,6 +27,7 @@ import App from './App';
 describe('application routes', () => {
   it('redirects unauthenticated workspace routes to sign in', async () => {
     auth.profile = null;
+    auth.loading = false;
     render(
       <MemoryRouter initialEntries={['/overview']}>
         <App />
@@ -35,6 +36,21 @@ describe('application routes', () => {
     expect(
       await screen.findByRole('heading', { name: /sign in to your workspace/i }),
     ).toBeInTheDocument();
+  });
+
+  it('waits for a saved browser session before deciding that sign-in is required', () => {
+    auth.profile = null;
+    auth.loading = true;
+    render(
+      <MemoryRouter initialEntries={['/overview']}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Loading workspace…');
+    expect(
+      screen.queryByRole('heading', { name: /sign in to your workspace/i }),
+    ).not.toBeInTheDocument();
+    auth.loading = false;
   });
 
   it.each([
