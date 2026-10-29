@@ -13,7 +13,12 @@ vi.mock('@aws-sdk/client-cognito-identity-provider', async (importOriginal) => {
   };
 });
 
-import { startEmailSignIn, startEmailSignUp, verifyEmailChallenge } from './cognitoEmail';
+import {
+  refreshEmailSession,
+  startEmailSignIn,
+  startEmailSignUp,
+  verifyEmailChallenge,
+} from './cognitoEmail';
 
 describe('Cognito email OTP adapter', () => {
   beforeEach(() => mocks.send.mockReset());
@@ -56,14 +61,41 @@ describe('Cognito email OTP adapter', () => {
     );
   });
 
-  it('returns the access token only after the email code succeeds', async () => {
-    mocks.send.mockResolvedValueOnce({ AuthenticationResult: { IdToken: 'identity-token' } });
+  it('returns renewable tokens only after the email code succeeds', async () => {
+    mocks.send.mockResolvedValueOnce({
+      AuthenticationResult: {
+        IdToken: 'identity-token',
+        RefreshToken: 'refresh-token',
+        ExpiresIn: 900,
+      },
+    });
     const result = await verifyEmailChallenge(
       'us-east-1',
       'client',
       { email: 'person@example.com', kind: 'SIGN_IN', session: 'session-1' },
       '123456',
     );
-    expect(result).toEqual({ status: 'AUTHENTICATED', identityToken: 'identity-token' });
+    expect(result).toEqual({
+      status: 'AUTHENTICATED',
+      identityToken: 'identity-token',
+      refreshToken: 'refresh-token',
+      expiresIn: 900,
+    });
+  });
+
+  it('renews a Cognito session without requesting another email code', async () => {
+    mocks.send.mockResolvedValueOnce({
+      AuthenticationResult: { IdToken: 'renewed-token', ExpiresIn: 900 },
+    });
+    await expect(refreshEmailSession('us-east-1', 'client', 'refresh-token')).resolves.toEqual({
+      status: 'AUTHENTICATED',
+      identityToken: 'renewed-token',
+      refreshToken: undefined,
+      expiresIn: 900,
+    });
+    expect(mocks.send.mock.calls[0]?.[0].input).toMatchObject({
+      AuthFlow: 'REFRESH_TOKEN_AUTH',
+      AuthParameters: { REFRESH_TOKEN: 'refresh-token' },
+    });
   });
 });

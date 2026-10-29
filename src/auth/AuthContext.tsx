@@ -31,7 +31,41 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState | null>(null);
-const HOSTED_SESSION_TOKEN_KEY = 'davdeploy.hosted-identity-token';
+const HOSTED_SESSION_KEY = 'davdeploy.hosted-session';
+const LEGACY_HOSTED_SESSION_TOKEN_KEY = 'davdeploy.hosted-identity-token';
+const REFRESH_EARLY_MS = 60_000;
+
+interface HostedSession {
+  identityToken: string;
+  refreshToken?: string;
+  expiresAt: number;
+}
+
+function tokenExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as { exp?: number };
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+function readHostedSession(): HostedSession | null {
+  const stored = window.sessionStorage.getItem(HOSTED_SESSION_KEY);
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored) as HostedSession;
+      if (typeof parsed.identityToken === 'string' && typeof parsed.expiresAt === 'number') {
+        return parsed;
+      }
+    } catch {
+      window.sessionStorage.removeItem(HOSTED_SESSION_KEY);
+    }
+  }
+  const legacyToken = window.sessionStorage.getItem(LEGACY_HOSTED_SESSION_TOKEN_KEY);
+  if (!legacyToken) return null;
+  return { identityToken: legacyToken, expiresAt: tokenExpiry(legacyToken) ?? Date.now() };
+}
 
 async function createUserManager(): Promise<UserManager | null> {
   if (!oidcConfigured) return null;
@@ -71,15 +105,32 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const clearHostedSession = useCallback(() => {
-    window.sessionStorage.removeItem(HOSTED_SESSION_TOKEN_KEY);
+    window.sessionStorage.removeItem(HOSTED_SESSION_KEY);
+    window.sessionStorage.removeItem(LEGACY_HOSTED_SESSION_TOKEN_KEY);
   }, []);
+
+  const persistHostedSession = useCallback(
+    (identityToken: string, refreshToken?: string, expiresIn?: number) => {
+      const expiresAt = expiresIn
+        ? Date.now() + expiresIn * 1000
+        : (tokenExpiry(identityToken) ?? Date.now());
+      window.sessionStorage.setItem(
+        HOSTED_SESSION_KEY,
+        JSON.stringify({ identityToken, refreshToken, expiresAt } satisfies HostedSession),
+      );
+      window.sessionStorage.removeItem(LEGACY_HOSTED_SESSION_TOKEN_KEY);
+    },
+    [],
+  );
 
   const adoptToken = useCallback(
     async (
       accessToken: string,
       identityName = 'My workspace',
       createWorkspace = false,
-      persistHostedSession = false,
+      persistSession = false,
+      refreshToken?: string,
+      expiresIn?: number,
     ) => {
       tokenRef.current = accessToken;
       setToken(accessToken);
@@ -90,35 +141,73 @@ export function AuthProvider({ children }: PropsWithChildren) {
           createWorkspace,
         });
         setProfile(resolved.profile);
-        if (persistHostedSession) {
-          window.sessionStorage.setItem(HOSTED_SESSION_TOKEN_KEY, accessToken);
+        if (persistSession) {
+          persistHostedSession(accessToken, refreshToken, expiresIn);
         }
         if (resolved.onboarded) window.sessionStorage.removeItem('davdeploy.invitation');
       } catch (requestError) {
         tokenRef.current = null;
         setToken(null);
-        if (persistHostedSession) clearHostedSession();
+        if (persistSession) clearHostedSession();
         throw requestError;
       }
     },
-    [api, clearHostedSession, pendingInvitation],
+    [api, clearHostedSession, pendingInvitation, persistHostedSession],
   );
 
+  const renewHostedSession = useCallback(async () => {
+    const session = readHostedSession();
+    if (!session?.refreshToken || !emailOtpConfigured) return false;
+    try {
+      const { refreshEmailSession } = await import('./cognitoEmail');
+      const refreshed = await refreshEmailSession(
+        config.cognito.region,
+        config.cognito.clientId,
+        session.refreshToken,
+      );
+      tokenRef.current = refreshed.identityToken;
+      setToken(refreshed.identityToken);
+      persistHostedSession(
+        refreshed.identityToken,
+        refreshed.refreshToken ?? session.refreshToken,
+        refreshed.expiresIn,
+      );
+      return true;
+    } catch {
+      tokenRef.current = null;
+      clearHostedSession();
+      setToken(null);
+      setProfile(null);
+      setError('Your sign-in session has ended. Sign in again to continue.');
+      return false;
+    }
+  }, [clearHostedSession, persistHostedSession]);
+
   useEffect(() => {
-    const storedToken = window.sessionStorage.getItem(HOSTED_SESSION_TOKEN_KEY);
-    if (!storedToken) return;
+    const storedSession = readHostedSession();
+    if (!storedSession) return;
     let active = true;
     setLoading(true);
     setError(null);
-    tokenRef.current = storedToken;
-    setToken(storedToken);
-    void resolveWorkspaceProfile(api, {
-      identityName: 'My workspace',
-      invitationToken: null,
-      createWorkspace: false,
-    })
-      .then(({ profile: resolvedProfile }) => {
-        if (active) setProfile(resolvedProfile);
+    void (async () => {
+      const needsRefresh = storedSession.expiresAt <= Date.now() + REFRESH_EARLY_MS;
+      if (needsRefresh && !storedSession.refreshToken) {
+        throw new Error('stored session is expired');
+      }
+      const refreshed = needsRefresh ? await renewHostedSession() : false;
+      const restored = readHostedSession();
+      const identityToken = refreshed ? restored?.identityToken : storedSession.identityToken;
+      if (!identityToken || (needsRefresh && !refreshed)) return null;
+      tokenRef.current = identityToken;
+      setToken(identityToken);
+      return resolveWorkspaceProfile(api, {
+        identityName: 'My workspace',
+        invitationToken: null,
+        createWorkspace: false,
+      });
+    })()
+      .then((resolved) => {
+        if (active && resolved) setProfile(resolved.profile);
       })
       .catch(() => {
         tokenRef.current = null;
@@ -134,7 +223,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [api, clearHostedSession]);
+  }, [api, clearHostedSession, renewHostedSession]);
+
+  useEffect(() => {
+    const session = readHostedSession();
+    if (!token || !session?.refreshToken) return;
+    const delay = Math.max(0, session.expiresAt - Date.now() - REFRESH_EARLY_MS);
+    const timer = window.setTimeout(() => void renewHostedSession(), delay);
+    return () => window.clearTimeout(timer);
+  }, [renewHostedSession, token]);
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
@@ -160,7 +257,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
           email,
         );
         if (result.status === 'AUTHENTICATED')
-          await adoptToken(result.identityToken, email, false, true);
+          await adoptToken(
+            result.identityToken,
+            email,
+            false,
+            true,
+            result.refreshToken,
+            result.expiresIn,
+          );
         return result;
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Email sign-in failed.');
@@ -206,6 +310,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
             challenge.email,
             challenge.kind === 'SIGN_UP',
             true,
+            result.refreshToken,
+            result.expiresIn,
           );
         }
         return result;
@@ -251,7 +357,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!userManager) throw new Error('Hosted sign-in is not configured.');
       const user = await userManager.signinRedirectCallback();
       if (!user.id_token) throw new Error('Cognito did not return an identity token.');
-      await adoptToken(user.id_token, String(user.profile.email ?? 'My workspace'), false, true);
+      await adoptToken(
+        user.id_token,
+        String(user.profile.email ?? 'My workspace'),
+        false,
+        true,
+        user.refresh_token,
+        user.expires_at ? Math.max(0, user.expires_at * 1000 - Date.now()) / 1000 : undefined,
+      );
     } catch (callbackError) {
       setError(callbackError instanceof Error ? callbackError.message : 'Sign-in callback failed.');
       throw callbackError;

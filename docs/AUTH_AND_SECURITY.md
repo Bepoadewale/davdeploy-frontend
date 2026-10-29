@@ -10,10 +10,12 @@ client ID, callback URL, and logout URL. No client secret belongs in a browser a
 Google is shown only when `VITE_GOOGLE_SIGN_IN_ENABLED=true` and the OIDC values are complete.
 Keep it false until the Google provider is configured in Cognito. Email OTP remains independent.
 
-Only transient authorization state is stored in `sessionStorage`; the returned Cognito ID token is held
-in memory. A refresh signs the browser out unless the identity provider can establish a new session.
-This reduces token persistence and XSS impact at the cost of session convenience. Never move a
-long-lived token to localStorage.
+The browser stores the current ID token and Cognito refresh token only in `sessionStorage`, never
+`localStorage`. Before the short-lived ID token expires, it uses the refresh token to renew silently;
+the Cognito refresh-token lifetime is seven days. Sign-out and a rejected refresh clear both values.
+Closing the browser session can require sign-in again, which intentionally avoids persistent bearer
+credentials surviving on a device. A future “remain signed in across browser restarts” experience
+must use an API-backed HttpOnly-cookie session, not persistent browser token storage.
 
 After sign-in, `/api/v1/me` resolves the server-owned workspace membership and role. A verified new
 identity can call `/api/v1/onboarding`; the backend creates a personal workspace or accepts a
