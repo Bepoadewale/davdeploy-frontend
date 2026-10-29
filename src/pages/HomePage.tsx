@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import BrandMark from '../components/BrandMark';
 import PublicFooter from '../components/PublicFooter';
+import { usePublicMetadata } from '../hooks/usePublicMetadata';
 
 const workflow = [
   ['01', 'Connect'],
@@ -26,6 +27,13 @@ function CheckIcon() {
 }
 
 export default function HomePage() {
+  usePublicMetadata({
+    title: 'DavDeploy | Evidence-led cloud infrastructure plans',
+    description:
+      'Describe your product in natural language. DavDeploy turns it into a governed cloud plan with costs, risks, and approvals. AWS is available now.',
+    path: '/',
+  });
+
   return (
     <main className="ac3-page">
       <header className="ac3-header">

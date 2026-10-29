@@ -26,6 +26,9 @@ export function usePublicMetadata({
     upsertMeta('name', 'description', description);
     upsertMeta('property', 'og:title', title);
     upsertMeta('property', 'og:description', description);
+    upsertMeta('property', 'og:url', `${canonicalOrigin}${path}`);
+    upsertMeta('name', 'twitter:title', title);
+    upsertMeta('name', 'twitter:description', description);
     let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');
