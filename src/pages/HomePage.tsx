@@ -28,9 +28,9 @@ function CheckIcon() {
 
 export default function HomePage() {
   usePublicMetadata({
-    title: 'DavDeploy | Evidence-led cloud infrastructure plans',
+    title: 'DavDeploy | Cloud decisions built on evidence',
     description:
-      'Describe your product in natural language. DavDeploy turns it into a governed cloud plan with costs, risks, and approvals. AWS is available now.',
+      'Plan, approve, deploy, and operate the simplest viable infrastructure in your cloud, with every decision and change tied to evidence.',
     path: '/',
   });
 

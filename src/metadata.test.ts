@@ -8,8 +8,11 @@ describe('public search metadata', () => {
   it('keeps the initial home metadata accurate and canonical', () => {
     const document = readFileSync(resolve(root, 'index.html'), 'utf8');
 
-    expect(document).toContain('DavDeploy | Evidence-led cloud infrastructure plans');
-    expect(document).toContain('AWS is available now.');
+    expect(document).toContain('DavDeploy | Cloud decisions built on evidence');
+    expect(document).toContain(
+      'Plan, approve, deploy, and operate the simplest viable infrastructure in your cloud',
+    );
+    expect(document).not.toContain('AWS is available now.');
     expect(document).toContain('https://davdeploy.tech/images/architecture-convergence.webp');
     expect(document).not.toContain('davdeploy-frontend.pages.dev/images');
   });

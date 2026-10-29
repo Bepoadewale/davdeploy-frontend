@@ -17,7 +17,7 @@ export default function AboutPage() {
   usePublicMetadata({
     title: 'About Us | DavDeploy',
     description:
-      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans. AWS is available now.',
+      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans and controlled paths to deployment.',
     path: '/about',
   });
 
