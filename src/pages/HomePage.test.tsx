@@ -11,9 +11,8 @@ describe('public product overview', () => {
         <HomePage />
       </MemoryRouter>,
     );
-    expect(
-      screen.getByRole('heading', { name: /write what you need. we build the path/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'DavDeploy' })).toBeInTheDocument();
+    expect(screen.queryByText('Write what you need. We build the path.')).not.toBeInTheDocument();
     expect(
       screen.getByRole('figure', { name: /illustrative davdeploy decision brief/i }),
     ).toBeInTheDocument();

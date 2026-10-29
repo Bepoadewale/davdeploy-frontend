@@ -57,7 +57,6 @@ export default function TeamPage() {
                 LinkedIn
               </a>
             </div>
-            <p className="ac3-founder-meta">Founded October 2026 · Nigeria</p>
           </div>
         </div>
       </article>
