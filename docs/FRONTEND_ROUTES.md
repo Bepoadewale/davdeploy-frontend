@@ -3,6 +3,8 @@
 | Route                | Access                       | Purpose                                                            |
 | -------------------- | ---------------------------- | ------------------------------------------------------------------ |
 | `/`                  | Public                       | Truthful product overview and workflow                             |
+| `/team`              | Public                       | Founder profile and professional contact details                   |
+| `/about`             | Public                       | Product purpose, current AWS boundary, and multicloud vision       |
 | `/login`             | Public                       | Hosted OIDC or explicit local-development fixture sign-in          |
 | `/auth/callback`     | Public callback              | Complete OIDC code/PKCE, then resolve `/me`                        |
 | `/overview`          | Authenticated                | Workspace totals, project activity, and admin review queue         |

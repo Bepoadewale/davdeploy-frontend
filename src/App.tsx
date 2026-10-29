@@ -4,6 +4,8 @@ import { useAuth } from './auth/AuthContext';
 import { AppShell } from './layout/AppShell';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
+const TeamPage = lazy(() => import('./pages/TeamPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
@@ -37,6 +39,8 @@ export default function App() {
     <Suspense fallback={<RouteLoading />}>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/team" element={<TeamPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<ProtectedRoutes />}>
