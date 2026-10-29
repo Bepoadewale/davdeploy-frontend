@@ -11,6 +11,7 @@ export default function PublicFooter() {
       <nav className="ac3-footer-nav" aria-label="Company">
         <Link to="/team">Team</Link>
         <Link to="/about">About Us</Link>
+        <a href="mailto:support@davdeploy.tech">Contact Us</a>
       </nav>
       <Link className="ac3-footer-sign-in" to="/login">
         Workspace sign in

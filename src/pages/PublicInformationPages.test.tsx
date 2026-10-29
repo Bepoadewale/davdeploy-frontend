@@ -20,6 +20,10 @@ describe('public company information pages', () => {
       'href',
       '/about',
     );
+    expect(within(footer).getByRole('link', { name: 'Contact Us' })).toHaveAttribute(
+      'href',
+      'mailto:support@davdeploy.tech',
+    );
     expect(within(footer).getByRole('link', { name: 'Workspace sign in' })).toHaveAttribute(
       'href',
       '/login',
