@@ -23,6 +23,10 @@ endpoint validates a Cognito ID token with `/api/v1/me`; state-changing cookie r
 same-site Origin. This is deliberately a first-party `davdeploy.tech` session, not a shared cookie
 for `pages.dev` or another domain.
 
+On October 29, 2026, the founder completed the production visual check: email-OTP sign-in,
+closing/reopening DavDeploy, successful session restoration, then sign-out and confirmation that
+restoration no longer occurred. This complements the recorded HTTP-level cookie check.
+
 After sign-in, `/api/v1/me` resolves the server-owned workspace membership and role. A verified new
 identity can call `/api/v1/onboarding`; the backend creates a personal workspace or accepts a
 matching invitation. Identity-token

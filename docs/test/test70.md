@@ -28,5 +28,6 @@ contract, not visual browser close/reopen behavior on a specific device.
 
 ## Known limitations
 
-The Pages build flag and three runtime values are configured. A visual close/reopen/sign-out browser
-journey is still useful as final UX evidence, but no implementation blocker remains.
+The Pages build flag and three runtime values are configured. The founder completed the visual
+close/reopen/sign-out journey on October 29, 2026. Browser/device-specific variations are not
+exhaustively tested, but no implementation blocker remains.
