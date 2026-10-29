@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fixture = vi.hoisted(() => ({
@@ -60,6 +60,7 @@ function Probe() {
 
 describe('AuthProvider local fixture boundary', () => {
   beforeEach(() => {
+    window.sessionStorage.clear();
     fixture.request.mockReset();
     fixture.resolveWorkspaceProfile.mockReset();
     fixture.startEmailSignIn.mockReset();
@@ -183,5 +184,46 @@ describe('AuthProvider local fixture boundary', () => {
     );
     expect(screen.getByTestId('token')).toBeEmptyDOMElement();
     expect(fixture.resolveWorkspaceProfile).not.toHaveBeenCalled();
+  });
+
+  it('restores a validated hosted email session after a browser refresh', async () => {
+    const first = render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+    await act(async () => screen.getByRole('button', { name: 'Email sign in' }).click());
+    expect(window.sessionStorage.getItem('davdeploy.hosted-identity-token')).toBe('email-token');
+    first.unmount();
+    fixture.resolveWorkspaceProfile.mockClear();
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('subject')).toHaveTextContent('fixture-founder'));
+    expect(screen.getByTestId('token')).toHaveTextContent('email-token');
+    expect(fixture.resolveWorkspaceProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ invitationToken: null, createWorkspace: false }),
+    );
+  });
+
+  it('clears an invalid restored session instead of retaining browser access', async () => {
+    window.sessionStorage.setItem('davdeploy.hosted-identity-token', 'expired-token');
+    fixture.resolveWorkspaceProfile.mockRejectedValueOnce(new Error('expired'));
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('error')).toHaveTextContent('session has expired'),
+    );
+    expect(screen.getByTestId('token')).toBeEmptyDOMElement();
+    expect(window.sessionStorage.getItem('davdeploy.hosted-identity-token')).toBeNull();
   });
 });

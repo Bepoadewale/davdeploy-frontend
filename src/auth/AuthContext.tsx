@@ -1,5 +1,6 @@
 import {
   createContext,
+  useEffect,
   useCallback,
   useContext,
   useMemo,
@@ -30,6 +31,7 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState | null>(null);
+const HOSTED_SESSION_TOKEN_KEY = 'davdeploy.hosted-identity-token';
 
 async function createUserManager(): Promise<UserManager | null> {
   if (!oidcConfigured) return null;
@@ -68,8 +70,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return fromUrl ?? window.sessionStorage.getItem('davdeploy.invitation');
   }, []);
 
+  const clearHostedSession = useCallback(() => {
+    window.sessionStorage.removeItem(HOSTED_SESSION_TOKEN_KEY);
+  }, []);
+
   const adoptToken = useCallback(
-    async (accessToken: string, identityName = 'My workspace', createWorkspace = false) => {
+    async (
+      accessToken: string,
+      identityName = 'My workspace',
+      createWorkspace = false,
+      persistHostedSession = false,
+    ) => {
       tokenRef.current = accessToken;
       setToken(accessToken);
       try {
@@ -79,15 +90,51 @@ export function AuthProvider({ children }: PropsWithChildren) {
           createWorkspace,
         });
         setProfile(resolved.profile);
+        if (persistHostedSession) {
+          window.sessionStorage.setItem(HOSTED_SESSION_TOKEN_KEY, accessToken);
+        }
         if (resolved.onboarded) window.sessionStorage.removeItem('davdeploy.invitation');
       } catch (requestError) {
         tokenRef.current = null;
         setToken(null);
+        if (persistHostedSession) clearHostedSession();
         throw requestError;
       }
     },
-    [api, pendingInvitation],
+    [api, clearHostedSession, pendingInvitation],
   );
+
+  useEffect(() => {
+    const storedToken = window.sessionStorage.getItem(HOSTED_SESSION_TOKEN_KEY);
+    if (!storedToken) return;
+    let active = true;
+    setLoading(true);
+    setError(null);
+    tokenRef.current = storedToken;
+    setToken(storedToken);
+    void resolveWorkspaceProfile(api, {
+      identityName: 'My workspace',
+      invitationToken: null,
+      createWorkspace: false,
+    })
+      .then(({ profile: resolvedProfile }) => {
+        if (active) setProfile(resolvedProfile);
+      })
+      .catch(() => {
+        tokenRef.current = null;
+        if (!active) return;
+        clearHostedSession();
+        setToken(null);
+        setProfile(null);
+        setError('Your session has expired. Sign in again to continue.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [api, clearHostedSession]);
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
@@ -112,7 +159,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
           config.cognito.clientId,
           email,
         );
-        if (result.status === 'AUTHENTICATED') await adoptToken(result.identityToken, email);
+        if (result.status === 'AUTHENTICATED')
+          await adoptToken(result.identityToken, email, false, true);
         return result;
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Email sign-in failed.');
@@ -153,7 +201,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
           code,
         );
         if (result.status === 'AUTHENTICATED') {
-          await adoptToken(result.identityToken, challenge.email, challenge.kind === 'SIGN_UP');
+          await adoptToken(
+            result.identityToken,
+            challenge.email,
+            challenge.kind === 'SIGN_UP',
+            true,
+          );
         }
         return result;
       } catch (requestError) {
@@ -180,7 +233,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           authenticated: false,
           retrySafe: false,
         });
-        await adoptToken(response.access_token);
+        await adoptToken(response.access_token, 'My workspace', false, false);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Sign-in failed.');
       } finally {
@@ -198,7 +251,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!userManager) throw new Error('Hosted sign-in is not configured.');
       const user = await userManager.signinRedirectCallback();
       if (!user.id_token) throw new Error('Cognito did not return an identity token.');
-      await adoptToken(user.id_token, String(user.profile.email ?? 'My workspace'));
+      await adoptToken(user.id_token, String(user.profile.email ?? 'My workspace'), false, true);
     } catch (callbackError) {
       setError(callbackError instanceof Error ? callbackError.message : 'Sign-in callback failed.');
       throw callbackError;
@@ -212,12 +265,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setToken(null);
     setProfile(null);
     setError(null);
+    clearHostedSession();
     const userManager = await manager();
     if (userManager) {
       await userManager.removeUser();
       await userManager.clearStaleState();
     }
-  }, [manager]);
+  }, [clearHostedSession, manager]);
 
   const value = useMemo<AuthState>(
     () => ({
