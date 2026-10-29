@@ -27,7 +27,8 @@ Update the original implementation ticket and its test evidence with the complet
 
 ## Acceptance status
 
-Implemented locally; this documentation-only PR awaits CI and merge.
+Merged on October 29, 2026 after all pull-request and `main` CI checks passed. The production
+evidence it records remains current; it makes no implementation claim beyond that evidence.
 
 ## Tests / validation performed
 
