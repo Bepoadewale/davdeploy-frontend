@@ -6,6 +6,7 @@ const fixture = vi.hoisted(() => ({
   resolveWorkspaceProfile: vi.fn(),
   startEmailSignIn: vi.fn(),
   verifyEmailChallenge: vi.fn(),
+  refreshEmailSession: vi.fn(),
 }));
 
 vi.mock('../config', () => ({
@@ -31,6 +32,7 @@ vi.mock('./workspaceSession', () => ({
 vi.mock('./cognitoEmail', () => ({
   startEmailSignIn: fixture.startEmailSignIn,
   verifyEmailChallenge: fixture.verifyEmailChallenge,
+  refreshEmailSession: fixture.refreshEmailSession,
 }));
 
 import { AuthProvider, useAuth } from './AuthContext';
@@ -65,6 +67,7 @@ describe('AuthProvider local fixture boundary', () => {
     fixture.resolveWorkspaceProfile.mockReset();
     fixture.startEmailSignIn.mockReset();
     fixture.verifyEmailChallenge.mockReset();
+    fixture.refreshEmailSession.mockReset();
     fixture.request.mockResolvedValue({ access_token: 'fixture-token' });
     fixture.resolveWorkspaceProfile.mockResolvedValue({
       profile: {
@@ -76,10 +79,19 @@ describe('AuthProvider local fixture boundary', () => {
     fixture.startEmailSignIn.mockResolvedValue({
       status: 'AUTHENTICATED',
       identityToken: 'email-token',
+      refreshToken: 'email-refresh-token',
+      expiresIn: 900,
     });
     fixture.verifyEmailChallenge.mockResolvedValue({
       status: 'AUTHENTICATED',
       identityToken: 'verified-token',
+      refreshToken: 'verified-refresh-token',
+      expiresIn: 900,
+    });
+    fixture.refreshEmailSession.mockResolvedValue({
+      status: 'AUTHENTICATED',
+      identityToken: 'renewed-token',
+      expiresIn: 900,
     });
   });
 
@@ -193,7 +205,7 @@ describe('AuthProvider local fixture boundary', () => {
       </AuthProvider>,
     );
     await act(async () => screen.getByRole('button', { name: 'Email sign in' }).click());
-    expect(window.sessionStorage.getItem('davdeploy.hosted-identity-token')).toBe('email-token');
+    expect(window.sessionStorage.getItem('davdeploy.hosted-session')).toContain('email-token');
     first.unmount();
     fixture.resolveWorkspaceProfile.mockClear();
 
@@ -225,5 +237,49 @@ describe('AuthProvider local fixture boundary', () => {
     );
     expect(screen.getByTestId('token')).toBeEmptyDOMElement();
     expect(window.sessionStorage.getItem('davdeploy.hosted-identity-token')).toBeNull();
+  });
+
+  it('silently renews an expired Cognito session before restoring workspace access', async () => {
+    window.sessionStorage.setItem(
+      'davdeploy.hosted-session',
+      JSON.stringify({
+        identityToken: 'expired-identity-token',
+        refreshToken: 'refresh-token',
+        expiresAt: Date.now() - 1,
+      }),
+    );
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('token')).toHaveTextContent('renewed-token'));
+    expect(fixture.refreshEmailSession).toHaveBeenCalledWith(
+      'test-region',
+      'test-client',
+      'refresh-token',
+    );
+    expect(window.sessionStorage.getItem('davdeploy.hosted-session')).toContain('renewed-token');
+  });
+
+  it('clears a rejected refresh session and explains the next step', async () => {
+    fixture.refreshEmailSession.mockRejectedValueOnce(new Error('refresh expired'));
+    window.sessionStorage.setItem(
+      'davdeploy.hosted-session',
+      JSON.stringify({
+        identityToken: 'expired-token',
+        refreshToken: 'refresh-token',
+        expiresAt: 0,
+      }),
+    );
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('session has ended'));
+    expect(window.sessionStorage.getItem('davdeploy.hosted-session')).toBeNull();
   });
 });

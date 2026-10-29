@@ -14,14 +14,28 @@ export interface EmailOtpChallenge {
 
 export type EmailAuthResult =
   | { status: 'CHALLENGE'; challenge: EmailOtpChallenge; message: string }
-  | { status: 'AUTHENTICATED'; identityToken: string };
+  | {
+      status: 'AUTHENTICATED';
+      identityToken: string;
+      refreshToken?: string;
+      expiresIn?: number;
+    };
 
 function client(region: string) {
   return new CognitoIdentityProviderClient({ region });
 }
 
-function identityToken(result: { AuthenticationResult?: { IdToken?: string } }) {
-  return result.AuthenticationResult?.IdToken;
+function authenticatedResult(result: {
+  AuthenticationResult?: { IdToken?: string; RefreshToken?: string; ExpiresIn?: number };
+}): Extract<EmailAuthResult, { status: 'AUTHENTICATED' }> | null {
+  const authentication = result.AuthenticationResult;
+  if (!authentication?.IdToken) return null;
+  return {
+    status: 'AUTHENTICATED',
+    identityToken: authentication.IdToken,
+    refreshToken: authentication.RefreshToken,
+    expiresIn: authentication.ExpiresIn,
+  };
 }
 
 function isMissingUser(error: unknown) {
@@ -63,10 +77,8 @@ export async function startEmailSignIn(
         },
       }),
     );
-    const token = identityToken(response);
-    return token
-      ? { status: 'AUTHENTICATED', identityToken: token }
-      : requireOtpChallenge(normalizedEmail, response);
+    const authenticated = authenticatedResult(response);
+    return authenticated ? authenticated : requireOtpChallenge(normalizedEmail, response);
   } catch (error) {
     if (isMissingUser(error)) {
       throw new Error('No account exists for this email. Create an account first.');
@@ -128,10 +140,8 @@ export async function verifyEmailChallenge(
         },
       }),
     );
-    const token = identityToken(response);
-    return token
-      ? { status: 'AUTHENTICATED', identityToken: token }
-      : requireOtpChallenge(challenge.email, response);
+    const authenticated = authenticatedResult(response);
+    return authenticated ? authenticated : requireOtpChallenge(challenge.email, response);
   }
 
   const response = await cognito.send(
@@ -145,7 +155,25 @@ export async function verifyEmailChallenge(
       },
     }),
   );
-  const token = identityToken(response);
-  if (!token) throw new Error('Cognito did not return an identity token.');
-  return { status: 'AUTHENTICATED', identityToken: token };
+  const authenticated = authenticatedResult(response);
+  if (!authenticated) throw new Error('Cognito did not return an identity token.');
+  return authenticated;
+}
+
+/** Renew a Cognito browser session without another email challenge. */
+export async function refreshEmailSession(
+  region: string,
+  clientId: string,
+  refreshToken: string,
+): Promise<Extract<EmailAuthResult, { status: 'AUTHENTICATED' }>> {
+  const response = await client(region).send(
+    new InitiateAuthCommand({
+      AuthFlow: 'REFRESH_TOKEN_AUTH',
+      ClientId: clientId,
+      AuthParameters: { REFRESH_TOKEN: refreshToken },
+    }),
+  );
+  const authenticated = authenticatedResult(response);
+  if (!authenticated) throw new Error('Cognito could not renew your session. Sign in again.');
+  return authenticated;
 }
