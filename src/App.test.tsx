@@ -37,6 +37,19 @@ describe('application routes', () => {
     ).toBeInTheDocument();
   });
 
+  it.each([
+    ['/team', /meet the founder/i],
+    ['/about', /clearer infrastructure choices/i],
+  ])('renders %s without requiring workspace authentication', async (path, heading) => {
+    auth.profile = null;
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+  });
+
   it('renders role-aware administrator review work from the backend', async () => {
     auth.profile = {
       user: { subject: 'admin', role: 'administrator' },

@@ -50,6 +50,21 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page);
 });
 
+test('public Team and About pages remain available without workspace sign-in', async ({ page }) => {
+  await page.goto('/team');
+  await expect(page.getByRole('heading', { name: 'Meet the founder.' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'About Us' })).toHaveAttribute('href', '/about');
+
+  await page.goto('/about');
+  await expect(
+    page.getByRole('heading', { name: 'Clearer infrastructure choices.' }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/AWS planning, review, and account discovery are the implemented/i),
+  ).toBeVisible();
+  await expect(page.getByText('They are not available today.')).toBeVisible();
+});
+
 async function signInToFixtureWorkspace(page: Page, role: 'Developer' | 'Administrator') {
   await page.goto('/login');
   await page.getByRole('button', { name: role }).click();

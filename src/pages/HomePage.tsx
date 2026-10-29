@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import BrandMark from '../components/BrandMark';
+import PublicFooter from '../components/PublicFooter';
 
 const workflow = [
   ['01', 'Connect'],
@@ -132,13 +133,7 @@ export default function HomePage() {
         </ol>
       </section>
 
-      <footer className="ac3-footer">
-        <Link className="ac3-brand" to="/">
-          <BrandMark />
-          <span>davdeploy</span>
-        </Link>
-        <Link to="/login">Workspace sign in</Link>
-      </footer>
+      <PublicFooter />
     </main>
   );
 }
