@@ -1,5 +1,8 @@
 import { config } from '../config';
 
+/** A browser session is authenticated by an HttpOnly same-origin cookie. */
+export const BROWSER_SESSION_TOKEN = '__davdeploy_browser_session__';
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -86,7 +89,9 @@ export class ApiClient {
       ...options.headers,
     };
     if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-    if (authenticated && token) headers.Authorization = `Bearer ${token}`;
+    if (authenticated && token && token !== BROWSER_SESSION_TOKEN) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
 
     try {
@@ -95,6 +100,7 @@ export class ApiClient {
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         headers,
         signal: controller.signal,
+        credentials: config.browserSessionProxy ? 'include' : options.credentials,
       });
       const requestId =
         response.headers.get('x-request-id') ??

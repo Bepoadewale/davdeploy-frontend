@@ -12,7 +12,8 @@ completed successfully on October 17, 2026.
 - Technical Pages URL: <https://davdeploy-frontend.pages.dev> (not an authenticated API origin)
 - Build command: `npm run build`
 - Output directory: `dist`
-- Runtime: static assets only; no Pages Functions or Workers
+- Runtime: static assets plus one same-origin Pages Function route (`/api/v1/*`) for the persistent
+  browser-session proxy. It has no database, KV, Durable Object, R2, or external worker binding.
 - Automatic production and preview deployments: enabled
 
 The public shell and hosted API/OIDC configuration are live at `https://davdeploy.tech`. The
@@ -47,9 +48,17 @@ hostname to production API CORS or Cognito allowlists without a separately revie
    - `VITE_OIDC_POST_LOGOUT_REDIRECT_URI=https://<assigned-pages-host>/`
    - `VITE_COGNITO_REGION=<aws-region>`
    - `VITE_COGNITO_USER_POOL_CLIENT_ID=<same-public-client-id>`
-10. Do not add secrets, cloud credentials, GitHub secrets, a Cloudflare API token, Functions, or a
-    Worker binding.
-11. Deploy and wait for the dashboard to report a successful build. Use the hostname Cloudflare
+10. Add `VITE_BROWSER_SESSION_PROXY_ENABLED=true` to production. This compiles the browser to call
+    the same-origin `/api/v1/*` proxy instead of the API Gateway hostname directly.
+11. Add these **Pages Function runtime** values (without the `VITE_` prefix):
+    - `DAVDEPLOY_API_ORIGIN=https://<deployed-api-host>`
+    - `DAVDEPLOY_COGNITO_TOKEN_ENDPOINT=https://<cognito-hosted-domain>/oauth2/token`
+    - `DAVDEPLOY_COGNITO_CLIENT_ID=<public-client-id>`
+      These are routing/public-client values, not credentials. The Function uses them only to forward
+      requests and perform Cognito's public-client refresh exchange.
+12. Do not add cloud credentials, GitHub secrets, a Cloudflare API token, Cognito client secret,
+    database binding, KV, R2, D1, or Durable Object.
+13. Deploy and wait for the dashboard to report a successful build. Use the hostname Cloudflare
     actually allocates; do not guess it in advance.
 
 ## Smoke test
@@ -64,9 +73,11 @@ configuration is available.
 3. Confirm `/overview` loads the signed-in workspace from the cloud API.
 4. Refresh `/history` directly and confirm the SPA remains loaded.
 5. Confirm an unauthorized role cannot approve a plan and a backend 403 is shown safely.
-6. Open browser developer tools: confirm API calls use the configured HTTPS API, no secret appears
-   in storage/logs/bundle, and security headers are present.
-7. Exercise a read-only dashboard and a local/plan-only workflow before enabling any live execution.
+6. Open browser developer tools: confirm API calls use the same-origin `/api/v1/*` proxy, no token
+   or secret appears in local/session storage or the bundle, and security headers are present.
+7. Close the DavDeploy tab, reopen `https://davdeploy.tech`, and confirm the workspace restores
+   without another email code. Sign out, reopen the site, and confirm a new sign-in is required.
+8. Exercise a read-only dashboard and a local/plan-only workflow before enabling any live execution.
 
 If authentication or API calls fail, verify the exact Pages origin in API CORS and OIDC callback
 allowlists. Preview URLs should not be broadly wildcarded into production tenant access.

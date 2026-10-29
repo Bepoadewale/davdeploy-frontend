@@ -9,7 +9,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import type { UserManager, UserManagerSettings } from 'oidc-client-ts';
-import { ApiClient } from '../api/client';
+import { ApiClient, BROWSER_SESSION_TOKEN } from '../api/client';
 import type { WorkspaceProfile } from '../api/contracts';
 import { config, emailOtpConfigured, oidcConfigured } from '../config';
 import type { EmailAuthResult, EmailOtpChallenge } from './cognitoEmail';
@@ -123,6 +123,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [],
   );
 
+  const establishBrowserSession = useCallback(
+    async (identityToken: string, refreshToken?: string) => {
+      if (!config.browserSessionProxy || !refreshToken) return false;
+      const response = await fetch('/api/v1/auth/browser-session', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identityToken, refreshToken }),
+      });
+      if (!response.ok) throw new Error('Could not establish your secure browser session.');
+      clearHostedSession();
+      tokenRef.current = BROWSER_SESSION_TOKEN;
+      setToken(BROWSER_SESSION_TOKEN);
+      return true;
+    },
+    [clearHostedSession],
+  );
+
   const adoptToken = useCallback(
     async (
       accessToken: string,
@@ -143,6 +161,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setProfile(resolved.profile);
         if (persistSession) {
           persistHostedSession(accessToken, refreshToken, expiresIn);
+          await establishBrowserSession(accessToken, refreshToken);
         }
         if (resolved.onboarded) window.sessionStorage.removeItem('davdeploy.invitation');
       } catch (requestError) {
@@ -152,7 +171,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         throw requestError;
       }
     },
-    [api, clearHostedSession, pendingInvitation, persistHostedSession],
+    [api, clearHostedSession, establishBrowserSession, pendingInvitation, persistHostedSession],
   );
 
   const renewHostedSession = useCallback(async () => {
@@ -184,6 +203,33 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [clearHostedSession, persistHostedSession]);
 
   useEffect(() => {
+    if (config.browserSessionProxy) {
+      let active = true;
+      tokenRef.current = BROWSER_SESSION_TOKEN;
+      setToken(BROWSER_SESSION_TOKEN);
+      setLoading(true);
+      void resolveWorkspaceProfile(api, {
+        identityName: 'My workspace',
+        invitationToken: null,
+        createWorkspace: false,
+      })
+        .then(({ profile: resolvedProfile }) => {
+          if (active) setProfile(resolvedProfile);
+        })
+        .catch(() => {
+          tokenRef.current = null;
+          if (active) {
+            setToken(null);
+            setProfile(null);
+          }
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }
     const storedSession = readHostedSession();
     if (!storedSession) return;
     let active = true;
@@ -379,6 +425,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setProfile(null);
     setError(null);
     clearHostedSession();
+    if (config.browserSessionProxy) {
+      await fetch('/api/v1/auth/browser-session', { method: 'DELETE', credentials: 'include' });
+    }
     const userManager = await manager();
     if (userManager) {
       await userManager.removeUser();

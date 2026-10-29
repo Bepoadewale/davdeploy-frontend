@@ -10,8 +10,10 @@ URLs, Cognito issuer URLs, regions, public user-pool client IDs, callback URLs, 
 are therefore public by design. Putting them in a GitHub Secret would hide the value only during
 the build, not from a person downloading the resulting bundle.
 
-The repository currently has no GitHub Actions variables or secrets. Cloudflare Pages holds only
-the non-secret `VITE_*` values required by the deployed browser application.
+Cloudflare Pages holds the non-secret `VITE_*` values required by the deployed browser application.
+Its same-origin browser-session Function also needs the API origin, Cognito token endpoint, and
+public Cognito client ID without a `VITE_` prefix. Those values are not browser-bundled and are not
+credentials; do not confuse that distinction with a place to store actual secrets.
 
 ## Confidential configuration
 
