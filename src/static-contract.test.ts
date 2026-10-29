@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -21,5 +21,13 @@ describe('static hosting and responsive contract', () => {
     expect(headers).toContain('Content-Security-Policy:');
     expect(headers).toContain("frame-ancestors 'none'");
     expect(headers).not.toMatch(/Durable Object|D1|R2/);
+  });
+
+  it('keeps browser-visible source copy free of em dashes', () => {
+    const emDash = String.fromCodePoint(0x2014);
+    for (const entry of readdirSync(resolve(process.cwd(), 'src'), { recursive: true })) {
+      if (typeof entry !== 'string' || !/\.(ts|tsx)$/.test(entry)) continue;
+      expect(readFileSync(resolve(process.cwd(), 'src', entry), 'utf8')).not.toContain(emDash);
+    }
   });
 });

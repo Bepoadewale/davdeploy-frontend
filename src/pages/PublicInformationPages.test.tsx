@@ -26,7 +26,7 @@ describe('public company information pages', () => {
     );
   });
 
-  it('presents the solo founder accurately with a documented portrait fallback', async () => {
+  it('presents the solo founder accurately with the approved portrait', async () => {
     const { container } = render(
       <MemoryRouter>
         <TeamPage />
@@ -35,7 +35,7 @@ describe('public company information pages', () => {
 
     expect(screen.getByRole('heading', { name: /meet the founder/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Adewale Ayeni-Bepo' })).toBeInTheDocument();
-    expect(screen.getByText('Founder & CEO, DavDeploy')).toBeInTheDocument();
+    expect(screen.getByText('Founder, DavDeploy')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'bepoadewale@davdeploy.tech' })).toHaveAttribute(
       'href',
       'mailto:bepoadewale@davdeploy.tech',
@@ -46,8 +46,8 @@ describe('public company information pages', () => {
     );
     expect(screen.getByText(/founded october 2026 · nigeria/i)).toBeInTheDocument();
     expect(
-      screen.getByRole('img', { name: /portrait placeholder for adewale/i }),
-    ).toBeInTheDocument();
+      screen.getByRole('img', { name: /adewale ayeni-bepo, founder of davdeploy/i }),
+    ).toHaveAttribute('src', '/images/adewale-ayeni-bepo.jpeg');
     expect(document.title).toBe('Team | DavDeploy');
     expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
       'href',
@@ -83,6 +83,9 @@ describe('public company information pages', () => {
     expect(screen.getByText(/they are not available today/i)).toBeInTheDocument();
     expect(screen.getByText(/founded in october 2026 · independently built/i)).toBeInTheDocument();
     expect(screen.getByText(/AI proposes. Humans approve./i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'bepoadewale@davdeploy.tech' }),
+    ).not.toBeInTheDocument();
     expect(document.title).toBe('About Us | DavDeploy');
     expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
       'href',

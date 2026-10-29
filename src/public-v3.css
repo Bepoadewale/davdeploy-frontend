@@ -825,30 +825,12 @@
 }
 
 .ac3-founder-portrait {
-  aspect-ratio: 4 / 5;
-  background: #dfe5dc;
-  color: var(--ac3-green);
-  display: grid;
+  display: block;
+  height: 400px;
   max-width: 350px;
-  place-content: center;
+  object-fit: cover;
+  object-position: center top;
   width: 100%;
-}
-
-.ac3-founder-portrait span {
-  font-size: clamp(2.3rem, 5vw, 4rem);
-  font-weight: 700;
-  letter-spacing: -0.07em;
-  text-align: center;
-}
-
-.ac3-founder-portrait small {
-  color: #58705f;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  margin-top: 12px;
-  text-align: center;
-  text-transform: uppercase;
 }
 
 .ac3-founder-role {
@@ -930,6 +912,76 @@
   flex-basis: 100%;
   font-size: 0.8rem;
   margin: 0 0 3px;
+}
+
+.ac3-about {
+  position: relative;
+}
+
+.ac3-about .ac3-intro,
+.ac3-about section,
+.ac3-about .ac3-about-closing {
+  max-width: 760px;
+}
+
+.ac3-about section h2 {
+  font-size: 2rem;
+}
+
+.ac3-about .ac3-intro,
+.ac3-about section p,
+.ac3-about-steps,
+.ac3-principles,
+.ac3-about .ac3-note,
+.ac3-about .ac3-statement {
+  font-size: 1.03rem !important;
+  line-height: 1.72 !important;
+}
+
+.ac3-about .ac3-statement {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.ac3-about-aside {
+  display: none;
+}
+
+@media (min-width: 1180px) {
+  .ac3-about {
+    width: min(100% - 64px, 1220px);
+  }
+
+  .ac3-about-aside {
+    display: grid;
+    gap: 11px;
+    position: absolute;
+    right: 0;
+    top: 238px;
+    width: 230px;
+  }
+
+  .ac3-about-aside img {
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--ac3-line);
+    object-fit: cover;
+    object-position: center;
+    width: 100%;
+  }
+
+  .ac3-about-aside p {
+    color: var(--ac3-ink);
+    font-size: 0.84rem;
+    font-weight: 730;
+    margin: 4px 0 0;
+  }
+
+  .ac3-about-aside span {
+    border-top: 1px solid var(--ac3-line);
+    color: var(--ac3-muted);
+    font-size: 0.72rem;
+    padding-top: 9px;
+  }
 }
 
 .ac3-page a:focus-visible {
@@ -1241,6 +1293,7 @@
   }
 
   .ac3-founder-portrait {
+    height: 362px;
     max-width: 290px;
   }
 }

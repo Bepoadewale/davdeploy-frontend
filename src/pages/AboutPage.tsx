@@ -41,13 +41,19 @@ export default function AboutPage() {
           infrastructure recommendations shaped by workload needs, budget, security, and operational
           considerations.
         </p>
+        <aside className="ac3-about-aside" aria-hidden="true">
+          <img src="/images/architecture-convergence.webp" alt="" />
+          <p>Simple by design</p>
+          <span>Cost-aware</span>
+          <span>Human-approved</span>
+        </aside>
 
         <section aria-labelledby="why-heading">
           <h2 id="why-heading">Why DavDeploy exists</h2>
           <p>
             Cloud infrastructure can become expensive and unnecessarily complicated before a product
             reaches its users. Teams are often asked to learn unfamiliar services, write
-            configuration, estimate cost, secure a deployment, and maintain it—all while trying to
+            configuration, estimate cost, secure a deployment, and maintain it, all while trying to
             build their product.
           </p>
           <p>
@@ -94,7 +100,7 @@ export default function AboutPage() {
           <p>
             AWS is DavDeploy&apos;s initial implemented cloud provider. The product is being
             designed to support the infrastructure choices that best fit a customer&apos;s
-            application, region, budget, and operating needs—not unnecessary provider lock-in.
+            application, region, budget, and operating needs, without unnecessary provider lock-in.
           </p>
           <p>
             Future integrations may include Microsoft Azure, Google Cloud Platform, Oracle Cloud
@@ -131,7 +137,6 @@ export default function AboutPage() {
 
         <div className="ac3-about-closing">
           <p>Founded in October 2026 · Independently built</p>
-          <a href="mailto:bepoadewale@davdeploy.tech">bepoadewale@davdeploy.tech</a>
           <Link to="/team">Meet the founder</Link>
         </div>
       </article>
