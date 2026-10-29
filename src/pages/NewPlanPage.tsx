@@ -437,9 +437,9 @@ export default function NewPlanPage() {
                       onChange={(event) => update('cloudProvider', event.target.value)}
                     >
                       <option value="aws">AWS</option>
-                      <option value="azure">Azure — coming soon</option>
-                      <option value="gcp">Google Cloud — coming soon</option>
-                      <option value="other">Other cloud — coming soon</option>
+                      <option value="azure">Azure (coming soon)</option>
+                      <option value="gcp">Google Cloud (coming soon)</option>
+                      <option value="other">Other cloud (coming soon)</option>
                     </select>
                   </label>
                   {form.cloudProvider === 'aws' ? (

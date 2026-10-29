@@ -457,7 +457,7 @@ function ApprovedActions({
       {admin ? (
         <>
           <p className="execution-stage-label">
-            02 · Pilot preparation — no customer resources change
+            02 · Pilot preparation: no customer resources change
           </p>
           <button
             className="button button-secondary"

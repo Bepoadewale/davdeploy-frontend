@@ -26,20 +26,19 @@ export default function TeamPage() {
         <p className="ac3-eyebrow">The team</p>
         <h1 id="team-heading">Meet the founder.</h1>
         <div className="ac3-founder-profile">
-          <div
-            className="ac3-founder-portrait ac3-founder-portrait-placeholder"
-            role="img"
-            aria-label="Portrait placeholder for Adewale Ayeni-Bepo"
-          >
-            <span>AA</span>
-            <small>Portrait coming soon</small>
-          </div>
+          <img
+            className="ac3-founder-portrait"
+            src="/images/adewale-ayeni-bepo.jpeg"
+            width="1254"
+            height="1254"
+            alt="Adewale Ayeni-Bepo, founder of DavDeploy"
+          />
           <div className="ac3-founder-copy">
             <h2>Adewale Ayeni-Bepo</h2>
-            <p className="ac3-founder-role">Founder &amp; CEO, DavDeploy</p>
+            <p className="ac3-founder-role">Founder, DavDeploy</p>
             <p>
               Adewale is a cloud and platform engineer focused on practical infrastructure that
-              helps teams move with confidence. His work spans AWS architecture, Kubernetes and
+              helps teams move with confidence. His work spans cloud architecture, Kubernetes and
               containers, Terraform and infrastructure as code, CI/CD, automation, reliability,
               monitoring, security, cloud cost optimisation, and practical AI-assisted engineering.
             </p>

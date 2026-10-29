@@ -296,9 +296,9 @@ export default function ConnectionsPage() {
                     onChange={(event) => setCloudProvider(event.target.value)}
                   >
                     <option value="aws">AWS</option>
-                    <option value="azure">Azure — coming soon</option>
-                    <option value="gcp">Google Cloud — coming soon</option>
-                    <option value="other">Other cloud — coming soon</option>
+                    <option value="azure">Azure (coming soon)</option>
+                    <option value="gcp">Google Cloud (coming soon)</option>
+                    <option value="other">Other cloud (coming soon)</option>
                   </select>
                 </label>
                 {cloudProvider === 'aws' ? (
