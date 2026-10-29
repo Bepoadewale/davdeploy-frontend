@@ -81,7 +81,7 @@ describe('public company information pages', () => {
       screen.getByText(/future integrations may include microsoft azure/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/they are not available today/i)).toBeInTheDocument();
-    expect(screen.getByText(/founded in october 2026 · independently built/i)).toBeInTheDocument();
+    expect(screen.getByText('Founded in October 2026.')).toBeInTheDocument();
     expect(screen.getByText(/AI proposes. Humans approve./i)).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'bepoadewale@davdeploy.tech' }),

@@ -136,7 +136,7 @@ export default function AboutPage() {
         </section>
 
         <div className="ac3-about-closing">
-          <p>Founded in October 2026 · Independently built</p>
+          <p>Founded in October 2026.</p>
           <Link to="/team">Meet the founder</Link>
         </div>
       </article>
