@@ -11,12 +11,22 @@ npm run verify
 
 ## Result
 
-The focused Pages Function fixtures passed. They cover initial token validation, host-only HttpOnly Secure SameSite cookie issuance, refresh-token exchange, upstream bearer forwarding, cookie renewal, and cross-site mutation rejection. The full frontend verification result is recorded with the PR checks.
+The focused Pages Function fixtures passed. They cover initial token validation, host-only HttpOnly
+Secure SameSite cookie issuance, refresh-token exchange, upstream bearer forwarding, cookie renewal,
+and cross-site mutation rejection. `npm run verify` passed 14 test files / 73 tests, browser
+acceptance passed (7 tests, 1 intentional skip), and pull-request plus `main` CI passed.
+
+The controlled production check also passed: Cognito email OTP returned a session, the production
+Function accepted it at `/api/v1/auth/browser-session` with HTTP 204, and a separate request using
+only the resulting secure cookies reached `/api/v1/me` with HTTP 200.
 
 ## Execution boundary
 
-The function tests are local fixtures with mocked API and Cognito endpoints. They do not send an email, call the production API, change Cloudflare configuration, or prove a real closed-browser recovery.
+The function fixtures are local and mocked. The recorded production check used a controlled founder
+account and did not create, change, or delete customer resources. It verifies the HTTP cookie
+contract, not visual browser close/reopen behavior on a specific device.
 
 ## Known limitations
 
-Production requires the documented Pages build flag and three Function runtime values. A real browser journey is still required after the Pages deployment; it needs a Cognito email code from the account holder.
+The Pages build flag and three runtime values are configured. A visual close/reopen/sign-out browser
+journey is still useful as final UX evidence, but no implementation blocker remains.
