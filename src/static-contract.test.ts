@@ -17,9 +17,9 @@ describe('static hosting and responsive contract', () => {
     expect(css).toContain('.filter-bar');
   });
 
-  it('ships browser security headers without a Cloudflare runtime', () => {
+  it('ships browser security headers for the Pages static shell', () => {
     expect(headers).toContain('Content-Security-Policy:');
     expect(headers).toContain("frame-ancestors 'none'");
-    expect(headers).not.toMatch(/Pages Function|Worker|Durable Object|D1|R2/);
+    expect(headers).not.toMatch(/Durable Object|D1|R2/);
   });
 });

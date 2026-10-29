@@ -3,10 +3,15 @@ export type AuthMode = 'local-fixture' | 'oidc';
 const trimSlash = (value: string) => value.replace(/\/+$/, '');
 
 const configuredApiBaseUrl = trimSlash(import.meta.env.VITE_API_BASE_URL?.trim() ?? '');
+const browserSessionProxy =
+  import.meta.env.VITE_BROWSER_SESSION_PROXY_ENABLED?.toLowerCase() === 'true';
 
 export const config = Object.freeze({
-  apiBaseUrl: configuredApiBaseUrl || (import.meta.env.DEV ? 'http://127.0.0.1:8080' : ''),
-  apiConfigured: Boolean(configuredApiBaseUrl || import.meta.env.DEV),
+  apiBaseUrl: browserSessionProxy
+    ? window.location.origin
+    : configuredApiBaseUrl || (import.meta.env.DEV ? 'http://127.0.0.1:8080' : ''),
+  apiConfigured: Boolean(browserSessionProxy || configuredApiBaseUrl || import.meta.env.DEV),
+  browserSessionProxy,
   authMode: (import.meta.env.VITE_AUTH_MODE ?? 'oidc') as AuthMode,
   googleSignInEnabled: import.meta.env.VITE_GOOGLE_SIGN_IN_ENABLED?.toLowerCase() === 'true',
   localLoginEnabled:
