@@ -49,6 +49,6 @@ This uses the existing API Gateway and Cognito public client; it does not change
 
 ## Follow-up work
 
-Run a visual browser journey: email OTP sign-in, close all DavDeploy tabs, reopen the canonical
-domain, confirm restoration, sign out, and confirm restoration no longer occurs. The production
-HTTP-level cookie restoration contract is already verified.
+Completed October 29, 2026: the founder performed the visual browser journey—email OTP sign-in,
+close/reopen, restored workspace, sign-out, then no restoration. The HTTP-level and visual cookie
+restoration checks are both verified.
