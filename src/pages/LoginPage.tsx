@@ -56,6 +56,16 @@ export default function LoginPage() {
   async function submitEmail(event: FormEvent) {
     event.preventDefault();
     setEmailStatus(null);
+    if (challenge?.kind === 'SIGN_UP') {
+      await verifyEmailCode(challenge, code);
+      setChallenge(null);
+      setMode('sign-in');
+      setCode('');
+      setEmailStatus(
+        'Email confirmed. Sign in with your password to set up your authenticator app.',
+      );
+      return;
+    }
     if (challenge) {
       setEmailStatus('Verifying your code and preparing the workspace…');
       void import('./OverviewPage');
