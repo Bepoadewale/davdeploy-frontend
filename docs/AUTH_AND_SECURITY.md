@@ -12,9 +12,9 @@ Keep it false until the Google provider is configured in Cognito. Email OTP rema
 
 On the production site, a same-origin Cloudflare Pages Function exchanges the successful Cognito
 result for two host-only, `HttpOnly`, `Secure`, `SameSite=Lax` cookies. The short-lived ID-token
-cookie lasts 15 minutes and the refresh-token cookie lasts seven days. They are never readable by
+cookie lasts 15 minutes and the refresh-token cookie lasts one day. They are never readable by
 browser JavaScript, so closing and reopening DavDeploy can restore a session until the user signs
-out or the seven-day Cognito refresh period ends. The Function refreshes the ID token before expiry
+out or the one-day Cognito refresh period ends. The Function refreshes the ID token before expiry
 and forwards the existing bearer request to the API; the API authorization model does not change.
 
 The direct development fallback retains tokens only in `sessionStorage`, never `localStorage`.
