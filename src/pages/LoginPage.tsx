@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import type { EmailOtpChallenge } from '../auth/cognitoEmail';
+import type { EmailOtpChallenge, PasswordAuthResult } from '../auth/cognitoEmail';
 import BrandMark from '../components/BrandMark';
 import { config, emailOtpConfigured, googleSignInConfigured } from '../config';
 
@@ -22,6 +22,10 @@ export default function LoginPage() {
     startEmailSignIn,
     startEmailSignUp,
     verifyEmailCode,
+    startPasswordSignIn,
+    verifyTotpSignIn,
+    startPasswordSetup,
+    confirmPasswordSetup,
     localSignIn,
   } = useAuth();
   const [email, setEmail] = useState('');
@@ -29,6 +33,14 @@ export default function LoginPage() {
   const [code, setCode] = useState('');
   const [challenge, setChallenge] = useState<EmailOtpChallenge | null>(null);
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
+  const [passwordMode, setPasswordMode] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordSetup, setPasswordSetup] = useState(false);
+  const [passwordSetupCode, setPasswordSetupCode] = useState('');
+  const [totpChallenge, setTotpChallenge] = useState<Extract<
+    PasswordAuthResult,
+    { status: 'TOTP_CHALLENGE' }
+  > | null>(null);
   if (profile) return <Navigate to="/overview" replace />;
 
   async function submitEmail(event: FormEvent) {
@@ -37,6 +49,30 @@ export default function LoginPage() {
     if (challenge) {
       setEmailStatus('Verifying your code and preparing the workspace…');
       void import('./OverviewPage');
+    }
+    if (totpChallenge) {
+      await verifyTotpSignIn(totpChallenge, code);
+      return;
+    }
+    if (passwordSetup) {
+      const complete = await confirmPasswordSetup(email, passwordSetupCode, password);
+      if (complete) {
+        setPasswordSetup(false);
+        setPasswordSetupCode('');
+        setEmailStatus(
+          'Password set. Sign in with your password, then add your authenticator app in Settings.',
+        );
+      }
+      return;
+    }
+    if (passwordMode) {
+      const result = await startPasswordSignIn(email, password);
+      if (result?.status === 'TOTP_CHALLENGE') {
+        setTotpChallenge(result);
+        setCode('');
+        setEmailStatus('Enter the code from your authenticator app.');
+      }
+      return;
     }
     const result = challenge
       ? await verifyEmailCode(challenge, code)
@@ -149,9 +185,11 @@ export default function LoginPage() {
               ) : null}
 
               <form className="email-auth-form" onSubmit={(event) => void submitEmail(event)}>
-                {challenge ? (
+                {challenge || totpChallenge ? (
                   <>
-                    <label htmlFor="email-code">Email verification code</label>
+                    <label htmlFor="email-code">
+                      {totpChallenge ? 'Authenticator code' : 'Email verification code'}
+                    </label>
                     <input
                       id="email-code"
                       name="code"
@@ -164,7 +202,55 @@ export default function LoginPage() {
                       value={code}
                       onChange={(event) => setCode(event.target.value)}
                     />
-                    <small className="auth-code-recipient">Code sent to {challenge.email}</small>
+                    <small className="auth-code-recipient">
+                      {totpChallenge
+                        ? 'Open your authenticator app to get a new code.'
+                        : `Code sent to ${challenge?.email}`}
+                    </small>
+                  </>
+                ) : passwordSetup ? (
+                  <>
+                    <label htmlFor="password-setup-code">Email verification code</label>
+                    <input
+                      id="password-setup-code"
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      required
+                      value={passwordSetupCode}
+                      onChange={(event) => setPasswordSetupCode(event.target.value)}
+                    />
+                    <label htmlFor="password">New password</label>
+                    <input
+                      id="password"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={12}
+                      required
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                  </>
+                ) : passwordMode ? (
+                  <>
+                    <label htmlFor="email">Work email</label>
+                    <input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="you@company.com"
+                    />
+                    <label htmlFor="password">Password</label>
+                    <input
+                      id="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
                   </>
                 ) : (
                   <>
@@ -188,19 +274,24 @@ export default function LoginPage() {
                 >
                   {loading
                     ? 'Checking…'
-                    : challenge
+                    : challenge || totpChallenge
                       ? 'Verify and continue'
-                      : mode === 'create-account'
-                        ? 'Create account'
-                        : 'Sign in with email'}
+                      : passwordSetup
+                        ? 'Set password'
+                        : passwordMode
+                          ? 'Sign in with password'
+                          : mode === 'create-account'
+                            ? 'Create account'
+                            : 'Sign in with email'}
                 </button>
-                {challenge ? (
+                {challenge || totpChallenge ? (
                   <button
                     className="auth-text-button"
                     type="button"
                     disabled={loading}
                     onClick={() => {
                       setChallenge(null);
+                      setTotpChallenge(null);
                       setCode('');
                       setEmailStatus(null);
                     }}
@@ -209,6 +300,34 @@ export default function LoginPage() {
                   </button>
                 ) : null}
               </form>
+              {mode === 'sign-in' && !challenge && !totpChallenge && !passwordSetup ? (
+                <div className="auth-password-options">
+                  <button
+                    className="auth-text-button"
+                    type="button"
+                    onClick={() => setPasswordMode(!passwordMode)}
+                  >
+                    {passwordMode ? 'Use email code instead' : 'Use password and authenticator app'}
+                  </button>
+                  {passwordMode ? (
+                    <button
+                      className="auth-text-button"
+                      type="button"
+                      disabled={loading || !email}
+                      onClick={() =>
+                        void startPasswordSetup(email).then((sent) => {
+                          if (sent) {
+                            setPasswordSetup(true);
+                            setEmailStatus('A password setup code was sent to your email.');
+                          }
+                        })
+                      }
+                    >
+                      Set or reset password
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
               {emailStatus ? (
                 <p className="auth-email-status" role="status">
                   {emailStatus}
