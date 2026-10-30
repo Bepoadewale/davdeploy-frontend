@@ -7,7 +7,7 @@ interface Env {
 const ID_COOKIE = 'davdeploy_browser_id';
 const REFRESH_COOKIE = 'davdeploy_browser_refresh';
 const REFRESH_EARLY_SECONDS = 60;
-const REFRESH_MAX_AGE = 60 * 60 * 24 * 7;
+const REFRESH_MAX_AGE = 60 * 60 * 24;
 
 function cookies(request: Request): Record<string, string> {
   return Object.fromEntries(
