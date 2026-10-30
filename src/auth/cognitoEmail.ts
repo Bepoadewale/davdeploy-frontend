@@ -1,9 +1,14 @@
 import {
   CognitoIdentityProviderClient,
+  AssociateSoftwareTokenCommand,
+  ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
+  ForgotPasswordCommand,
   InitiateAuthCommand,
   RespondToAuthChallengeCommand,
+  SetUserMFAPreferenceCommand,
   SignUpCommand,
+  VerifySoftwareTokenCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 export interface EmailOtpChallenge {
@@ -17,6 +22,7 @@ export type EmailAuthResult =
   | {
       status: 'AUTHENTICATED';
       identityToken: string;
+      accessToken?: string;
       refreshToken?: string;
       expiresIn?: number;
     };
@@ -26,16 +32,116 @@ function client(region: string) {
 }
 
 function authenticatedResult(result: {
-  AuthenticationResult?: { IdToken?: string; RefreshToken?: string; ExpiresIn?: number };
+  AuthenticationResult?: {
+    IdToken?: string;
+    AccessToken?: string;
+    RefreshToken?: string;
+    ExpiresIn?: number;
+  };
 }): Extract<EmailAuthResult, { status: 'AUTHENTICATED' }> | null {
   const authentication = result.AuthenticationResult;
   if (!authentication?.IdToken) return null;
   return {
     status: 'AUTHENTICATED',
     identityToken: authentication.IdToken,
+    accessToken: authentication.AccessToken,
     refreshToken: authentication.RefreshToken,
     expiresIn: authentication.ExpiresIn,
   };
+}
+
+export type PasswordAuthResult =
+  | Extract<EmailAuthResult, { status: 'AUTHENTICATED' }>
+  | { status: 'TOTP_CHALLENGE'; email: string; session: string };
+
+export async function startPasswordSignIn(
+  region: string,
+  clientId: string,
+  email: string,
+  password: string,
+): Promise<PasswordAuthResult> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const response = await client(region).send(
+    new InitiateAuthCommand({
+      AuthFlow: 'USER_PASSWORD_AUTH',
+      ClientId: clientId,
+      AuthParameters: { USERNAME: normalizedEmail, PASSWORD: password },
+    }),
+  );
+  const authenticated = authenticatedResult(response);
+  if (authenticated) return authenticated;
+  if (response.ChallengeName === 'SOFTWARE_TOKEN_MFA' && response.Session) {
+    return { status: 'TOTP_CHALLENGE', email: normalizedEmail, session: response.Session };
+  }
+  throw new Error('Cognito did not return the expected password or authenticator challenge.');
+}
+
+export async function verifyTotpSignIn(
+  region: string,
+  clientId: string,
+  challenge: Extract<PasswordAuthResult, { status: 'TOTP_CHALLENGE' }>,
+  code: string,
+) {
+  const response = await client(region).send(
+    new RespondToAuthChallengeCommand({
+      ChallengeName: 'SOFTWARE_TOKEN_MFA',
+      ClientId: clientId,
+      Session: challenge.session,
+      ChallengeResponses: { USERNAME: challenge.email, SOFTWARE_TOKEN_MFA_CODE: code.trim() },
+    }),
+  );
+  const authenticated = authenticatedResult(response);
+  if (!authenticated) throw new Error('The authenticator code could not be verified.');
+  return authenticated;
+}
+
+export async function sendPasswordSetupCode(region: string, clientId: string, email: string) {
+  await client(region).send(
+    new ForgotPasswordCommand({ ClientId: clientId, Username: email.trim().toLowerCase() }),
+  );
+}
+
+export async function confirmPasswordSetup(
+  region: string,
+  clientId: string,
+  email: string,
+  code: string,
+  password: string,
+) {
+  await client(region).send(
+    new ConfirmForgotPasswordCommand({
+      ClientId: clientId,
+      Username: email.trim().toLowerCase(),
+      ConfirmationCode: code.trim(),
+      Password: password,
+    }),
+  );
+}
+
+export async function beginTotpEnrollment(region: string, accessToken: string) {
+  const response = await client(region).send(
+    new AssociateSoftwareTokenCommand({ AccessToken: accessToken }),
+  );
+  if (!response.SecretCode) throw new Error('Cognito did not return an authenticator setup key.');
+  return response.SecretCode;
+}
+
+export async function confirmTotpEnrollment(region: string, accessToken: string, code: string) {
+  const verified = await client(region).send(
+    new VerifySoftwareTokenCommand({
+      AccessToken: accessToken,
+      UserCode: code.trim(),
+      FriendlyDeviceName: 'Authenticator app',
+    }),
+  );
+  if (verified.Status !== 'SUCCESS')
+    throw new Error('The authenticator code could not be verified.');
+  await client(region).send(
+    new SetUserMFAPreferenceCommand({
+      AccessToken: accessToken,
+      SoftwareTokenMfaSettings: { Enabled: true, PreferredMfa: true },
+    }),
+  );
 }
 
 function isMissingUser(error: unknown) {

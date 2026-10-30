@@ -12,7 +12,7 @@ import type { UserManager, UserManagerSettings } from 'oidc-client-ts';
 import { ApiClient, BROWSER_SESSION_TOKEN } from '../api/client';
 import type { WorkspaceProfile } from '../api/contracts';
 import { config, emailOtpConfigured, oidcConfigured } from '../config';
-import type { EmailAuthResult, EmailOtpChallenge } from './cognitoEmail';
+import type { EmailAuthResult, EmailOtpChallenge, PasswordAuthResult } from './cognitoEmail';
 import { resolveWorkspaceProfile } from './workspaceSession';
 
 interface AuthState {
@@ -25,6 +25,14 @@ interface AuthState {
   startEmailSignIn: (email: string) => Promise<EmailAuthResult | null>;
   startEmailSignUp: (email: string) => Promise<EmailAuthResult | null>;
   verifyEmailCode: (challenge: EmailOtpChallenge, code: string) => Promise<EmailAuthResult | null>;
+  startPasswordSignIn: (email: string, password: string) => Promise<PasswordAuthResult | null>;
+  verifyTotpSignIn: (
+    challenge: Extract<PasswordAuthResult, { status: 'TOTP_CHALLENGE' }>,
+    code: string,
+  ) => Promise<EmailAuthResult | null>;
+  startPasswordSetup: (email: string) => Promise<boolean>;
+  confirmPasswordSetup: (email: string, code: string, password: string) => Promise<boolean>;
+  cognitoAccessToken: string | null;
   localSignIn: (username: 'founder' | 'administrator') => Promise<void>;
   completeCallback: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -92,6 +100,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [loading, setLoading] = useState(config.browserSessionProxy);
   const [error, setError] = useState<string | null>(null);
   const tokenRef = useRef<string | null>(null);
+  const [cognitoAccessToken, setCognitoAccessToken] = useState<string | null>(null);
   const managerRef = useRef<Promise<UserManager | null> | null>(null);
   const api = useMemo(() => new ApiClient(() => tokenRef.current), []);
 
@@ -151,9 +160,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       persistSession = false,
       refreshToken?: string,
       expiresIn?: number,
+      rawAccessToken?: string,
     ) => {
       tokenRef.current = accessToken;
       setToken(accessToken);
+      setCognitoAccessToken(rawAccessToken ?? null);
       try {
         const resolved = await resolveWorkspaceProfile(api, {
           identityName,
@@ -312,6 +323,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             true,
             result.refreshToken,
             result.expiresIn,
+            result.accessToken,
           );
         return result;
       } catch (requestError) {
@@ -360,6 +372,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             true,
             result.refreshToken,
             result.expiresIn,
+            result.accessToken,
           );
         }
         return result;
@@ -373,6 +386,99 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
     },
     [adoptToken],
+  );
+
+  const startPasswordSignIn = useCallback(
+    async (email: string, password: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { startPasswordSignIn: begin } = await import('./cognitoEmail');
+        const result = await begin(config.cognito.region, config.cognito.clientId, email, password);
+        if (result.status === 'AUTHENTICATED')
+          await adoptToken(
+            result.identityToken,
+            email,
+            false,
+            true,
+            result.refreshToken,
+            result.expiresIn,
+            result.accessToken,
+          );
+        return result;
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Password sign-in failed.');
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [adoptToken],
+  );
+
+  const verifyTotpSignIn = useCallback(
+    async (challenge: Extract<PasswordAuthResult, { status: 'TOTP_CHALLENGE' }>, code: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { verifyTotpSignIn: verify } = await import('./cognitoEmail');
+        const result = await verify(
+          config.cognito.region,
+          config.cognito.clientId,
+          challenge,
+          code,
+        );
+        await adoptToken(
+          result.identityToken,
+          challenge.email,
+          false,
+          true,
+          result.refreshToken,
+          result.expiresIn,
+          result.accessToken,
+        );
+        return result;
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Authenticator verification failed.');
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [adoptToken],
+  );
+
+  const startPasswordSetup = useCallback(async (email: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { sendPasswordSetupCode } = await import('./cognitoEmail');
+      await sendPasswordSetupCode(config.cognito.region, config.cognito.clientId, email);
+      return true;
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not send a password setup code.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const confirmPasswordSetup = useCallback(
+    async (email: string, code: string, password: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { confirmPasswordSetup: confirm } = await import('./cognitoEmail');
+        await confirm(config.cognito.region, config.cognito.clientId, email, code, password);
+        return true;
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Could not set the password.');
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
   );
 
   const localSignIn = useCallback(
@@ -423,6 +529,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signOut = useCallback(async () => {
     tokenRef.current = null;
+    setCognitoAccessToken(null);
     setToken(null);
     setProfile(null);
     setError(null);
@@ -448,6 +555,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       startEmailSignIn,
       startEmailSignUp,
       verifyEmailCode,
+      startPasswordSignIn,
+      verifyTotpSignIn,
+      startPasswordSetup,
+      confirmPasswordSetup,
+      cognitoAccessToken,
       localSignIn,
       completeCallback,
       signOut,
@@ -465,6 +577,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       startEmailSignUp,
       token,
       verifyEmailCode,
+      startPasswordSignIn,
+      verifyTotpSignIn,
+      startPasswordSetup,
+      confirmPasswordSetup,
+      cognitoAccessToken,
     ],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
