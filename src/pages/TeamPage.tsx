@@ -16,7 +16,7 @@ export default function TeamPage() {
       <header className="ac3-header">
         <Link className="ac3-brand" to="/" aria-label="DavDeploy home">
           <BrandMark />
-          <span>davdeploy</span>
+          <span>DavDeploy</span>
         </Link>
         <Link className="ac3-header-action" to="/">
           Home

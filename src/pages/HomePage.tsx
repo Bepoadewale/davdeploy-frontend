@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import BrandMark from '../components/BrandMark';
 import PublicFooter from '../components/PublicFooter';
+import WebsiteMedia from '../components/WebsiteMedia';
 import { usePublicMetadata } from '../hooks/usePublicMetadata';
 
 const workflow = [
@@ -37,9 +38,9 @@ export default function HomePage() {
   return (
     <main className="ac3-page">
       <header className="ac3-header">
-        <Link className="ac3-brand" to="/" aria-label="davdeploy home">
+        <Link className="ac3-brand" to="/" aria-label="DavDeploy home">
           <BrandMark />
-          <span>davdeploy</span>
+          <span>DavDeploy</span>
         </Link>
         <Link className="ac3-header-action" to="/overview">
           Sign in <ArrowIcon />
@@ -73,12 +74,12 @@ export default function HomePage() {
             <small>Evidence linked</small>
           </div>
           <div className="ac3-product-canvas">
-            <img
-              src="/images/architecture-convergence.webp"
-              width="1944"
-              height="817"
-              alt=""
-              fetchPriority="high"
+            <WebsiteMedia
+              className="ac3-hero-media"
+              src="/media/davdeploy/hero-idea-to-architecture.mp4"
+              poster="/media/davdeploy/hero-idea-to-architecture-poster.jpg"
+              label="architecture illustration"
+              priority
             />
             <div className="ac3-plan-card">
               <p>Recommended approach</p>
@@ -119,6 +120,47 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section
+        className="ac3-media-section ac3-media-section-simplicity"
+        aria-labelledby="simplicity-heading"
+      >
+        <div>
+          <p className="ac3-eyebrow">Minimum necessary</p>
+          <h2 id="simplicity-heading">Infrastructure should fit the work.</h2>
+          <p>
+            Start with the simplest viable architecture, then add capability when a real workload
+            needs it. DavDeploy makes the trade-offs visible before they become operating burden.
+          </p>
+        </div>
+        <img
+          src="/media/davdeploy/simplicity.webp"
+          width="2752"
+          height="1536"
+          loading="lazy"
+          decoding="async"
+          alt="An overloaded cloud stack simplified into a focused architecture"
+        />
+      </section>
+
+      <section className="ac3-media-section ac3-media-section-cost" aria-labelledby="cost-heading">
+        <img
+          src="/media/davdeploy/cost-iceberg.webp"
+          width="2752"
+          height="1536"
+          loading="lazy"
+          decoding="async"
+          alt="An illustration of visible compute cost and hidden operational cost"
+        />
+        <div>
+          <p className="ac3-eyebrow">Cost awareness</p>
+          <h2 id="cost-heading">Cost is more than compute.</h2>
+          <p>
+            Egress, idle capacity, maintenance, and monitoring all shape the cost of a cloud
+            decision. A useful plan brings those considerations into the review, not after launch.
+          </p>
+        </div>
+      </section>
+
       <section className="ac3-who" aria-labelledby="audience-heading">
         <p className="ac3-eyebrow">Who it is for</p>
         <h2 id="audience-heading">Founders and product teams making cloud decisions.</h2>
@@ -141,6 +183,108 @@ export default function HomePage() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="ac3-governance" aria-labelledby="governance-heading">
+        <WebsiteMedia
+          src="/media/davdeploy/governance-human-approval.mp4"
+          poster="/media/davdeploy/governance-human-approval-poster.jpg"
+          label="governance illustration"
+        />
+        <div>
+          <p className="ac3-eyebrow">Governance</p>
+          <h2 id="governance-heading">AI proposes. Humans approve.</h2>
+          <p>
+            Plans are tied to an immutable digest, policy checks, role-based review, and an audit
+            trail. Approval records a decision. It is not the same thing as deployment.
+          </p>
+          <Link to="/about" className="ac3-text-link">
+            How DavDeploy is designed <ArrowIcon />
+          </Link>
+        </div>
+      </section>
+
+      <section className="ac3-use-cases" aria-labelledby="use-cases-heading">
+        <div className="ac3-section-heading">
+          <p className="ac3-eyebrow">Start where you are</p>
+          <h2 id="use-cases-heading">A clearer path for each stage of work.</h2>
+          <p>These are planning illustrations, not tested performance or deployment claims.</p>
+        </div>
+        <img
+          src="/media/davdeploy/use-cases.webp"
+          width="2752"
+          height="1536"
+          loading="lazy"
+          decoding="async"
+          alt="Three illustrative infrastructure shapes for a small website, e-commerce API, and growing application"
+        />
+        <div className="ac3-use-case-grid">
+          <article>
+            <h3>Small website</h3>
+            <p>A focused plan for a simple public product presence.</p>
+          </article>
+          <article>
+            <h3>E-commerce API</h3>
+            <p>Clearer choices around data, resilience, and security boundaries.</p>
+          </article>
+          <article>
+            <h3>Growing application</h3>
+            <p>A path that can adapt as workload and operating needs change.</p>
+          </article>
+        </div>
+      </section>
+
+      <section
+        className="ac3-media-section ac3-media-section-ownership"
+        aria-labelledby="ownership-heading"
+      >
+        <div>
+          <p className="ac3-eyebrow">Customer control</p>
+          <h2 id="ownership-heading">Your application stays in your account.</h2>
+          <p>
+            Permission boundaries and authorized actions are essential. DavDeploy is built to give
+            customers visibility and control over the cloud resources their product relies on.
+          </p>
+        </div>
+        <img
+          src="/media/davdeploy/ownership.webp"
+          width="2752"
+          height="1536"
+          loading="lazy"
+          decoding="async"
+          alt="A customer holding a protected cloud infrastructure environment"
+        />
+      </section>
+
+      <section className="ac3-lifecycle" aria-labelledby="lifecycle-heading">
+        <img
+          src="/media/davdeploy/lifecycle.webp"
+          width="2752"
+          height="1536"
+          loading="lazy"
+          decoding="async"
+          alt="An illustrated lifecycle from cloud connection to plan, review, and governed action"
+        />
+        <div>
+          <p className="ac3-eyebrow">Evidence at every stage</p>
+          <h2 id="lifecycle-heading">Connect. Plan. Review. Then act with authorization.</h2>
+          <p>
+            Every step builds an evidence trail. Where supported, execution is separately authorized
+            and remains bounded by the reviewed plan and permission model.
+          </p>
+        </div>
+      </section>
+
+      <section className="ac3-brand-close" aria-label="DavDeploy brand">
+        <WebsiteMedia
+          src="/media/davdeploy/brand-birth-of-davdeploy.mp4"
+          poster="/media/davdeploy/brand-birth-of-davdeploy-poster.jpg"
+          label="DavDeploy brand illustration"
+        />
+        <div className="ac3-brand-close-overlay">
+          <BrandMark />
+          <span>DavDeploy</span>
+        </div>
       </section>
 
       <PublicFooter />

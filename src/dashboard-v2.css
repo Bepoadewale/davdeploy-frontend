@@ -52,11 +52,6 @@
 .workspace-shell-v2 .workspace-topbar .brand-mark {
   width: 32px;
   height: 32px;
-  color: #fff;
-  background: var(--workspace-blue);
-  border-radius: 8px;
-  font-size: 9px;
-  letter-spacing: -0.03em;
 }
 
 .workspace-topbar-divider {

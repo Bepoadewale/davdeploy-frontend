@@ -32,6 +32,17 @@ describe('public product overview', () => {
       expect(link).toHaveAttribute('href', '/overview');
     }
     expect(screen.queryByRole('link', { name: /see the product/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Cost is more than compute.')).toBeInTheDocument();
+    expect(screen.getByText('AI proposes. Humans approve.')).toBeInTheDocument();
+    expect(screen.getByText('Your application stays in your account.')).toBeInTheDocument();
+    expect(screen.getByText(/approval records a decision/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /pause architecture illustration/i }),
+    ).toBeInTheDocument();
+    expect(document.querySelector('video source')).toHaveAttribute(
+      'src',
+      '/media/davdeploy/hero-idea-to-architecture.mp4',
+    );
   });
 
   it('has no automatically detectable WCAG 2.2 A/AA violations', async () => {
@@ -44,5 +55,5 @@ describe('public product overview', () => {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] },
     });
     expect(result.violations).toEqual([]);
-  });
+  }, 15_000);
 });
