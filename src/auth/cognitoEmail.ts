@@ -265,26 +265,14 @@ export async function verifyEmailChallenge(
 ): Promise<EmailAuthResult> {
   const cognito = client(region);
   if (challenge.kind === 'SIGN_UP') {
-    const confirmation = await cognito.send(
+    await cognito.send(
       new ConfirmSignUpCommand({
         ClientId: clientId,
         Username: challenge.email,
         ConfirmationCode: code.trim(),
       }),
     );
-    const response = await cognito.send(
-      new InitiateAuthCommand({
-        AuthFlow: 'USER_AUTH',
-        ClientId: clientId,
-        Session: confirmation.Session,
-        AuthParameters: {
-          USERNAME: challenge.email,
-          PREFERRED_CHALLENGE: 'EMAIL_OTP',
-        },
-      }),
-    );
-    const authenticated = authenticatedResult(response);
-    return authenticated ? authenticated : requireOtpChallenge(challenge.email, response);
+    return { status: 'CHALLENGE', challenge, message: 'Email confirmed.' };
   }
 
   const response = await cognito.send(
