@@ -203,25 +203,13 @@ code {
   place-items: center;
   width: 32px;
   height: 32px;
-  color: #fff;
-  background: var(--brand);
-  border-radius: 8px;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+  flex: 0 0 auto;
 }
-.brand-mark svg {
-  width: 20px;
-  height: 20px;
-  overflow: visible;
-}
-.brand-mark path {
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.7;
-}
-.brand-mark circle {
-  fill: currentColor;
+.brand-mark img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 .eyebrow {
   margin-bottom: 5px;

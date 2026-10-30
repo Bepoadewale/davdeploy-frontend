@@ -71,9 +71,9 @@ export function AppShell() {
         Skip to main content
       </a>
       <header className="topbar workspace-topbar">
-        <Link className="brand" to="/overview" aria-label="davdeploy overview">
+        <Link className="brand" to="/overview" aria-label="DavDeploy overview">
           <BrandMark />
-          <span>davdeploy</span>
+          <span>DavDeploy</span>
         </Link>
         <span className="workspace-topbar-divider" aria-hidden="true" />
         <span className="workspace-topbar-context">{profile?.workspace.name ?? 'Workspace'}</span>

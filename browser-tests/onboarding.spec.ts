@@ -65,6 +65,24 @@ test('public Team and About pages remain available without workspace sign-in', a
   await expect(page.getByText('They are not available today.')).toBeVisible();
 });
 
+test('public homepage serves official local brand media at desktop and mobile widths', async ({
+  page,
+}) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('link', { name: 'DavDeploy home' }).first()).toBeVisible();
+  await expect(page.locator('.ac3-hero-media .website-media-poster')).toHaveAttribute(
+    'src',
+    '/media/davdeploy/hero-idea-to-architecture-poster.jpg',
+  );
+  await expect(page.locator('.ac3-hero-media source')).toHaveAttribute(
+    'src',
+    '/media/davdeploy/hero-idea-to-architecture.mp4',
+  );
+  await expect(page.getByRole('button', { name: /architecture illustration/i })).toBeVisible();
+  await expect(page.getByText('Cost is more than compute.')).toBeVisible();
+});
+
 async function signInToFixtureWorkspace(page: Page, role: 'Developer' | 'Administrator') {
   await page.goto('/login');
   await page.getByRole('button', { name: role }).click();

@@ -6,7 +6,7 @@ export default function PublicFooter() {
     <footer className="ac3-footer" aria-label="Public site navigation">
       <Link className="ac3-brand" to="/" aria-label="DavDeploy home">
         <BrandMark />
-        <span>davdeploy</span>
+        <span>DavDeploy</span>
       </Link>
       <nav className="ac3-footer-nav" aria-label="Company">
         <Link to="/team">Team</Link>

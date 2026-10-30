@@ -53,9 +53,9 @@ export default function LoginPage() {
   return (
     <main className="auth-page auth-page-v2">
       <header className="auth-header-v2">
-        <a className="auth-brand-v2" href="/" aria-label="davdeploy home">
+        <a className="auth-brand-v2" href="/" aria-label="DavDeploy home">
           <BrandMark />
-          <span>davdeploy</span>
+          <span>DavDeploy</span>
         </a>
         <a href="/">Back to product</a>
       </header>

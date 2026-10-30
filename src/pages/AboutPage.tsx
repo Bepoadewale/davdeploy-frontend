@@ -26,7 +26,7 @@ export default function AboutPage() {
       <header className="ac3-header">
         <Link className="ac3-brand" to="/" aria-label="DavDeploy home">
           <BrandMark />
-          <span>davdeploy</span>
+          <span>DavDeploy</span>
         </Link>
         <Link className="ac3-header-action" to="/">
           Home
@@ -43,7 +43,7 @@ export default function AboutPage() {
           considerations.
         </p>
         <aside className="ac3-about-aside" aria-hidden="true">
-          <img src="/images/architecture-convergence.webp" alt="" />
+          <img src="/media/davdeploy/lifecycle.webp" alt="" />
           <p>Simple by design</p>
           <span>Cost-aware</span>
           <span>Human-approved</span>
@@ -112,6 +112,15 @@ export default function AboutPage() {
 
         <section aria-labelledby="approach-heading">
           <h2 id="approach-heading">Our approach</h2>
+          <img
+            className="ac3-about-security-media"
+            src="/media/davdeploy/security.webp"
+            width="2752"
+            height="1536"
+            loading="lazy"
+            decoding="async"
+            alt="An illustration of protected cloud infrastructure with security controls"
+          />
           <ul className="ac3-principles">
             {principles.map((principle) => (
               <li key={principle}>{principle}</li>

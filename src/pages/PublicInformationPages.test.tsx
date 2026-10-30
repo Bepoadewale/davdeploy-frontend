@@ -96,6 +96,9 @@ describe('public company information pages', () => {
     expect(screen.getByText('Founded in October 2026.')).toBeInTheDocument();
     expect(screen.getByText(/AI proposes. Humans approve./i)).toBeInTheDocument();
     expect(
+      screen.getByRole('img', { name: /protected cloud infrastructure with security controls/i }),
+    ).toHaveAttribute('src', '/media/davdeploy/security.webp');
+    expect(
       screen.queryByRole('link', { name: 'bepoadewale@davdeploy.tech' }),
     ).not.toBeInTheDocument();
     expect(document.title).toBe('About Us | DavDeploy');
