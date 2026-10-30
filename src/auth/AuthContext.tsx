@@ -23,7 +23,7 @@ interface AuthState {
   api: ApiClient;
   signInWithGoogle: () => Promise<void>;
   startEmailSignIn: (email: string) => Promise<EmailAuthResult | null>;
-  startEmailSignUp: (email: string) => Promise<EmailAuthResult | null>;
+  startEmailSignUp: (email: string, password: string) => Promise<EmailAuthResult | null>;
   verifyEmailCode: (challenge: EmailOtpChallenge, code: string) => Promise<EmailAuthResult | null>;
   startPasswordSignIn: (email: string, password: string) => Promise<PasswordAuthResult | null>;
   verifyTotpSignIn: (
@@ -336,13 +336,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [adoptToken],
   );
 
-  const startEmailSignUp = useCallback(async (email: string) => {
+  const startEmailSignUp = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
     try {
       if (!emailOtpConfigured) throw new Error('Email account creation is not configured.');
       const { startEmailSignUp: beginEmailSignUp } = await import('./cognitoEmail');
-      return await beginEmailSignUp(config.cognito.region, config.cognito.clientId, email);
+      return await beginEmailSignUp(
+        config.cognito.region,
+        config.cognito.clientId,
+        email,
+        password,
+      );
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Account creation failed.');
       return null;

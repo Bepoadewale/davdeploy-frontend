@@ -1,7 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import type { EmailOtpChallenge, PasswordAuthResult } from '../auth/cognitoEmail';
+import {
+  beginTotpEnrollment,
+  completeTotpSetup,
+  type EmailOtpChallenge,
+  type PasswordAuthResult,
+} from '../auth/cognitoEmail';
 import BrandMark from '../components/BrandMark';
 import { config, emailOtpConfigured, googleSignInConfigured } from '../config';
 
@@ -33,7 +38,7 @@ export default function LoginPage() {
   const [code, setCode] = useState('');
   const [challenge, setChallenge] = useState<EmailOtpChallenge | null>(null);
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
-  const [passwordMode, setPasswordMode] = useState(false);
+  const [passwordMode] = useState(true);
   const [password, setPassword] = useState('');
   const [passwordSetup, setPasswordSetup] = useState(false);
   const [passwordSetupCode, setPasswordSetupCode] = useState('');
@@ -41,6 +46,11 @@ export default function LoginPage() {
     PasswordAuthResult,
     { status: 'TOTP_CHALLENGE' }
   > | null>(null);
+  const [totpSetup, setTotpSetup] = useState<Extract<
+    PasswordAuthResult,
+    { status: 'TOTP_SETUP' }
+  > | null>(null);
+  const [totpSecret, setTotpSecret] = useState('');
   if (profile) return <Navigate to="/overview" replace />;
 
   async function submitEmail(event: FormEvent) {
@@ -54,6 +64,16 @@ export default function LoginPage() {
       await verifyTotpSignIn(totpChallenge, code);
       return;
     }
+    if (totpSetup) {
+      await completeTotpSetup(
+        config.cognito.region,
+        config.cognito.clientId,
+        totpSetup.email,
+        totpSetup.session,
+        code,
+      );
+      return;
+    }
     if (passwordSetup) {
       const complete = await confirmPasswordSetup(email, passwordSetupCode, password);
       if (complete) {
@@ -65,12 +85,27 @@ export default function LoginPage() {
       }
       return;
     }
+    if (mode === 'create-account' && !challenge) {
+      const result = await startEmailSignUp(email, password);
+      if (result?.status === 'CHALLENGE') {
+        setChallenge(result.challenge);
+        setCode('');
+        setEmailStatus(result.message);
+      }
+      return;
+    }
     if (passwordMode) {
       const result = await startPasswordSignIn(email, password);
       if (result?.status === 'TOTP_CHALLENGE') {
         setTotpChallenge(result);
         setCode('');
         setEmailStatus('Enter the code from your authenticator app.');
+      }
+      if (result?.status === 'TOTP_SETUP') {
+        setTotpSetup(result);
+        setTotpSecret(await beginTotpEnrollment(config.cognito.region, result.session, true));
+        setCode('');
+        setEmailStatus('Add the key to your authenticator app, then enter its code.');
       }
       return;
     }
@@ -185,7 +220,24 @@ export default function LoginPage() {
               ) : null}
 
               <form className="email-auth-form" onSubmit={(event) => void submitEmail(event)}>
-                {challenge || totpChallenge ? (
+                {totpSetup ? (
+                  <>
+                    <label>Authenticator setup key</label>
+                    <input readOnly value={totpSecret} />
+                    <small>
+                      Add this key manually in Google Authenticator, Authy, or 1Password.
+                    </small>
+                    <label htmlFor="email-code">Authenticator code</label>
+                    <input
+                      id="email-code"
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      required
+                      value={code}
+                      onChange={(event) => setCode(event.target.value)}
+                    />
+                  </>
+                ) : challenge || totpChallenge ? (
                   <>
                     <label htmlFor="email-code">
                       {totpChallenge ? 'Authenticator code' : 'Email verification code'}
@@ -246,7 +298,8 @@ export default function LoginPage() {
                     <input
                       id="password"
                       type="password"
-                      autoComplete="current-password"
+                      autoComplete={mode === 'create-account' ? 'new-password' : 'current-password'}
+                      minLength={12}
                       required
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -274,15 +327,15 @@ export default function LoginPage() {
                 >
                   {loading
                     ? 'Checking…'
-                    : challenge || totpChallenge
+                    : challenge || totpChallenge || totpSetup
                       ? 'Verify and continue'
                       : passwordSetup
                         ? 'Set password'
                         : passwordMode
-                          ? 'Sign in with password'
-                          : mode === 'create-account'
+                          ? mode === 'create-account'
                             ? 'Create account'
-                            : 'Sign in with email'}
+                            : 'Sign in with password'
+                          : 'Sign in'}
                 </button>
                 {challenge || totpChallenge ? (
                   <button
@@ -300,15 +353,12 @@ export default function LoginPage() {
                   </button>
                 ) : null}
               </form>
-              {mode === 'sign-in' && !challenge && !totpChallenge && !passwordSetup ? (
+              {mode === 'sign-in' &&
+              !challenge &&
+              !totpChallenge &&
+              !totpSetup &&
+              !passwordSetup ? (
                 <div className="auth-password-options">
-                  <button
-                    className="auth-text-button"
-                    type="button"
-                    onClick={() => setPasswordMode(!passwordMode)}
-                  >
-                    {passwordMode ? 'Use email code instead' : 'Use password and authenticator app'}
-                  </button>
                   {passwordMode ? (
                     <button
                       className="auth-text-button"

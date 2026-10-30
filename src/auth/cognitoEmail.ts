@@ -52,7 +52,8 @@ function authenticatedResult(result: {
 
 export type PasswordAuthResult =
   | Extract<EmailAuthResult, { status: 'AUTHENTICATED' }>
-  | { status: 'TOTP_CHALLENGE'; email: string; session: string };
+  | { status: 'TOTP_CHALLENGE'; email: string; session: string }
+  | { status: 'TOTP_SETUP'; email: string; session: string };
 
 export async function startPasswordSignIn(
   region: string,
@@ -72,6 +73,9 @@ export async function startPasswordSignIn(
   if (authenticated) return authenticated;
   if (response.ChallengeName === 'SOFTWARE_TOKEN_MFA' && response.Session) {
     return { status: 'TOTP_CHALLENGE', email: normalizedEmail, session: response.Session };
+  }
+  if (response.ChallengeName === 'MFA_SETUP' && response.Session) {
+    return { status: 'TOTP_SETUP', email: normalizedEmail, session: response.Session };
   }
   throw new Error('Cognito did not return the expected password or authenticator challenge.');
 }
@@ -118,12 +122,43 @@ export async function confirmPasswordSetup(
   );
 }
 
-export async function beginTotpEnrollment(region: string, accessToken: string) {
+export async function beginTotpEnrollment(region: string, accessToken: string, useSession = false) {
   const response = await client(region).send(
-    new AssociateSoftwareTokenCommand({ AccessToken: accessToken }),
+    new AssociateSoftwareTokenCommand(
+      useSession ? { Session: accessToken } : { AccessToken: accessToken },
+    ),
   );
   if (!response.SecretCode) throw new Error('Cognito did not return an authenticator setup key.');
   return response.SecretCode;
+}
+
+export async function completeTotpSetup(
+  region: string,
+  clientId: string,
+  email: string,
+  session: string,
+  code: string,
+) {
+  const verified = await client(region).send(
+    new VerifySoftwareTokenCommand({
+      Session: session,
+      UserCode: code.trim(),
+      FriendlyDeviceName: 'Authenticator app',
+    }),
+  );
+  if (verified.Status !== 'SUCCESS' || !verified.Session)
+    throw new Error('The authenticator code could not be verified.');
+  const response = await client(region).send(
+    new RespondToAuthChallengeCommand({
+      ChallengeName: 'MFA_SETUP',
+      ClientId: clientId,
+      Session: verified.Session,
+      ChallengeResponses: { USERNAME: email },
+    }),
+  );
+  const authenticated = authenticatedResult(response);
+  if (!authenticated) throw new Error('Cognito did not complete authenticator setup.');
+  return authenticated;
 }
 
 export async function confirmTotpEnrollment(region: string, accessToken: string, code: string) {
@@ -197,6 +232,7 @@ export async function startEmailSignUp(
   region: string,
   clientId: string,
   email: string,
+  password: string,
 ): Promise<EmailAuthResult> {
   const normalizedEmail = email.trim().toLowerCase();
   try {
@@ -204,6 +240,7 @@ export async function startEmailSignUp(
       new SignUpCommand({
         ClientId: clientId,
         Username: normalizedEmail,
+        Password: password,
         UserAttributes: [{ Name: 'email', Value: normalizedEmail }],
       }),
     );
