@@ -97,6 +97,10 @@ describe('customer workflows', () => {
       }),
     );
     expect(auth.api.request).toHaveBeenCalledWith(
+      '/api/v1/projects/project-1/repository-discovery',
+      expect.objectContaining({ method: 'GET' }),
+    );
+    expect(auth.api.request).toHaveBeenCalledWith(
       '/api/v1/intents',
       expect.objectContaining({
         method: 'POST',
