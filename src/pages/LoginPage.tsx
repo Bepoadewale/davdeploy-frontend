@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import QRCode from 'qrcode';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -7,6 +8,7 @@ import {
   type PasswordAuthResult,
 } from '../auth/cognitoEmail';
 import BrandMark from '../components/BrandMark';
+import PasswordField from './PasswordField';
 import { config, emailOtpConfigured, googleSignInConfigured } from '../config';
 
 function CheckIcon() {
@@ -38,6 +40,7 @@ export default function LoginPage() {
   const [challenge, setChallenge] = useState<EmailOtpChallenge | null>(null);
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [passwordSetup, setPasswordSetup] = useState(false);
   const [passwordSetupCode, setPasswordSetupCode] = useState('');
   const [totpChallenge, setTotpChallenge] = useState<Extract<
@@ -49,6 +52,18 @@ export default function LoginPage() {
     { status: 'TOTP_SETUP' }
   > | null>(null);
   const [totpSecret, setTotpSecret] = useState('');
+  const [totpQrCode, setTotpQrCode] = useState('');
+
+  useEffect(() => {
+    if (!totpSecret) {
+      setTotpQrCode('');
+      return;
+    }
+    const otpAuthUri = `otpauth://totp/${encodeURIComponent(`DavDeploy:${email.trim().toLowerCase()}`)}?secret=${encodeURIComponent(totpSecret)}&issuer=DavDeploy&algorithm=SHA1&digits=6&period=30`;
+    void QRCode.toDataURL(otpAuthUri, { errorCorrectionLevel: 'M', margin: 1, width: 220 })
+      .then(setTotpQrCode)
+      .catch(() => setTotpQrCode(''));
+  }, [email, totpSecret]);
   if (profile) return <Navigate to="/overview" replace />;
 
   async function submitEmail(event: FormEvent) {
@@ -82,7 +97,7 @@ export default function LoginPage() {
         setPasswordSetup(false);
         setPasswordSetupCode('');
         setEmailStatus(
-          'Password set. Sign in with your password, then add your authenticator app in Settings.',
+          'Password set. Sign in with your password to set up your authenticator app.',
         );
       }
       return;
@@ -103,8 +118,11 @@ export default function LoginPage() {
       setEmailStatus('Enter the code from your authenticator app.');
     }
     if (result?.status === 'TOTP_SETUP') {
-      setTotpSetup(result);
-      setTotpSecret(await beginTotpEnrollment(config.cognito.region, result.session, true));
+      const enrollment = await beginTotpEnrollment(config.cognito.region, result.session, true);
+      if (!enrollment.session)
+        throw new Error('Cognito did not return an authenticator setup session.');
+      setTotpSetup({ ...result, session: enrollment.session });
+      setTotpSecret(enrollment.secret);
       setCode('');
       setEmailStatus('Add the key to your authenticator app, then enter its code.');
     }
@@ -211,11 +229,21 @@ export default function LoginPage() {
               <form className="email-auth-form" onSubmit={(event) => void submitEmail(event)}>
                 {totpSetup ? (
                   <>
-                    <label>Authenticator setup key</label>
-                    <input readOnly value={totpSecret} />
-                    <small>
-                      Add this key manually in Google Authenticator, Authy, or 1Password.
-                    </small>
+                    {totpQrCode ? (
+                      <img
+                        className="auth-totp-qr"
+                        src={totpQrCode}
+                        width="220"
+                        height="220"
+                        alt="Scan this QR code with your authenticator app to add DavDeploy"
+                      />
+                    ) : null}
+                    <p className="auth-totp-instruction">
+                      Scan this QR code with Google Authenticator, Authy, or 1Password.
+                    </p>
+                    <label htmlFor="authenticator-setup-key">Manual setup key</label>
+                    <input id="authenticator-setup-key" readOnly value={totpSecret} />
+                    <small>If you cannot scan the code, add this key manually instead.</small>
                     <label htmlFor="email-code">Authenticator code</label>
                     <input
                       id="email-code"
@@ -260,15 +288,13 @@ export default function LoginPage() {
                       value={passwordSetupCode}
                       onChange={(event) => setPasswordSetupCode(event.target.value)}
                     />
-                    <label htmlFor="password">New password</label>
-                    <input
-                      id="password"
-                      type="password"
-                      autoComplete="new-password"
-                      minLength={12}
-                      required
+                    <PasswordField
                       value={password}
-                      onChange={(event) => setPassword(event.target.value)}
+                      visible={showPassword}
+                      onChange={setPassword}
+                      onToggle={() => setShowPassword((current) => !current)}
+                      autoComplete="new-password"
+                      label="New password"
                     />
                   </>
                 ) : (
@@ -283,15 +309,12 @@ export default function LoginPage() {
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder="you@company.com"
                     />
-                    <label htmlFor="password">Password</label>
-                    <input
-                      id="password"
-                      type="password"
-                      autoComplete={mode === 'create-account' ? 'new-password' : 'current-password'}
-                      minLength={12}
-                      required
+                    <PasswordField
                       value={password}
-                      onChange={(event) => setPassword(event.target.value)}
+                      visible={showPassword}
+                      onChange={setPassword}
+                      onToggle={() => setShowPassword((current) => !current)}
+                      autoComplete={mode === 'create-account' ? 'new-password' : 'current-password'}
                     />
                   </>
                 )}

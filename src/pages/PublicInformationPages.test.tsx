@@ -52,6 +52,11 @@ describe('public company information pages', () => {
     expect(
       screen.getByRole('img', { name: /adewale ayeni-bepo, founder of davdeploy/i }),
     ).toHaveAttribute('src', '/images/adewale-ayeni-bepo.jpeg');
+    expect(
+      screen.getByRole('img', {
+        name: /practical cloud engineering and infrastructure decisions/i,
+      }),
+    ).toHaveAttribute('src', '/media/davdeploy/team-engineering-origin.webp');
     expect(document.title).toBe('Team | DavDeploy');
     expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
       'content',
@@ -98,6 +103,15 @@ describe('public company information pages', () => {
     expect(
       screen.getByRole('img', { name: /protected cloud infrastructure with security controls/i }),
     ).toHaveAttribute('src', '/media/davdeploy/security.webp');
+    expect(
+      container.querySelector('source[src="/media/davdeploy/about-complexity-to-clarity.mp4"]'),
+    ).toBeInTheDocument();
+    expect(
+      container.querySelector('img[src="/media/davdeploy/about-complexity-to-clarity-poster.jpg"]'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /future multicloud infrastructure landscape/i }),
+    ).toHaveAttribute('src', '/media/davdeploy/about-future-vision.webp');
     expect(
       screen.queryByRole('link', { name: 'bepoadewale@davdeploy.tech' }),
     ).not.toBeInTheDocument();

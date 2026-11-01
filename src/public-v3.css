@@ -835,6 +835,28 @@
   padding-top: 34px;
 }
 
+.ac3-team-feature {
+  align-items: center;
+  display: grid;
+  gap: clamp(30px, 6vw, 72px);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.ac3-team-feature img,
+.ac3-about-media > img {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  width: 100%;
+}
+
+.ac3-team-feature p {
+  color: var(--ac3-muted);
+  font-size: 1.03rem;
+  line-height: 1.72;
+  margin: 0;
+}
+
 .ac3-founder-portrait {
   display: block;
   height: 400px;
@@ -950,6 +972,24 @@
 
 .ac3-about-aside {
   display: none;
+}
+
+.ac3-about-media {
+  margin: 30px 0 0;
+}
+
+.ac3-about-media .website-media,
+.ac3-about-media > img {
+  border: 1px solid var(--ac3-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ac3-about-media figcaption {
+  color: var(--ac3-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  margin-top: 12px;
 }
 
 @media (min-width: 1180px) {
@@ -1297,6 +1337,10 @@
     margin-top: 38px;
   }
 
+  .ac3-team-feature {
+    grid-template-columns: 1fr;
+  }
+
   .ac3-founder-portrait {
     height: 362px;
     max-width: 290px;
@@ -1612,6 +1656,58 @@
   border-color: var(--accent);
   outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
   outline-offset: 1px;
+}
+
+.auth-password-field {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.auth-password-field > div {
+  position: relative;
+}
+
+.auth-password-field input {
+  padding-right: 4.8rem;
+  width: 100%;
+}
+
+.auth-password-field button {
+  background: transparent;
+  border: 0;
+  color: #29483b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 720;
+  padding: 0.5rem;
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.auth-password-field button:focus-visible {
+  border-radius: 0.35rem;
+  outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  outline-offset: 1px;
+}
+
+.auth-totp-qr {
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--ink) 17%, transparent);
+  border-radius: 0.7rem;
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.auth-totp-instruction {
+  color: #4f584f;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  text-align: center;
 }
 
 .email-auth-form small,

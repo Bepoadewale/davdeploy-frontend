@@ -14,6 +14,7 @@ vi.mock('@aws-sdk/client-cognito-identity-provider', async (importOriginal) => {
 });
 
 import {
+  beginTotpEnrollment,
   completeTotpSetup,
   refreshEmailSession,
   startEmailSignUp,
@@ -101,6 +102,19 @@ describe('Cognito email OTP adapter', () => {
     await expect(
       completeTotpSetup('us-east-1', 'client', 'person@example.com', 'setup-session', '123456'),
     ).resolves.toMatchObject({ status: 'AUTHENTICATED', identityToken: 'identity-token' });
+  });
+
+  it("uses Cognito's enrollment session for the next authenticator setup step", async () => {
+    mocks.send.mockResolvedValueOnce({
+      SecretCode: 'JBSWY3DPEHPK3PXP',
+      Session: 'enrollment-session',
+    });
+
+    await expect(beginTotpEnrollment('us-east-1', 'setup-session', true)).resolves.toEqual({
+      secret: 'JBSWY3DPEHPK3PXP',
+      session: 'enrollment-session',
+    });
+    expect(mocks.send.mock.calls[0]?.[0].input).toEqual({ Session: 'setup-session' });
   });
 
   it('renews a Cognito session without requesting another email code', async () => {

@@ -7,6 +7,17 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './LoginPage';
 
+const totp = vi.hoisted(() => ({ beginTotpEnrollment: vi.fn() }));
+
+vi.mock('qrcode', () => ({
+  default: { toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,qr-code') },
+}));
+
+vi.mock('../auth/cognitoEmail', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../auth/cognitoEmail')>()),
+  beginTotpEnrollment: totp.beginTotpEnrollment,
+}));
+
 const auth = vi.hoisted(() => ({
   profile: null as { workspace: { id: string } } | null,
   loading: false,
@@ -27,7 +38,7 @@ vi.mock('../auth/AuthContext', () => ({
 }));
 
 vi.mock('../config', () => ({
-  config: { authMode: 'oidc', localLoginEnabled: false },
+  config: { authMode: 'oidc', localLoginEnabled: false, cognito: { region: 'us-east-1' } },
   emailOtpConfigured: true,
   googleSignInConfigured: true,
 }));
@@ -46,6 +57,7 @@ describe('hosted workspace sign-in', () => {
     auth.startPasswordSetup.mockReset();
     auth.confirmPasswordSetup.mockReset();
     auth.localSignIn.mockReset();
+    totp.beginTotpEnrollment.mockReset();
   });
 
   it('presents configured email and Google workspace access', () => {
@@ -108,6 +120,56 @@ describe('hosted workspace sign-in', () => {
     await user.click(screen.getByRole('button', { name: 'Verify and continue' }));
     expect(auth.verifyTotpSignIn).toHaveBeenCalledWith(
       { status: 'TOTP_CHALLENGE', email: 'person@example.com', session: 'session-1' },
+      '123456',
+    );
+  });
+
+  it('lets customers show and hide their password before submitting it', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+
+    const password = screen.getByLabelText('Password');
+    expect(password).toHaveAttribute('type', 'password');
+    await user.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(password).toHaveAttribute('type', 'text');
+    await user.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(password).toHaveAttribute('type', 'password');
+  });
+
+  it("shows a scannable authenticator QR code and passes Cognito's enrollment session onward", async () => {
+    auth.startPasswordSignIn.mockResolvedValue({
+      status: 'TOTP_SETUP',
+      email: 'person@example.com',
+      session: 'password-session',
+    });
+    totp.beginTotpEnrollment.mockResolvedValue({
+      secret: 'JBSWY3DPEHPK3PXP',
+      session: 'enrollment-session',
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    );
+
+    await user.type(screen.getByLabelText('Work email'), 'person@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password');
+    await user.click(screen.getByRole('button', { name: 'Sign in with password' }));
+
+    expect(await screen.findByRole('img', { name: /scan this qr code/i })).toHaveAttribute(
+      'src',
+      'data:image/png;base64,qr-code',
+    );
+    expect(totp.beginTotpEnrollment).toHaveBeenCalledWith('us-east-1', 'password-session', true);
+    await user.type(screen.getByLabelText('Authenticator code'), '123456');
+    await user.click(screen.getByRole('button', { name: 'Verify and continue' }));
+    expect(auth.completeTotpSetup).toHaveBeenCalledWith(
+      { status: 'TOTP_SETUP', email: 'person@example.com', session: 'enrollment-session' },
       '123456',
     );
   });
