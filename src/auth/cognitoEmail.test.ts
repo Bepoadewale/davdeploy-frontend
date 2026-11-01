@@ -14,38 +14,35 @@ vi.mock('@aws-sdk/client-cognito-identity-provider', async (importOriginal) => {
 });
 
 import {
+  completeTotpSetup,
   refreshEmailSession,
-  startEmailSignIn,
   startEmailSignUp,
+  startPasswordSignIn,
+  verifyTotpSignIn,
   verifyEmailChallenge,
 } from './cognitoEmail';
 
 describe('Cognito email OTP adapter', () => {
   beforeEach(() => mocks.send.mockReset());
 
-  it('starts the expected passwordless challenge for an existing user', async () => {
-    mocks.send.mockResolvedValueOnce({ ChallengeName: 'EMAIL_OTP', Session: 'session-1' });
-    const result = await startEmailSignIn('us-east-1', 'client', ' Person@Example.com ');
+  it('starts an authenticator challenge after valid password authentication', async () => {
+    mocks.send.mockResolvedValueOnce({ ChallengeName: 'SOFTWARE_TOKEN_MFA', Session: 'session-1' });
+    const result = await startPasswordSignIn(
+      'us-east-1',
+      'client',
+      ' Person@Example.com ',
+      'password',
+    );
     expect(result).toEqual({
-      status: 'CHALLENGE',
-      challenge: { email: 'person@example.com', kind: 'SIGN_IN', session: 'session-1' },
-      message: 'Enter the code sent to your email.',
+      status: 'TOTP_CHALLENGE',
+      email: 'person@example.com',
+      session: 'session-1',
     });
   });
 
-  it('does not silently create an account for an unknown sign-in', async () => {
-    const missing = new Error('missing');
-    missing.name = 'UserNotFoundException';
-    mocks.send.mockRejectedValueOnce(missing);
-    await expect(startEmailSignIn('us-east-1', 'client', 'new@example.com')).rejects.toThrow(
-      'No account exists for this email. Create an account first.',
-    );
-    expect(mocks.send).toHaveBeenCalledTimes(1);
-  });
-
-  it('starts explicit sign-up without creating or storing a password', async () => {
+  it('starts explicit sign-up with a password', async () => {
     mocks.send.mockResolvedValueOnce({});
-    const result = await startEmailSignUp('us-east-1', 'client', ' New@Example.com ');
+    const result = await startEmailSignUp('us-east-1', 'client', ' New@Example.com ', 'password');
     expect(result.status).toBe('CHALLENGE');
     if (result.status === 'CHALLENGE') {
       expect(result.challenge).toEqual({ email: 'new@example.com', kind: 'SIGN_UP' });
@@ -56,12 +53,24 @@ describe('Cognito email OTP adapter', () => {
     const existing = new Error('exists');
     existing.name = 'UsernameExistsException';
     mocks.send.mockRejectedValueOnce(existing);
-    await expect(startEmailSignUp('us-east-1', 'client', 'person@example.com')).rejects.toThrow(
-      'An account already exists for this email. Sign in instead.',
-    );
+    await expect(
+      startEmailSignUp('us-east-1', 'client', 'person@example.com', 'password'),
+    ).rejects.toThrow('An account already exists for this email. Sign in instead.');
   });
 
-  it('returns renewable tokens only after the email code succeeds', async () => {
+  it('confirms an account creation email code without starting a passwordless session', async () => {
+    mocks.send.mockResolvedValueOnce({});
+    await expect(
+      verifyEmailChallenge(
+        'us-east-1',
+        'client',
+        { email: 'person@example.com', kind: 'SIGN_UP' },
+        '123456',
+      ),
+    ).resolves.toMatchObject({ status: 'CHALLENGE', message: 'Email confirmed.' });
+  });
+
+  it('returns tokens only after an authenticator code succeeds', async () => {
     mocks.send.mockResolvedValueOnce({
       AuthenticationResult: {
         IdToken: 'identity-token',
@@ -69,10 +78,10 @@ describe('Cognito email OTP adapter', () => {
         ExpiresIn: 900,
       },
     });
-    const result = await verifyEmailChallenge(
+    const result = await verifyTotpSignIn(
       'us-east-1',
       'client',
-      { email: 'person@example.com', kind: 'SIGN_IN', session: 'session-1' },
+      { status: 'TOTP_CHALLENGE', email: 'person@example.com', session: 'session-1' },
       '123456',
     );
     expect(result).toEqual({
@@ -81,6 +90,17 @@ describe('Cognito email OTP adapter', () => {
       refreshToken: 'refresh-token',
       expiresIn: 900,
     });
+  });
+
+  it('completes first-time authenticator enrollment and returns a signed-in session', async () => {
+    mocks.send
+      .mockResolvedValueOnce({ Status: 'SUCCESS', Session: 'verified-session' })
+      .mockResolvedValueOnce({
+        AuthenticationResult: { IdToken: 'identity-token', RefreshToken: 'refresh-token' },
+      });
+    await expect(
+      completeTotpSetup('us-east-1', 'client', 'person@example.com', 'setup-session', '123456'),
+    ).resolves.toMatchObject({ status: 'AUTHENTICATED', identityToken: 'identity-token' });
   });
 
   it('renews a Cognito session without requesting another email code', async () => {

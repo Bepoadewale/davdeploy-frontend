@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const fixture = vi.hoisted(() => ({
   request: vi.fn(),
   resolveWorkspaceProfile: vi.fn(),
-  startEmailSignIn: vi.fn(),
+  startPasswordSignIn: vi.fn(),
   verifyEmailChallenge: vi.fn(),
   refreshEmailSession: vi.fn(),
 }));
@@ -30,7 +30,7 @@ vi.mock('./workspaceSession', () => ({
 }));
 
 vi.mock('./cognitoEmail', () => ({
-  startEmailSignIn: fixture.startEmailSignIn,
+  startPasswordSignIn: fixture.startPasswordSignIn,
   verifyEmailChallenge: fixture.verifyEmailChallenge,
   refreshEmailSession: fixture.refreshEmailSession,
 }));
@@ -45,8 +45,8 @@ function Probe() {
       <output data-testid="token">{auth.token ?? ''}</output>
       <output data-testid="error">{auth.error ?? ''}</output>
       <button onClick={() => void auth.localSignIn('founder')}>Local sign in</button>
-      <button onClick={() => void auth.startEmailSignIn('person@example.com')}>
-        Email sign in
+      <button onClick={() => void auth.startPasswordSignIn('person@example.com', 'password')}>
+        Password sign in
       </button>
       <button
         onClick={() =>
@@ -65,7 +65,7 @@ describe('AuthProvider local fixture boundary', () => {
     window.sessionStorage.clear();
     fixture.request.mockReset();
     fixture.resolveWorkspaceProfile.mockReset();
-    fixture.startEmailSignIn.mockReset();
+    fixture.startPasswordSignIn.mockReset();
     fixture.verifyEmailChallenge.mockReset();
     fixture.refreshEmailSession.mockReset();
     fixture.request.mockResolvedValue({ access_token: 'fixture-token' });
@@ -76,7 +76,7 @@ describe('AuthProvider local fixture boundary', () => {
       },
       onboarded: false,
     });
-    fixture.startEmailSignIn.mockResolvedValue({
+    fixture.startPasswordSignIn.mockResolvedValue({
       status: 'AUTHENTICATED',
       identityToken: 'email-token',
       refreshToken: 'email-refresh-token',
@@ -123,27 +123,35 @@ describe('AuthProvider local fixture boundary', () => {
     expect(screen.getByTestId('token')).toBeEmptyDOMElement();
   });
 
-  it('adopts an authenticated email token and retains a plain-English failure when email sign-in fails', async () => {
+  it('adopts an authenticated password token and retains a plain-English failure when sign-in fails', async () => {
     render(
       <AuthProvider>
         <Probe />
       </AuthProvider>,
     );
 
-    await act(async () => screen.getByRole('button', { name: 'Email sign in' }).click());
-    expect(fixture.startEmailSignIn).toHaveBeenCalledWith(
+    await act(async () => screen.getByRole('button', { name: 'Password sign in' }).click());
+    expect(fixture.startPasswordSignIn).toHaveBeenCalledWith(
       'test-region',
       'test-client',
       'person@example.com',
+      'password',
     );
     expect(screen.getByTestId('token')).toHaveTextContent('email-token');
 
-    fixture.startEmailSignIn.mockRejectedValueOnce(new Error('Email code sign-in is unavailable.'));
-    await act(async () => screen.getByRole('button', { name: 'Email sign in' }).click());
-    expect(screen.getByTestId('error')).toHaveTextContent('Email code sign-in is unavailable.');
+    fixture.startPasswordSignIn.mockRejectedValueOnce(
+      new Error('Password sign-in is unavailable.'),
+    );
+    await act(async () => screen.getByRole('button', { name: 'Password sign in' }).click());
+    expect(screen.getByTestId('error')).toHaveTextContent('Password sign-in is unavailable.');
   });
 
-  it('creates a workspace only after a verified sign-up code returns an identity token', async () => {
+  it('does not create a workspace from account confirmation alone', async () => {
+    fixture.verifyEmailChallenge.mockResolvedValue({
+      status: 'CHALLENGE',
+      challenge: { email: 'person@example.com', kind: 'SIGN_UP' },
+      message: 'Email confirmed.',
+    });
     render(
       <AuthProvider>
         <Probe />
@@ -158,11 +166,8 @@ describe('AuthProvider local fixture boundary', () => {
       { email: 'person@example.com', kind: 'SIGN_UP' },
       '123456',
     );
-    expect(fixture.resolveWorkspaceProfile).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ identityName: 'person@example.com', createWorkspace: true }),
-    );
-    expect(screen.getByTestId('token')).toHaveTextContent('verified-token');
+    expect(fixture.resolveWorkspaceProfile).not.toHaveBeenCalled();
+    expect(screen.getByTestId('token')).toBeEmptyDOMElement();
   });
 
   it('keeps local sign-in failures understandable and does not retain a token', async () => {
@@ -204,7 +209,7 @@ describe('AuthProvider local fixture boundary', () => {
         <Probe />
       </AuthProvider>,
     );
-    await act(async () => screen.getByRole('button', { name: 'Email sign in' }).click());
+    await act(async () => screen.getByRole('button', { name: 'Password sign in' }).click());
     expect(window.sessionStorage.getItem('davdeploy.hosted-session')).toContain('email-token');
     first.unmount();
     fixture.resolveWorkspaceProfile.mockClear();

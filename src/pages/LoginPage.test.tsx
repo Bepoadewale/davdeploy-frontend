@@ -12,9 +12,13 @@ const auth = vi.hoisted(() => ({
   loading: false,
   error: null as string | null,
   signInWithGoogle: vi.fn<() => Promise<void>>(),
-  startEmailSignIn: vi.fn(),
   startEmailSignUp: vi.fn(),
   verifyEmailCode: vi.fn(),
+  startPasswordSignIn: vi.fn(),
+  verifyTotpSignIn: vi.fn(),
+  completeTotpSetup: vi.fn(),
+  startPasswordSetup: vi.fn(),
+  confirmPasswordSetup: vi.fn(),
   localSignIn: vi.fn(),
 }));
 
@@ -34,9 +38,13 @@ describe('hosted workspace sign-in', () => {
     auth.loading = false;
     auth.error = null;
     auth.signInWithGoogle.mockReset().mockResolvedValue();
-    auth.startEmailSignIn.mockReset();
     auth.startEmailSignUp.mockReset();
     auth.verifyEmailCode.mockReset();
+    auth.startPasswordSignIn.mockReset();
+    auth.verifyTotpSignIn.mockReset();
+    auth.completeTotpSetup.mockReset();
+    auth.startPasswordSetup.mockReset();
+    auth.confirmPasswordSetup.mockReset();
     auth.localSignIn.mockReset();
   });
 
@@ -52,7 +60,7 @@ describe('hosted workspace sign-in', () => {
     expect(screen.getByText(/sign in to continue with your workspace/i)).toBeInTheDocument();
     expect(screen.getByText('Verified membership')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Sign in with email' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Sign in with password' })).toBeEnabled();
     expect(screen.queryByText('Workspace access is not configured')).not.toBeInTheDocument();
   });
 
@@ -73,11 +81,11 @@ describe('hosted workspace sign-in', () => {
     expect(screen.getAllByRole('button', { name: 'Create account' })).toHaveLength(2);
   });
 
-  it('starts email sign-in, presents the code step, and verifies the same challenge', async () => {
-    auth.startEmailSignIn.mockResolvedValue({
-      status: 'CHALLENGE',
-      challenge: { email: 'person@example.com', kind: 'SIGN_IN', session: 'session-1' },
-      message: 'Enter the code sent to your email.',
+  it('requires an authenticator code after password sign-in', async () => {
+    auth.startPasswordSignIn.mockResolvedValue({
+      status: 'TOTP_CHALLENGE',
+      email: 'person@example.com',
+      session: 'session-1',
     });
     auth.verifyEmailCode.mockResolvedValue({ status: 'AUTHENTICATED', identityToken: 'token' });
     const user = userEvent.setup();
@@ -88,15 +96,18 @@ describe('hosted workspace sign-in', () => {
     );
 
     await user.type(screen.getByLabelText('Work email'), 'person@example.com');
-    await user.click(screen.getByRole('button', { name: 'Sign in with email' }));
-    expect(auth.startEmailSignIn).toHaveBeenCalledWith('person@example.com');
-    expect(await screen.findByLabelText('Email verification code')).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Enter the code sent to your email.');
+    await user.type(screen.getByLabelText('Password'), 'password');
+    await user.click(screen.getByRole('button', { name: 'Sign in with password' }));
+    expect(auth.startPasswordSignIn).toHaveBeenCalledWith('person@example.com', 'password');
+    expect(await screen.findByLabelText('Authenticator code')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Enter the code from your authenticator app.',
+    );
 
-    await user.type(screen.getByLabelText('Email verification code'), '123456');
+    await user.type(screen.getByLabelText('Authenticator code'), '123456');
     await user.click(screen.getByRole('button', { name: 'Verify and continue' }));
-    expect(auth.verifyEmailCode).toHaveBeenCalledWith(
-      { email: 'person@example.com', kind: 'SIGN_IN', session: 'session-1' },
+    expect(auth.verifyTotpSignIn).toHaveBeenCalledWith(
+      { status: 'TOTP_CHALLENGE', email: 'person@example.com', session: 'session-1' },
       '123456',
     );
   });
@@ -116,8 +127,9 @@ describe('hosted workspace sign-in', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create account' }));
     await user.type(screen.getByLabelText('Work email'), 'new@example.com');
+    await user.type(screen.getByLabelText('Password'), 'password');
     await user.click(screen.getAllByRole('button', { name: 'Create account' })[1]);
-    expect(auth.startEmailSignUp).toHaveBeenCalledWith('new@example.com');
+    expect(auth.startEmailSignUp).toHaveBeenCalledWith('new@example.com', 'password');
     expect(await screen.findByText('Code sent to new@example.com')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Use a different email' }));
@@ -151,7 +163,7 @@ describe('hosted workspace sign-in', () => {
     );
 
     expect(screen.getByText('Workspace overview')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Sign in with email' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sign in with password' })).not.toBeInTheDocument();
   });
 
   it('has no automatically detectable WCAG 2.2 A/AA violations', async () => {

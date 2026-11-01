@@ -13,8 +13,7 @@ import {
 
 export interface EmailOtpChallenge {
   email: string;
-  kind: 'SIGN_IN' | 'SIGN_UP';
-  session?: string;
+  kind: 'SIGN_UP';
 }
 
 export type EmailAuthResult =
@@ -179,53 +178,8 @@ export async function confirmTotpEnrollment(region: string, accessToken: string,
   );
 }
 
-function isMissingUser(error: unknown) {
-  return error instanceof Error && error.name === 'UserNotFoundException';
-}
-
 function isExistingUser(error: unknown) {
   return error instanceof Error && error.name === 'UsernameExistsException';
-}
-
-function requireOtpChallenge(
-  email: string,
-  response: { ChallengeName?: string; Session?: string },
-): EmailAuthResult {
-  if (response.ChallengeName !== 'EMAIL_OTP' || !response.Session) {
-    throw new Error('Cognito did not return the expected email code challenge.');
-  }
-  return {
-    status: 'CHALLENGE',
-    challenge: { email, kind: 'SIGN_IN', session: response.Session },
-    message: 'Enter the code sent to your email.',
-  };
-}
-
-export async function startEmailSignIn(
-  region: string,
-  clientId: string,
-  email: string,
-): Promise<EmailAuthResult> {
-  const normalizedEmail = email.trim().toLowerCase();
-  try {
-    const response = await client(region).send(
-      new InitiateAuthCommand({
-        AuthFlow: 'USER_AUTH',
-        ClientId: clientId,
-        AuthParameters: {
-          USERNAME: normalizedEmail,
-          PREFERRED_CHALLENGE: 'EMAIL_OTP',
-        },
-      }),
-    );
-    const authenticated = authenticatedResult(response);
-    return authenticated ? authenticated : requireOtpChallenge(normalizedEmail, response);
-  } catch (error) {
-    if (isMissingUser(error)) {
-      throw new Error('No account exists for this email. Create an account first.');
-    }
-    throw error;
-  }
 }
 
 export async function startEmailSignUp(
@@ -275,20 +229,7 @@ export async function verifyEmailChallenge(
     return { status: 'CHALLENGE', challenge, message: 'Email confirmed.' };
   }
 
-  const response = await cognito.send(
-    new RespondToAuthChallengeCommand({
-      ChallengeName: 'EMAIL_OTP',
-      ClientId: clientId,
-      Session: challenge.session,
-      ChallengeResponses: {
-        USERNAME: challenge.email,
-        EMAIL_OTP_CODE: code.trim(),
-      },
-    }),
-  );
-  const authenticated = authenticatedResult(response);
-  if (!authenticated) throw new Error('Cognito did not return an identity token.');
-  return authenticated;
+  throw new Error('Only account-creation codes are supported in this flow.');
 }
 
 /** Renew a Cognito browser session without another email challenge. */

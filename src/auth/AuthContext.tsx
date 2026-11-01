@@ -22,12 +22,15 @@ interface AuthState {
   error: string | null;
   api: ApiClient;
   signInWithGoogle: () => Promise<void>;
-  startEmailSignIn: (email: string) => Promise<EmailAuthResult | null>;
   startEmailSignUp: (email: string, password: string) => Promise<EmailAuthResult | null>;
   verifyEmailCode: (challenge: EmailOtpChallenge, code: string) => Promise<EmailAuthResult | null>;
   startPasswordSignIn: (email: string, password: string) => Promise<PasswordAuthResult | null>;
   verifyTotpSignIn: (
     challenge: Extract<PasswordAuthResult, { status: 'TOTP_CHALLENGE' }>,
+    code: string,
+  ) => Promise<EmailAuthResult | null>;
+  completeTotpSetup: (
+    challenge: Extract<PasswordAuthResult, { status: 'TOTP_SETUP' }>,
     code: string,
   ) => Promise<EmailAuthResult | null>;
   startPasswordSetup: (email: string) => Promise<boolean>;
@@ -303,39 +306,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await userManager.signinRedirect({ extraQueryParams: { identity_provider: 'Google' } });
   }, [manager, pendingInvitation]);
 
-  const startEmailSignIn = useCallback(
-    async (email: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (!emailOtpConfigured) throw new Error('Email code sign-in is not configured.');
-        const { startEmailSignIn: beginEmailSignIn } = await import('./cognitoEmail');
-        const result = await beginEmailSignIn(
-          config.cognito.region,
-          config.cognito.clientId,
-          email,
-        );
-        if (result.status === 'AUTHENTICATED')
-          await adoptToken(
-            result.identityToken,
-            email,
-            false,
-            true,
-            result.refreshToken,
-            result.expiresIn,
-            result.accessToken,
-          );
-        return result;
-      } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : 'Email sign-in failed.');
-        return null;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [adoptToken],
-  );
-
   const startEmailSignUp = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -398,6 +368,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setLoading(true);
       setError(null);
       try {
+        if (!emailOtpConfigured) throw new Error('Password sign-in is not configured.');
         const { startPasswordSignIn: begin } = await import('./cognitoEmail');
         const result = await begin(config.cognito.region, config.cognito.clientId, email, password);
         if (result.status === 'AUTHENTICATED')
@@ -445,6 +416,39 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return result;
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : 'Authenticator verification failed.');
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [adoptToken],
+  );
+
+  const completeTotpSetup = useCallback(
+    async (challenge: Extract<PasswordAuthResult, { status: 'TOTP_SETUP' }>, code: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { completeTotpSetup: complete } = await import('./cognitoEmail');
+        const result = await complete(
+          config.cognito.region,
+          config.cognito.clientId,
+          challenge.email,
+          challenge.session,
+          code,
+        );
+        await adoptToken(
+          result.identityToken,
+          challenge.email,
+          false,
+          true,
+          result.refreshToken,
+          result.expiresIn,
+          result.accessToken,
+        );
+        return result;
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'Authenticator setup failed.');
         return null;
       } finally {
         setLoading(false);
@@ -557,11 +561,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       error,
       api,
       signInWithGoogle,
-      startEmailSignIn,
       startEmailSignUp,
       verifyEmailCode,
       startPasswordSignIn,
       verifyTotpSignIn,
+      completeTotpSetup,
       startPasswordSetup,
       confirmPasswordSetup,
       cognitoAccessToken,
@@ -578,12 +582,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       profile,
       signInWithGoogle,
       signOut,
-      startEmailSignIn,
       startEmailSignUp,
       token,
       verifyEmailCode,
       startPasswordSignIn,
       verifyTotpSignIn,
+      completeTotpSetup,
       startPasswordSetup,
       confirmPasswordSetup,
       cognitoAccessToken,

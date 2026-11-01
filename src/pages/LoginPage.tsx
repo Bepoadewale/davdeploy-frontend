@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import {
   beginTotpEnrollment,
-  completeTotpSetup,
   type EmailOtpChallenge,
   type PasswordAuthResult,
 } from '../auth/cognitoEmail';
@@ -24,11 +23,11 @@ export default function LoginPage() {
     loading,
     error,
     signInWithGoogle,
-    startEmailSignIn,
     startEmailSignUp,
     verifyEmailCode,
     startPasswordSignIn,
     verifyTotpSignIn,
+    completeTotpSetup,
     startPasswordSetup,
     confirmPasswordSetup,
     localSignIn,
@@ -38,7 +37,6 @@ export default function LoginPage() {
   const [code, setCode] = useState('');
   const [challenge, setChallenge] = useState<EmailOtpChallenge | null>(null);
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
-  const [passwordMode] = useState(true);
   const [password, setPassword] = useState('');
   const [passwordSetup, setPasswordSetup] = useState(false);
   const [passwordSetupCode, setPasswordSetupCode] = useState('');
@@ -75,13 +73,7 @@ export default function LoginPage() {
       return;
     }
     if (totpSetup) {
-      await completeTotpSetup(
-        config.cognito.region,
-        config.cognito.clientId,
-        totpSetup.email,
-        totpSetup.session,
-        code,
-      );
+      await completeTotpSetup(totpSetup, code);
       return;
     }
     if (passwordSetup) {
@@ -104,30 +96,17 @@ export default function LoginPage() {
       }
       return;
     }
-    if (passwordMode) {
-      const result = await startPasswordSignIn(email, password);
-      if (result?.status === 'TOTP_CHALLENGE') {
-        setTotpChallenge(result);
-        setCode('');
-        setEmailStatus('Enter the code from your authenticator app.');
-      }
-      if (result?.status === 'TOTP_SETUP') {
-        setTotpSetup(result);
-        setTotpSecret(await beginTotpEnrollment(config.cognito.region, result.session, true));
-        setCode('');
-        setEmailStatus('Add the key to your authenticator app, then enter its code.');
-      }
-      return;
-    }
-    const result = challenge
-      ? await verifyEmailCode(challenge, code)
-      : mode === 'create-account'
-        ? await startEmailSignUp(email)
-        : await startEmailSignIn(email);
-    if (result?.status === 'CHALLENGE') {
-      setChallenge(result.challenge);
+    const result = await startPasswordSignIn(email, password);
+    if (result?.status === 'TOTP_CHALLENGE') {
+      setTotpChallenge(result);
       setCode('');
-      setEmailStatus(result.message);
+      setEmailStatus('Enter the code from your authenticator app.');
+    }
+    if (result?.status === 'TOTP_SETUP') {
+      setTotpSetup(result);
+      setTotpSecret(await beginTotpEnrollment(config.cognito.region, result.session, true));
+      setCode('');
+      setEmailStatus('Add the key to your authenticator app, then enter its code.');
     }
   }
 
@@ -292,7 +271,7 @@ export default function LoginPage() {
                       onChange={(event) => setPassword(event.target.value)}
                     />
                   </>
-                ) : passwordMode ? (
+                ) : (
                   <>
                     <label htmlFor="email">Work email</label>
                     <input
@@ -315,20 +294,6 @@ export default function LoginPage() {
                       onChange={(event) => setPassword(event.target.value)}
                     />
                   </>
-                ) : (
-                  <>
-                    <label htmlFor="email">Work email</label>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      placeholder="you@company.com"
-                    />
-                  </>
                 )}
                 <button
                   className="button button-primary button-wide auth-button-v2"
@@ -341,11 +306,9 @@ export default function LoginPage() {
                       ? 'Verify and continue'
                       : passwordSetup
                         ? 'Set password'
-                        : passwordMode
-                          ? mode === 'create-account'
-                            ? 'Create account'
-                            : 'Sign in with password'
-                          : 'Sign in'}
+                        : mode === 'create-account'
+                          ? 'Create account'
+                          : 'Sign in with password'}
                 </button>
                 {challenge || totpChallenge ? (
                   <button
@@ -369,23 +332,21 @@ export default function LoginPage() {
               !totpSetup &&
               !passwordSetup ? (
                 <div className="auth-password-options">
-                  {passwordMode ? (
-                    <button
-                      className="auth-text-button"
-                      type="button"
-                      disabled={loading || !email}
-                      onClick={() =>
-                        void startPasswordSetup(email).then((sent) => {
-                          if (sent) {
-                            setPasswordSetup(true);
-                            setEmailStatus('A password setup code was sent to your email.');
-                          }
-                        })
-                      }
-                    >
-                      Set or reset password
-                    </button>
-                  ) : null}
+                  <button
+                    className="auth-text-button"
+                    type="button"
+                    disabled={loading || !email}
+                    onClick={() =>
+                      void startPasswordSetup(email).then((sent) => {
+                        if (sent) {
+                          setPasswordSetup(true);
+                          setEmailStatus('A password setup code was sent to your email.');
+                        }
+                      })
+                    }
+                  >
+                    Set or reset password
+                  </button>
                 </div>
               ) : null}
               {emailStatus ? (
