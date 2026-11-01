@@ -12,11 +12,9 @@ import { ReadableData } from '../components/ReadableData';
 import { StatusBadge } from '../components/StatusBadge';
 import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
-import { beginTotpEnrollment, confirmTotpEnrollment } from '../auth/cognitoEmail';
-import { config } from '../config';
 
 export default function SettingsPage() {
-  const { api, profile, cognitoAccessToken } = useAuth();
+  const { api, profile } = useAuth();
   const admin = profile?.user.role === 'administrator';
   const supportManager =
     profile?.user.role === 'administrator' || profile?.user.role === 'operator';
@@ -40,8 +38,6 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [supportState, setSupportState] = useState('');
-  const [totpSecret, setTotpSecret] = useState<string | null>(null);
-  const [totpCode, setTotpCode] = useState('');
   const supportTickets = useMemo(
     () =>
       (state.data?.supportTickets ?? []).filter(
@@ -161,43 +157,6 @@ export default function SettingsPage() {
         }),
       `Support status updated to ${stateValue.toLowerCase().replaceAll('_', ' ')}.`,
     );
-  }
-
-  async function startTotp() {
-    if (!cognitoAccessToken) {
-      setError(
-        'Sign out and use “password and authenticator app” on the sign-in page first. Email-code sessions cannot safely enrol an authenticator app.',
-      );
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      setTotpSecret(await beginTotpEnrollment(config.cognito.region, cognitoAccessToken));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not start authenticator setup.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function finishTotp(event: FormEvent) {
-    event.preventDefault();
-    if (!cognitoAccessToken) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await confirmTotpEnrollment(config.cognito.region, cognitoAccessToken, totpCode);
-      setTotpSecret(null);
-      setTotpCode('');
-      setMessage('Authenticator app enabled. Future password sign-ins will request its code.');
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : 'Could not verify the authenticator code.',
-      );
-    } finally {
-      setBusy(false);
-    }
   }
 
   return (
@@ -357,45 +316,9 @@ export default function SettingsPage() {
               <p className="eyebrow">Sign-in security</p>
               <h2>Authenticator app</h2>
               <p className="muted">
-                Add a time-based code from an authenticator app. Cognito requires a password-based
-                sign-in before TOTP setup. Email-code sign-in remains available for users who have
-                not enabled an authenticator app.
+                DavDeploy requires an authenticator app with your password. Set it up during your
+                first password sign-in, then use a fresh code from the app each time you sign in.
               </p>
-              {!totpSecret ? (
-                <button
-                  className="button button-secondary"
-                  disabled={busy}
-                  type="button"
-                  onClick={() => void startTotp()}
-                >
-                  Set up authenticator app
-                </button>
-              ) : (
-                <form className="inline-form" onSubmit={(event) => void finishTotp(event)}>
-                  <label>
-                    Setup key
-                    <input readOnly value={totpSecret} aria-label="Authenticator setup key" />
-                    <small>
-                      In your authenticator app, add an account manually and enter this key.
-                    </small>
-                  </label>
-                  <label>
-                    Authenticator code
-                    <input
-                      autoComplete="one-time-code"
-                      inputMode="numeric"
-                      minLength={6}
-                      maxLength={8}
-                      required
-                      value={totpCode}
-                      onChange={(event) => setTotpCode(event.target.value)}
-                    />
-                  </label>
-                  <button className="button button-primary" disabled={busy} type="submit">
-                    Verify and enable
-                  </button>
-                </form>
-              )}
             </section>
             <section className="panel">
               <p className="eyebrow">Privacy</p>

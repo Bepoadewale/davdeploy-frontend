@@ -39,7 +39,7 @@ hostname to production API CORS or Cognito allowlists without a separately revie
 7. Set build output directory to `dist`.
 8. Keep the root directory at the repository root.
 9. Add production environment variables:
-   - `VITE_API_BASE_URL=https://<deployed-api-host>`
+   - `VITE_API_BASE_URL=https://api.<assigned-domain>`
    - `VITE_AUTH_MODE=oidc`
    - `VITE_GOOGLE_SIGN_IN_ENABLED=false` until Google federation is configured and verified
    - `VITE_OIDC_AUTHORITY=https://<trusted-issuer>`
@@ -51,11 +51,11 @@ hostname to production API CORS or Cognito allowlists without a separately revie
 10. Add `VITE_BROWSER_SESSION_PROXY_ENABLED=true` to production. This compiles the browser to call
     the same-origin `/api/v1/*` proxy instead of the API Gateway hostname directly.
 11. Add these **Pages Function runtime** values (without the `VITE_` prefix):
-    - `DAVDEPLOY_API_ORIGIN=https://<deployed-api-host>`
-    - `DAVDEPLOY_COGNITO_TOKEN_ENDPOINT=https://<cognito-hosted-domain>/oauth2/token`
-    - `DAVDEPLOY_COGNITO_CLIENT_ID=<public-client-id>`
-      These are routing/public-client values, not credentials. The Function uses them only to forward
-      requests and perform Cognito's public-client refresh exchange.
+
+- `DAVDEPLOY_API_ORIGIN=https://api.<assigned-domain>` - `DAVDEPLOY_COGNITO_TOKEN_ENDPOINT=https://<cognito-hosted-domain>/oauth2/token` - `DAVDEPLOY_COGNITO_CLIENT_ID=<public-client-id>`
+  These are routing/public-client values, not credentials. The Function uses them only to forward
+  requests and perform Cognito's public-client refresh exchange.
+
 12. Do not add cloud credentials, GitHub secrets, a Cloudflare API token, Cognito client secret,
     database binding, KV, R2, D1, or Durable Object.
 13. Deploy and wait for the dashboard to report a successful build. Use the hostname Cloudflare
@@ -68,15 +68,17 @@ and direct refreshes for every core route. Repeat the authenticated checks after
 configuration is available.
 
 1. Open the assigned HTTPS `*.pages.dev` URL and confirm the public overview renders.
-2. Open `/login` and complete email OTP sign-in. If Google federation is enabled, repeat with
-   Google sign-in.
+2. Open `/login`, enter email and password, and complete the authenticator-app
+   challenge. A new user confirms their email during account creation, then
+   sets up their authenticator app on first password sign-in.
 3. Confirm `/overview` loads the signed-in workspace from the cloud API.
 4. Refresh `/history` directly and confirm the SPA remains loaded.
 5. Confirm an unauthorized role cannot approve a plan and a backend 403 is shown safely.
 6. Open browser developer tools: confirm API calls use the same-origin `/api/v1/*` proxy, no token
    or secret appears in local/session storage or the bundle, and security headers are present.
 7. Close the DavDeploy tab, reopen `https://davdeploy.tech`, and confirm the workspace restores
-   without another email code. Sign out, reopen the site, and confirm a new sign-in is required.
+   for the one-day refresh-session period. Sign out, reopen the site, and confirm a new password
+   and authenticator sign-in is required.
 8. Exercise a read-only dashboard and a local/plan-only workflow before enabling any live execution.
 
 If authentication or API calls fail, verify the exact Pages origin in API CORS and OIDC callback
