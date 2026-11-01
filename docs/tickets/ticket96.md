@@ -1,33 +1,49 @@
-# ticket96 — Fix hosted repository discovery during plan creation
+# ticket96 - fix hosted repository discovery during plan creation
 
-## Goal
+PR: [#96](https://github.com/Bepoadewale/davdeploy-frontend/pull/96)
 
-Make the browser request the documented repository-discovery endpoint with its supported HTTP method.
+## Problem / goal
 
-## Current state and references
+Make the browser call the documented repository-discovery endpoint with its supported HTTP method.
 
-The hosted API exposes `GET /api/v1/projects/{project_id}/repository-discovery`. The New Plan page used `POST`, producing HTTP 405 before a customer intent could be created. The defect was found during the isolated AWS end-to-end control-plane validation on 2026-11-01.
+## Current repo state
 
-## Planned work
+The hosted API exposes `GET /api/v1/projects/{project_id}/repository-discovery`. The New Plan page used `POST`, producing HTTP 405 before a customer intent could be created.
+
+## Research / references used
+
+- Hosted API route in the private backend: `apps/api/src/davdeploy/main.py`.
+- Existing New Plan workflow and request-contract tests.
+- The isolated hosted AWS control-plane validation on 2026-11-01, which revealed the 405 response.
+
+## Work planned for the PR
 
 - Change only the browser request method to `GET`.
 - Lock the request contract in the focused workflow test.
 
 ## Acceptance criteria
 
-- New Plan requests repository discovery with `GET`.
-- The existing planning workflow reaches the immutable customer-review route.
-- No authentication, execution, API, or infrastructure boundary changes.
+- [x] New Plan requests repository discovery with `GET`.
+- [x] The supported planning workflow reaches the immutable customer-review route.
+- [x] No authentication, execution, API, or infrastructure boundary changes.
+- [x] Clean full local verification passes.
 
-## Status
+## Acceptance status
 
-Implemented; awaiting verification and review.
+Implementation and clean local verification are complete. Required GitHub CI and Pages publication are pending.
 
-## Validation and evidence
+## Tests / validation performed
 
-- Focused workflow test exercises the corrected request contract.
-- Full repository verification is required by CI.
+See `docs/test/test96.md`.
 
-## Boundaries and follow-up
+## Evidence files produced
 
-This changes no backend API, cloud resource, role, credential, or deployment permission. The separate authenticated AWS control-plane run remains governed by its existing plan, approval, execution, health, and destroy gates.
+`docs/test/test96.md`
+
+## Boundaries
+
+This is a browser-only request-method correction. It changes no backend API contract, cloud resource, role, credential, or deployment permission.
+
+## Follow-up work
+
+Continue the separately governed AWS control-plane run through image build, service plan, health evidence, and destroy after the reviewed foundation apply.
