@@ -8,7 +8,9 @@ function Probe() {
     <>
       <output data-testid="error">{auth.error ?? ''}</output>
       <button onClick={() => void auth.signInWithGoogle()}>Google</button>
-      <button onClick={() => void auth.startEmailSignIn('customer@example.com')}>Email</button>
+      <button onClick={() => void auth.startPasswordSignIn('customer@example.com', 'password')}>
+        Password
+      </button>
     </>
   );
 }
@@ -25,14 +27,14 @@ describe('AuthProvider', () => {
     expect(screen.getByTestId('error')).toHaveTextContent('Hosted sign-in is not configured');
   });
 
-  it('does not attempt an email sign-in without Cognito configuration', async () => {
+  it('keeps password sign-in failures understandable when Cognito is unavailable', async () => {
     render(
       <AuthProvider>
         <Probe />
       </AuthProvider>,
     );
 
-    await act(async () => screen.getByRole('button', { name: 'Email' }).click());
-    expect(screen.getByTestId('error')).toHaveTextContent('Email code sign-in is not configured');
+    await act(async () => screen.getByRole('button', { name: 'Password' }).click());
+    expect(screen.getByTestId('error')).toHaveTextContent('Password sign-in is not configured');
   });
 });
