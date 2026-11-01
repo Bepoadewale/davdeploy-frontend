@@ -254,7 +254,9 @@ export default function NewPlanPage() {
         },
       });
       setProgress('Collecting repository evidence…');
-      await api.request(`/api/v1/projects/${project.id}/repository-discovery`);
+      await api.request(`/api/v1/projects/${project.id}/repository-discovery`, {
+        method: 'GET',
+      });
       setProgress('Interpreting constraints…');
       const constraints = `\n\nExplicit constraints: region=${form.region}; data=${form.dataClassification}; monthly budget USD=${form.budget}; environments=${form.environment}; availability=${form.availability}; workload=${form.workload}; average_rps=${averageRps}; peak_rps=${peakRps}.`;
       const intent = await api.request<{ id: string }>('/api/v1/intents', {
