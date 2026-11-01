@@ -187,3 +187,26 @@ export interface SupportTicket {
   created_by_subject: string;
   created_at?: string;
 }
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  author_name: string;
+  created_at?: string;
+  updated_at?: string;
+  published_at?: string | null;
+  state?: 'DRAFT' | 'PUBLISHED';
+  author_subject?: string;
+}
+
+export interface BlogComment {
+  id: string;
+  body: string;
+  author_name: string;
+  author_subject?: string;
+  created_at?: string;
+  updated_at?: string;
+}

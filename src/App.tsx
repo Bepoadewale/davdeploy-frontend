@@ -6,6 +6,9 @@ import { AppShell } from './layout/AppShell';
 const HomePage = lazy(() => import('./pages/HomePage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
+const BlogManagePage = lazy(() => import('./pages/BlogManagePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const AuthCallbackPage = lazy(() => import('./pages/AuthCallbackPage'));
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
@@ -42,6 +45,8 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<ProtectedRoutes />}>
@@ -53,6 +58,7 @@ export default function App() {
           <Route path="/connections" element={<ConnectionsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/blog/manage" element={<BlogManagePage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
