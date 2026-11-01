@@ -27,7 +27,12 @@ describe('Cognito email OTP adapter', () => {
 
   it('starts an authenticator challenge after valid password authentication', async () => {
     mocks.send.mockResolvedValueOnce({ ChallengeName: 'SOFTWARE_TOKEN_MFA', Session: 'session-1' });
-    const result = await startPasswordSignIn('us-east-1', 'client', ' Person@Example.com ', 'password');
+    const result = await startPasswordSignIn(
+      'us-east-1',
+      'client',
+      ' Person@Example.com ',
+      'password',
+    );
     expect(result).toEqual({
       status: 'TOTP_CHALLENGE',
       email: 'person@example.com',
@@ -48,15 +53,20 @@ describe('Cognito email OTP adapter', () => {
     const existing = new Error('exists');
     existing.name = 'UsernameExistsException';
     mocks.send.mockRejectedValueOnce(existing);
-    await expect(startEmailSignUp('us-east-1', 'client', 'person@example.com', 'password')).rejects.toThrow(
-      'An account already exists for this email. Sign in instead.',
-    );
+    await expect(
+      startEmailSignUp('us-east-1', 'client', 'person@example.com', 'password'),
+    ).rejects.toThrow('An account already exists for this email. Sign in instead.');
   });
 
   it('confirms an account creation email code without starting a passwordless session', async () => {
     mocks.send.mockResolvedValueOnce({});
     await expect(
-      verifyEmailChallenge('us-east-1', 'client', { email: 'person@example.com', kind: 'SIGN_UP' }, '123456'),
+      verifyEmailChallenge(
+        'us-east-1',
+        'client',
+        { email: 'person@example.com', kind: 'SIGN_UP' },
+        '123456',
+      ),
     ).resolves.toMatchObject({ status: 'CHALLENGE', message: 'Email confirmed.' });
   });
 
@@ -85,7 +95,9 @@ describe('Cognito email OTP adapter', () => {
   it('completes first-time authenticator enrollment and returns a signed-in session', async () => {
     mocks.send
       .mockResolvedValueOnce({ Status: 'SUCCESS', Session: 'verified-session' })
-      .mockResolvedValueOnce({ AuthenticationResult: { IdToken: 'identity-token', RefreshToken: 'refresh-token' } });
+      .mockResolvedValueOnce({
+        AuthenticationResult: { IdToken: 'identity-token', RefreshToken: 'refresh-token' },
+      });
     await expect(
       completeTotpSetup('us-east-1', 'client', 'person@example.com', 'setup-session', '123456'),
     ).resolves.toMatchObject({ status: 'AUTHENTICATED', identityToken: 'identity-token' });

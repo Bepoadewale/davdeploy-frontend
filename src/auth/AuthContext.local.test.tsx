@@ -139,7 +139,9 @@ describe('AuthProvider local fixture boundary', () => {
     );
     expect(screen.getByTestId('token')).toHaveTextContent('email-token');
 
-    fixture.startPasswordSignIn.mockRejectedValueOnce(new Error('Password sign-in is unavailable.'));
+    fixture.startPasswordSignIn.mockRejectedValueOnce(
+      new Error('Password sign-in is unavailable.'),
+    );
     await act(async () => screen.getByRole('button', { name: 'Password sign in' }).click());
     expect(screen.getByTestId('error')).toHaveTextContent('Password sign-in is unavailable.');
   });
