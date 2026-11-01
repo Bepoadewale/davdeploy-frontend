@@ -60,7 +60,7 @@ test('public Team and About pages remain available without workspace sign-in', a
     page.getByRole('heading', { name: 'Clearer infrastructure choices.' }),
   ).toBeVisible();
   await expect(
-    page.getByText(/AWS planning, review, and account discovery are the implemented/i),
+    page.getByText(/AWS is DavDeploy's initial implemented cloud provider/i),
   ).toBeVisible();
   await expect(page.getByText('They are not available today.')).toBeVisible();
 });
