@@ -331,7 +331,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setLoading(true);
       setError(null);
       try {
-        if (!emailOtpConfigured) throw new Error('Email code sign-in is not configured.');
+        if (!emailOtpConfigured) throw new Error('Account confirmation is not configured.');
         const { verifyEmailChallenge } = await import('./cognitoEmail');
         const result = await verifyEmailChallenge(
           config.cognito.region,
