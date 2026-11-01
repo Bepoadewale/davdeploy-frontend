@@ -51,11 +51,11 @@ hostname to production API CORS or Cognito allowlists without a separately revie
 10. Add `VITE_BROWSER_SESSION_PROXY_ENABLED=true` to production. This compiles the browser to call
     the same-origin `/api/v1/*` proxy instead of the API Gateway hostname directly.
 11. Add these **Pages Function runtime** values (without the `VITE_` prefix):
-   - `DAVDEPLOY_API_ORIGIN=https://api.<assigned-domain>`
-    - `DAVDEPLOY_COGNITO_TOKEN_ENDPOINT=https://<cognito-hosted-domain>/oauth2/token`
-    - `DAVDEPLOY_COGNITO_CLIENT_ID=<public-client-id>`
-      These are routing/public-client values, not credentials. The Function uses them only to forward
-      requests and perform Cognito's public-client refresh exchange.
+
+- `DAVDEPLOY_API_ORIGIN=https://api.<assigned-domain>` - `DAVDEPLOY_COGNITO_TOKEN_ENDPOINT=https://<cognito-hosted-domain>/oauth2/token` - `DAVDEPLOY_COGNITO_CLIENT_ID=<public-client-id>`
+  These are routing/public-client values, not credentials. The Function uses them only to forward
+  requests and perform Cognito's public-client refresh exchange.
+
 12. Do not add cloud credentials, GitHub secrets, a Cloudflare API token, Cognito client secret,
     database binding, KV, R2, D1, or Durable Object.
 13. Deploy and wait for the dashboard to report a successful build. Use the hostname Cloudflare
