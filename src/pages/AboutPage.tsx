@@ -101,10 +101,6 @@ export default function AboutPage() {
               the longer-term operating vision.
             </li>
           </ol>
-          <p className="ac3-note">
-            Today, AWS planning, review, and account discovery are the implemented cloud path.
-            Customer workload deployment is a controlled pilot capability, not general availability.
-          </p>
         </section>
 
         <section aria-labelledby="clouds-heading">

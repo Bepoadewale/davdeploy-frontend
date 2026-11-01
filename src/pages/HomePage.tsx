@@ -208,7 +208,6 @@ export default function HomePage() {
         <div className="ac3-section-heading">
           <p className="ac3-eyebrow">Start where you are</p>
           <h2 id="use-cases-heading">A clearer path for each stage of work.</h2>
-          <p>These are planning illustrations, not tested performance or deployment claims.</p>
         </div>
         <img
           src="/media/davdeploy/use-cases.webp"

@@ -992,6 +992,126 @@
   margin-top: 12px;
 }
 
+.ac3-blog-list {
+  border-top: 1px solid var(--ac3-line);
+  margin-top: clamp(48px, 7vw, 76px);
+}
+
+.ac3-blog-card {
+  border-bottom: 1px solid var(--ac3-line);
+  padding: 28px 0 30px;
+}
+
+.ac3-blog-card > p:first-child,
+.ac3-comment > p:first-child {
+  color: var(--ac3-muted);
+  font-size: 0.82rem;
+  margin: 0 0 10px;
+}
+
+.ac3-blog-card h2,
+.ac3-comments h2 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.ac3-blog-card h2 a {
+  color: var(--ac3-ink);
+  text-decoration: none;
+}
+
+.ac3-blog-card > p:not(:first-child),
+.ac3-blog-empty,
+.ac3-blog-body p,
+.ac3-comments > p,
+.ac3-comment > p {
+  color: var(--ac3-muted);
+  line-height: 1.72;
+}
+
+.ac3-blog-body {
+  border-top: 1px solid var(--ac3-line);
+  margin-top: 42px;
+  max-width: 720px;
+  padding-top: 28px;
+}
+
+.ac3-comments {
+  border-top: 1px solid var(--ac3-line);
+  margin-top: 64px;
+  max-width: 720px;
+  padding-top: 28px;
+}
+
+.ac3-comments form,
+.ac3-comment form {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.ac3-comments textarea,
+.form-grid textarea,
+.form-grid input,
+.form-grid select {
+  background: #fffefa;
+  border: 1px solid var(--ac3-line);
+  border-radius: 7px;
+  color: var(--ac3-ink);
+  font: inherit;
+  min-height: 44px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.ac3-comments textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.ac3-comment {
+  border-top: 1px solid var(--ac3-line);
+  padding: 21px 0;
+}
+
+.ac3-text-button {
+  background: transparent;
+  border: 0;
+  color: var(--ac3-green);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 18px;
+  max-width: 780px;
+}
+.form-grid label {
+  color: var(--ink);
+  display: grid;
+  font-weight: 700;
+  gap: 7px;
+}
+.blog-manage-item {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 0;
+}
+.blog-manage-item p {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+}
+
 @media (min-width: 1180px) {
   .ac3-about {
     width: min(100% - 64px, 1220px);

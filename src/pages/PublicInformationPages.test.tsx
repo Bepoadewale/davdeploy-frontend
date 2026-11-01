@@ -20,6 +20,7 @@ describe('public company information pages', () => {
       'href',
       '/about',
     );
+    expect(within(footer).getByRole('link', { name: 'Blog' })).toHaveAttribute('href', '/blog');
     expect(within(footer).getByRole('link', { name: 'Contact Us' })).toHaveAttribute(
       'href',
       'mailto:support@davdeploy.tech',
@@ -87,13 +88,11 @@ describe('public company information pages', () => {
       screen.getByRole('heading', { name: /clearer infrastructure choices/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /AWS planning, review, and account discovery are the implemented cloud path/i,
-      ),
+      screen.getByText(/AWS is DavDeploy's initial implemented cloud provider/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/customer workload deployment is a controlled pilot capability/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/customer workload deployment is a controlled pilot capability/i),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByText(/future integrations may include microsoft azure/i),
     ).toBeInTheDocument();
