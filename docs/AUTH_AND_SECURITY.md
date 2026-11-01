@@ -2,13 +2,15 @@
 
 ## Hosted identity
 
-Hosted mode uses Amazon Cognito as the central identity broker. Google sign-in uses authorization
-code and PKCE through `oidc-client-ts`. Email sign-in uses Cognito's passwordless `EMAIL_OTP`
-challenge through the public user-pool client. Configure the exact Cognito issuer, region, public
-client ID, callback URL, and logout URL. No client secret belongs in a browser application.
+Hosted mode uses Amazon Cognito as the central identity broker. DavDeploy uses a password as the
+first sign-in factor and a time-based one-time password (TOTP) from an authenticator app as the
+second factor. New users confirm their email while creating the account, then enrol the
+authenticator app on their first password sign-in. Configure the exact Cognito issuer, region,
+public client ID, callback URL, and logout URL. No client secret belongs in a browser application.
 
 Google is shown only when `VITE_GOOGLE_SIGN_IN_ENABLED=true` and the OIDC values are complete.
-Keep it false until the Google provider is configured in Cognito. Email OTP remains independent.
+Keep it false until the Google provider is configured in Cognito. Passwordless email-code sign-in
+is not enabled.
 
 On the production site, a same-origin Cloudflare Pages Function exchanges the successful Cognito
 result for two host-only, `HttpOnly`, `Secure`, `SameSite=Lax` cookies. The short-lived ID-token
@@ -23,9 +25,8 @@ endpoint validates a Cognito ID token with `/api/v1/me`; state-changing cookie r
 same-site Origin. This is deliberately a first-party `davdeploy.tech` session, not a shared cookie
 for `pages.dev` or another domain.
 
-On October 29, 2026, the founder completed the production visual check: email-OTP sign-in,
-closing/reopening DavDeploy, successful session restoration, then sign-out and confirmation that
-restoration no longer occurred. This complements the recorded HTTP-level cookie check.
+The persistent session is tested at the HTTP level. The controlled live password-and-authenticator
+customer journey remains a required acceptance record.
 
 After sign-in, `/api/v1/me` resolves the server-owned workspace membership and role. A verified new
 identity can call `/api/v1/onboarding`; the backend creates a personal workspace or accepts a
@@ -33,10 +34,10 @@ matching invitation. Identity-token
 organization, email, or role claims are not treated as authorization. The backend must verify issuer,
 audience, signature, expiry, server membership, tenant scope, and operation-specific policy.
 
-Google is federated through Cognito, so both sign-in methods produce the same trusted issuer and
+Google, if later enabled, is federated through Cognito and produces the same trusted issuer and
 backend membership lookup. The production client is configured for the hosted Cognito provider at
-`https://davdeploy.tech`; a full live invitation, sign-in, workspace, plan, approval, and sign-out
-journey still needs recorded browser acceptance evidence.
+`https://davdeploy.tech`; a full live invitation, password-and-authenticator sign-in, workspace,
+plan, approval, and sign-out journey still needs recorded browser acceptance evidence.
 
 ## Local fixture
 

@@ -24,13 +24,14 @@ sign-in.
 ## Work planned for the PR
 
 - Replace the obsolete Settings enrollment control with accurate guidance.
-- Correct the Pages deployment and smoke-test documentation.
+- Correct the Pages deployment, authentication, and smoke-test documentation.
 - Clarify the account-confirmation error wording.
 
 ## Acceptance criteria
 
 - [x] Settings no longer claims email-code sign-in is available.
 - [x] Pages handoff documents password, authenticator, and one-day persistence.
+- [x] Authentication security documentation accurately states the deployed flow.
 - [x] TypeScript validation passes.
 - [x] Full local verification passes.
 - [ ] Required GitHub CI passes.
