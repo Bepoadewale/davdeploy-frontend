@@ -60,6 +60,23 @@ export default function TeamPage() {
             </div>
           </div>
         </div>
+        <section className="ac3-team-feature" aria-labelledby="engineering-heading">
+          <div>
+            <h2 id="engineering-heading">Built from practical cloud engineering.</h2>
+            <p>
+              DavDeploy grows from a simple principle: infrastructure should fit the product, its
+              operating constraints, and the people responsible for it.
+            </p>
+          </div>
+          <img
+            src="/media/davdeploy/team-engineering-origin.webp"
+            width="1376"
+            height="768"
+            loading="lazy"
+            decoding="async"
+            alt="Illustration of practical cloud engineering and infrastructure decisions"
+          />
+        </section>
       </article>
       <PublicFooter />
     </main>

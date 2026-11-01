@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import BrandMark from '../components/BrandMark';
 import PublicFooter from '../components/PublicFooter';
+import WebsiteMedia from '../components/WebsiteMedia';
 import { usePublicMetadata } from '../hooks/usePublicMetadata';
 
 const principles = [
@@ -63,6 +64,17 @@ export default function AboutPage() {
             architecture rather than defaulting to sophisticated infrastructure a workload does not
             require.
           </p>
+          <figure className="ac3-about-media ac3-about-complexity">
+            <WebsiteMedia
+              src="/media/davdeploy/about-complexity-to-clarity.mp4"
+              poster="/media/davdeploy/about-complexity-to-clarity-poster.jpg"
+              label="complexity to clarity animation"
+            />
+            <figcaption>
+              Start with the smallest viable architecture. Compare complexity and trade-offs before
+              deciding.
+            </figcaption>
+          </figure>
         </section>
 
         <section aria-labelledby="workflow-heading">
@@ -108,6 +120,17 @@ export default function AboutPage() {
             Infrastructure, DigitalOcean, and other providers as they are developed and validated.
             They are not available today.
           </p>
+          <figure className="ac3-about-media ac3-about-future">
+            <img
+              src="/media/davdeploy/about-future-vision.webp"
+              width="1376"
+              height="768"
+              loading="lazy"
+              decoding="async"
+              alt="Illustration of a future multicloud infrastructure landscape"
+            />
+            <figcaption>Starting with AWS. Designed for a multicloud future.</figcaption>
+          </figure>
         </section>
 
         <section aria-labelledby="approach-heading">

@@ -128,7 +128,9 @@ export async function beginTotpEnrollment(region: string, accessToken: string, u
     ),
   );
   if (!response.SecretCode) throw new Error('Cognito did not return an authenticator setup key.');
-  return response.SecretCode;
+  if (useSession && !response.Session)
+    throw new Error('Cognito did not return an authenticator setup session.');
+  return { secret: response.SecretCode, session: response.Session };
 }
 
 export async function completeTotpSetup(
