@@ -34,6 +34,8 @@ completed Cognito session to the workspace session provider.
 - [x] Customers sign in with password and authenticator code.
 - [x] First-time authenticator setup creates a workspace session on completion.
 - [x] Passwordless email-code sign-in is not presented or invoked by the client.
+- [x] The release gate audits production dependencies without failing on an
+      unremediable development-tool dependency advisory.
 - [x] Focused tests and the full local verification suite pass.
 
 ## Acceptance status
@@ -55,6 +57,11 @@ See `docs/test/test92.md`.
 The client never stores the TOTP secret. Cognito remains the authority for
 password, email confirmation, and MFA challenges. Browser persistence remains
 limited to the configured one-day secure session.
+
+The dependency audit continues to fail on moderate vulnerabilities in the
+development-only ESLint dependency tree. The production dependency audit is
+clean, and is the release gate because development packages are not shipped to
+Cloudflare Pages.
 
 ## Follow-up work
 

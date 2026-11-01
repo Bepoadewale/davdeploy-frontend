@@ -15,6 +15,10 @@ coverage includes password sign-in, TOTP challenge completion, first-time TOTP
 setup completion, password reset, account confirmation, and browser-session
 renewal.
 
+`npm audit --omit=dev --audit-level=moderate` reported zero production
+vulnerabilities. The full development dependency tree retains an upstream
+moderate ESLint/minimatch advisory with no non-breaking remediation.
+
 ## Execution boundary
 
 Local static-client validation with mocked Cognito and workspace APIs. GitHub

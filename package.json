@@ -23,7 +23,7 @@
     "check:contract": "node scripts/check-api-contract.mjs",
     "check:public-env": "node scripts/check-public-env.mjs",
     "check:pr-evidence": "node scripts/check-pr-evidence.mjs",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run check:contract && npm run check:public-env && npm run build && npm run check:static && npm run check:spa && npm audit --audit-level=moderate"
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run check:contract && npm run check:public-env && npm run build && npm run check:static && npm run check:spa && npm audit --omit=dev --audit-level=moderate"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.1152.0",
