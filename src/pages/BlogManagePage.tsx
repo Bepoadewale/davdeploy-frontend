@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import type { BlogPost } from '../api/contracts';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../hooks/useAsync';
@@ -29,7 +29,55 @@ export default function BlogManagePage() {
         Checking author access…
       </p>
     );
-  if (!access.data?.can_publish) return <Navigate to="/overview" replace />;
+  if (access.error) {
+    return (
+      <div className="page blog-manage">
+        <div className="page-heading">
+          <div>
+            <p className="eyebrow">DavDeploy journal</p>
+            <h1>Could not verify author access</h1>
+          </div>
+        </div>
+        <section className="panel" aria-labelledby="blog-access-error">
+          <div className="notice notice-error" role="alert">
+            <p id="blog-access-error">
+              We could not check your publishing access. Check your connection and try again.
+            </p>
+          </div>
+          <button className="button button-secondary" type="button" onClick={access.reload}>
+            Try again
+          </button>
+          <Link className="button button-quiet" to="/overview">
+            Return to workspace
+          </Link>
+        </section>
+      </div>
+    );
+  }
+  if (!access.data?.can_publish) {
+    return (
+      <div className="page blog-manage">
+        <div className="page-heading">
+          <div>
+            <p className="eyebrow">DavDeploy journal</p>
+            <h1>Blog author access required</h1>
+          </div>
+        </div>
+        <section className="panel" aria-labelledby="blog-author-access-required">
+          <p id="blog-author-access-required">
+            Your workspace sign-in is shared with the public blog. Publishing is available to
+            verified @davdeploy.tech addresses and bepoadewale1@gmail.com.
+          </p>
+          <Link className="button button-secondary" to="/blog">
+            View the public blog
+          </Link>
+          <Link className="button button-quiet" to="/overview">
+            Return to workspace
+          </Link>
+        </section>
+      </div>
+    );
+  }
   const value = editing ? { ...editing, state: editing.state ?? 'DRAFT' } : draft;
   const setValue = (key: keyof typeof blankPost, next: string) => {
     if (editing) setEditing({ ...editing, [key]: next });
