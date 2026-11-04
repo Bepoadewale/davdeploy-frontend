@@ -26,20 +26,23 @@ The backend permits publishing only for verified `@davdeploy.tech` email address
 
 ## Acceptance criteria
 
-- [ ] A user with confirmed author access sees the existing editor.
-- [ ] A workspace user without author access sees the exact eligibility rule and links back to the public blog/workspace.
-- [ ] A failed permission check shows a retry action instead of implying the user is unauthorized.
-- [ ] The workspace sidebar has a keyboard-accessible “Visit public site” link to `/` and keeps the current session.
-- [ ] No browser-side email allowlist or authorization change is introduced.
-- [ ] Focused tests and full local verification pass; required GitHub checks pass.
+- [x] A user with confirmed author access sees the existing editor.
+- [x] A workspace user without author access sees the exact eligibility rule and links back to the public blog/workspace.
+- [x] A failed permission check shows a retry action instead of implying the user is unauthorized.
+- [x] The workspace sidebar has a keyboard-accessible “Visit public site” link to `/` and keeps the current session.
+- [x] No browser-side email allowlist or authorization change is introduced.
+- [x] Full local verification and required GitHub checks pass.
 
 ## Acceptance status
 
-Draft implementation is pending.
+Implementation and verification are complete. The PR remains unmerged pending review.
 
 ## Tests / validation performed
 
-See `docs/test/test98.md`.
+`npm run verify` passed locally: 96 tests, formatting, lint, type check, API contract,
+public environment, production build, static-hosting and SPA route checks, and a clean
+dependency audit. All five required GitHub checks passed in run
+[41919705574](https://github.com/Bepoadewale/davdeploy-frontend/actions/runs/41919705574).
 
 ## Evidence files produced
 
@@ -51,4 +54,4 @@ Frontend-only error and navigation clarity. The backend author rule remains auth
 
 ## Follow-up work
 
-Sign in with a verified allowed address to publish: any `@davdeploy.tech` address, or `bepoadewale1@gmail.com`.
+Production availability follows the reviewed PR merge and Cloudflare Pages deployment.

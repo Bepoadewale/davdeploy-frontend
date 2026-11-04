@@ -3,17 +3,20 @@
 ## Commands executed
 
 ```text
-npx vitest run src/pages/BlogManagePage.test.tsx --coverage.enabled=false
 npm run verify
 ```
 
 ## Result
 
-Pending local validation and GitHub Actions.
+`npm run verify` passed locally. It ran 96 tests, formatting, lint, type checking, the API
+contract check, public environment check, production build, static-hosting checks, SPA route
+refresh checks, and `npm audit --omit=dev --audit-level=moderate` with zero vulnerabilities.
+All five required GitHub checks passed in
+[run 41919705574](https://github.com/Bepoadewale/davdeploy-frontend/actions/runs/41919705574).
 
 ## Execution boundary
 
-Tests use mocked responses from the backend author-access endpoint. They neither change author permissions nor publish content.
+Tests use mocked responses from the backend author-access endpoint. They neither change author permissions nor publish content. The Home link uses the existing public `/` route and does not call sign-out.
 
 ## Known limitations
 
