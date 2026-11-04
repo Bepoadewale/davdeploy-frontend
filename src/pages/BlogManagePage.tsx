@@ -4,7 +4,14 @@ import type { BlogPost } from '../api/contracts';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../hooks/useAsync';
 
-const blankPost = { slug: '', title: '', summary: '', body: '', state: 'DRAFT' as const };
+const blankPost = {
+  slug: '',
+  title: '',
+  summary: '',
+  author_name: '',
+  body: '',
+  state: 'DRAFT' as const,
+};
 
 export default function BlogManagePage() {
   const { api } = useAuth();
@@ -140,6 +147,16 @@ export default function BlogManagePage() {
             onChange={(event) => setValue('summary', event.target.value)}
             required
             maxLength={360}
+          />
+        </label>
+        <label>
+          Author's Name
+          <input
+            value={value.author_name}
+            onChange={(event) => setValue('author_name', event.target.value)}
+            required
+            maxLength={120}
+            autoComplete="name"
           />
         </label>
         <label>

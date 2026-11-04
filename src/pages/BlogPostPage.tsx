@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { BlogComment, BlogPost } from '../api/contracts';
 import BrandMark from '../components/BrandMark';
+import LinkifiedText from '../components/LinkifiedText';
 import PublicFooter from '../components/PublicFooter';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../hooks/useAsync';
@@ -89,12 +90,15 @@ export default function BlogPostPage() {
         </p>
         <h1 id="post-heading">{post.title}</h1>
         <p className="ac3-intro">{post.summary}</p>
+        <p className="ac3-blog-byline">By {post.author_name}</p>
         <div className="ac3-blog-body">
           {post.body
             .split('\n')
             .filter(Boolean)
-            .map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+            .map((paragraph, index) => (
+              <p key={`${index}-${paragraph}`}>
+                <LinkifiedText text={paragraph} />
+              </p>
             ))}
         </div>
         <section className="ac3-comments" aria-labelledby="comments-heading">
