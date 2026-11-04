@@ -52,9 +52,7 @@ describe('blog author access', () => {
     expect(
       await screen.findByRole('heading', { name: 'Blog author access required' }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/workspace sign-in is shared with the public blog/i),
-    ).toBeVisible();
+    expect(screen.getByText(/workspace sign-in is shared with the public blog/i)).toBeVisible();
     expect(screen.getByRole('link', { name: 'View the public blog' })).toHaveAttribute(
       'href',
       '/blog',
