@@ -31,6 +31,7 @@ The editor saves title, slug, summary, article body, and draft/published visibil
 - [x] Links typed in article text render as clickable links with surrounding punctuation and text preserved.
 - [x] Link rendering accepts only `http` and `https` destinations and keeps all other article content escaped.
 - [x] Existing post creation, editing, visibility, and route behavior are unchanged in the frontend code.
+- [x] An anonymous reader can load `/blog/:slug`; article and comments GETs explicitly opt out of authentication, and public external article links remain clickable.
 - [ ] Required GitHub checks pass on the implementation commit.
 
 ## Acceptance status
@@ -52,3 +53,11 @@ This change does not alter blog author authorization, workspace sign-in, or publ
 ## Follow-up work
 
 Persist `author_name` in the backend and include it in public and management responses before merging this frontend PR.
+
+## Public-reader regression follow-up
+
+The blog post route was already outside the protected route group in `src/App.tsx`, and
+`BlogPostPage` already marked both article and comments GETs as unauthenticated. This follow-up
+adds an App-level regression test for anonymous route loading, those request options, and the
+clickable external URL. No runtime behavior was changed. The PR remains draft while backend
+author persistence is outstanding.

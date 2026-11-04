@@ -66,6 +66,55 @@ describe('application routes', () => {
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
   });
 
+  it('loads a public blog article anonymously and keeps its external links clickable', async () => {
+    auth.profile = null;
+    auth.loading = false;
+    auth.api.request.mockReset().mockImplementation((path: string) => {
+      if (path === '/api/v1/blog/posts/anonymous-reader-post') {
+        return Promise.resolve({
+          id: 'post-1',
+          slug: 'anonymous-reader-post',
+          title: 'A public operations note',
+          summary: 'A short public article summary.',
+          body: 'Read the full guide at https://docs.example.com/platform/guide.',
+          author_name: 'DavDeploy team',
+          state: 'PUBLISHED',
+        });
+      }
+      if (path === '/api/v1/blog/posts/anonymous-reader-post/comments') return Promise.resolve([]);
+      return Promise.reject(new Error(`Unexpected request: ${path}`));
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/blog/anonymous-reader-post']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'A public operations note' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('A short public article summary.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: /sign in to your workspace/i }),
+    ).not.toBeInTheDocument();
+
+    expect(auth.api.request).toHaveBeenCalledWith(
+      '/api/v1/blog/posts/anonymous-reader-post',
+      expect.objectContaining({ authenticated: false, signal: expect.any(AbortSignal) }),
+    );
+    expect(auth.api.request).toHaveBeenCalledWith(
+      '/api/v1/blog/posts/anonymous-reader-post/comments',
+      expect.objectContaining({ authenticated: false, signal: expect.any(AbortSignal) }),
+    );
+
+    const externalLink = screen.getByRole('link', {
+      name: 'https://docs.example.com/platform/guide (opens in a new tab)',
+    });
+    expect(externalLink).toHaveAttribute('href', 'https://docs.example.com/platform/guide');
+    expect(externalLink).toHaveAttribute('target', '_blank');
+  });
+
   it('renders role-aware administrator review work from the backend', async () => {
     auth.profile = {
       user: { subject: 'admin', role: 'administrator' },
