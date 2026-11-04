@@ -9,7 +9,7 @@ npm run verify
 
 ## Result
 
-Focused blog tests passed: 3 tests. Complete `npm run verify` passed: formatting, lint, TypeScript, 91 tests, API contract, public environment, production build, static hosting, SPA refresh, and production dependency audit (zero vulnerabilities). Required GitHub Actions checks are pending.
+Focused blog tests passed: 3 tests. Complete `npm run verify` passed: formatting, lint, TypeScript, 91 tests, API contract, public environment, production build, static hosting, SPA refresh, and production dependency audit (zero vulnerabilities). All required GitHub checks passed on run 41905634454, including verification, browser acceptance, PR evidence, secret scanning, and Cloudflare Pages.
 
 ## Execution boundary
 

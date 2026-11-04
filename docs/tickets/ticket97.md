@@ -30,11 +30,11 @@ The frontend already has a protected post editor for creating, editing, and publ
 - [x] Visitors without author permission do not see the editor link.
 - [x] Permission-check failures have a clear retry action.
 - [x] Focused tests and complete local verification pass.
-- [ ] Required GitHub checks pass.
+- [x] All required GitHub checks pass on run 41905634454.
 
 ## Acceptance status
 
-Implementation is complete on a focused branch. Focused tests and full local verification pass; required GitHub checks are pending.
+Implementation is complete on a focused branch. Focused tests and full local verification pass, and all required GitHub checks passed on run 41905634454.
 
 ## Tests / validation performed
 
