@@ -13,10 +13,17 @@ function formatDate(value?: string | null) {
 }
 
 export default function BlogPage() {
-  const { api } = useAuth();
+  const { api, profile } = useAuth();
   const posts = useAsync(
     (signal) => api.request<BlogPost[]>('/api/v1/blog/posts', { authenticated: false, signal }),
     [api],
+  );
+  const authorAccess = useAsync(
+    (signal) =>
+      profile
+        ? api.request<{ can_publish: boolean }>('/api/v1/blog/author-access', { signal })
+        : Promise.resolve({ can_publish: false }),
+    [api, profile],
   );
   usePublicMetadata({
     title: 'Blog | DavDeploy',
@@ -39,6 +46,19 @@ export default function BlogPage() {
         <p className="ac3-eyebrow">DavDeploy journal</p>
         <h1 id="blog-heading">Notes for clearer cloud decisions.</h1>
         <p className="ac3-intro">Practical ideas from the DavDeploy team about building simply.</p>
+        {authorAccess.data?.can_publish ? (
+          <Link className="ac3-text-link" to="/blog/manage">
+            Write a post
+          </Link>
+        ) : null}
+        {profile && authorAccess.error ? (
+          <div className="notice notice-error" role="alert">
+            <p>Author access could not be checked right now.</p>
+            <button className="button button-secondary" type="button" onClick={authorAccess.reload}>
+              Try again
+            </button>
+          </div>
+        ) : null}
         {posts.loading ? <p role="status">Loading posts…</p> : null}
         {posts.error ? (
           <div className="notice notice-error" role="alert">
