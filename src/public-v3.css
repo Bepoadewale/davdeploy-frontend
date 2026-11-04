@@ -1037,6 +1037,24 @@
   padding-top: 28px;
 }
 
+.ac3-blog-byline {
+  color: var(--ac3-muted);
+  font-size: 0.9rem;
+  margin: -8px 0 0;
+}
+
+.ac3-blog-body a {
+  color: var(--ac3-green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ac3-blog-body a:focus-visible {
+  border-radius: 2px;
+  outline: 2px solid var(--ac3-orange);
+  outline-offset: 3px;
+}
+
 .ac3-comments {
   border-top: 1px solid var(--ac3-line);
   margin-top: 64px;
