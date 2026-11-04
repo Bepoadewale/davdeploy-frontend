@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import BrandMark from '../components/BrandMark';
 import { publicConfigurationIssues } from '../config';
+import { useAsync } from '../hooks/useAsync';
 
 function Icon({ children }: { children: ReactNode }) {
   return (
@@ -61,10 +62,14 @@ const primary = [
 ];
 
 export function AppShell() {
-  const { profile, signOut } = useAuth();
+  const { api, profile, signOut } = useAuth();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const issues = publicConfigurationIssues();
+  const blogAuthorAccess = useAsync(
+    (signal) => api.request<{ can_publish: boolean }>('/api/v1/blog/author-access', { signal }),
+    [api],
+  );
   return (
     <div className="app-shell workspace-shell-v2">
       <a className="skip-link" href="#main-content">
@@ -139,6 +144,16 @@ export function AppShell() {
             </span>
             Help and updates
           </NavLink>
+          {blogAuthorAccess.data?.can_publish ? (
+            <NavLink to="/blog/manage" onClick={() => setMenuOpen(false)}>
+              <span>
+                <Icon>
+                  <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" />
+                </Icon>
+              </span>
+              Write a post
+            </NavLink>
+          ) : null}
         </nav>
         <div className="sidebar-footer">
           <div className="sidebar-session">
@@ -148,6 +163,9 @@ export function AppShell() {
               <small>Verified by DavDeploy</small>
             </span>
           </div>
+          <Link className="button button-quiet" to="/" onClick={() => setMenuOpen(false)}>
+            Visit public site
+          </Link>
           <button type="button" className="button button-quiet" onClick={() => void signOut()}>
             Sign out
           </button>
