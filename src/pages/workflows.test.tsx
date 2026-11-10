@@ -418,7 +418,7 @@ describe('customer workflows', () => {
     expect(
       screen.queryByRole('button', { name: 'Create reviewed destroy plan' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Approved, not deployed.')).toBeInTheDocument();
+    expect(screen.getByText('Approved.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Refresh status' }));
     await waitFor(() => expect(auth.api.request).toHaveBeenCalledTimes(2));
   });

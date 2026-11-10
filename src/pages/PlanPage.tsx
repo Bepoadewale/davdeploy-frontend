@@ -149,13 +149,14 @@ export default function PlanPage() {
             </details>
             <div className="truth-banner">
               <strong>
-                {review.state === 'APPROVED'
-                  ? 'Approved, not deployed.'
+                {review.state === 'APPROVED' || review.state === 'SELF_APPROVED'
+                  ? 'Approved.'
                   : 'This is a review record, not a deployment.'}
               </strong>
               <span>
-                Infrastructure exists only when the backend reports independently observed
-                execution.
+                {review.state === 'APPROVED' || review.state === 'SELF_APPROVED'
+                  ? 'Approval and deployment are separate. The progress below shows any operation the backend has recorded.'
+                  : 'Infrastructure exists only when the backend reports independently observed execution.'}
               </span>
             </div>
             {message ? (
