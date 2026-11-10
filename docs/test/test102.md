@@ -4,7 +4,7 @@
 
 - Repository: `Bepoadewale/davdeploy-frontend`
 - Clean-room source commit: `9f04785` (`Make customer-facing pages clear and truthful`)
-- Latest local verification source: `e14df47` (`Address customer UI review findings`)
+- Latest local verification source: `3646237` (`Show Nova plan status after approval`)
 - Branch: `fix/customer-facing-surface-audit-102`
 
 ## Commands executed
@@ -20,6 +20,10 @@
   formatting, lint, typecheck, API contract, public environment, production
   build, static build, SPA refresh, and production-only dependency audit
   (0 vulnerabilities).
+- Clean-room current-source check at `3646237`: `npm ci && npm run verify`
+  passed with 22 test files and 104 tests and all verification stages above.
+- Browser acceptance at `3646237`: `npm run test:browser` passed 11 desktop
+  and mobile cases; one desktop-only case was skipped by its project guard.
 
 ## Result
 
