@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, type FormEvent, type ReactNode } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import type { CustomerPlanRevision } from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
@@ -111,7 +111,6 @@ export default function PlanPage() {
     setComment('');
   }
 
-  const latest = <T,>(items?: T[]) => items?.[0] as T | undefined;
   return (
     <div className="page">
       <AsyncRegion
@@ -150,13 +149,14 @@ export default function PlanPage() {
             </details>
             <div className="truth-banner">
               <strong>
-                {review.state === 'APPROVED'
-                  ? 'Approved, not deployed.'
+                {review.state === 'APPROVED' || review.state === 'SELF_APPROVED'
+                  ? 'Approved.'
                   : 'This is a review record, not a deployment.'}
               </strong>
               <span>
-                Infrastructure exists only when the backend reports independently observed
-                execution.
+                {review.state === 'APPROVED' || review.state === 'SELF_APPROVED'
+                  ? 'Approval and deployment are separate. The progress below shows any operation the backend has recorded.'
+                  : 'Infrastructure exists only when the backend reports independently observed execution.'}
               </span>
             </div>
             {message ? (
@@ -238,7 +238,11 @@ export default function PlanPage() {
               <div className="section-heading">
                 <div>
                   <p className="eyebrow">Governance</p>
-                  <h2>Available next action</h2>
+                  <h2>
+                    {review.state === 'APPROVED' || review.state === 'SELF_APPROVED'
+                      ? 'Deployment status'
+                      : 'Available next action'}
+                  </h2>
                 </div>
               </div>
               <div className="action-stack">
@@ -320,13 +324,7 @@ export default function PlanPage() {
                   </button>
                 ) : null}
                 {review.state === 'APPROVED' || review.state === 'SELF_APPROVED' ? (
-                  <ApprovedActions
-                    review={review}
-                    admin={admin}
-                    busy={busy}
-                    mutate={mutate}
-                    latest={latest}
-                  />
+                  <ApprovedProgress review={review} onRefresh={state.reload} />
                 ) : null}
               </div>
             </section>
@@ -355,8 +353,8 @@ export default function PlanPage() {
             </section>
             <PlanDetail
               eyebrow="Evidence inventory"
-              title="Generated and observed records"
-              summary="Open this when you need the detailed audit inventory."
+              title="Technical records (optional)"
+              summary="Detailed audit records for support and review. Most customers can ignore these."
               value={{
                 desired_state_publications: review.desired_state_publications ?? [],
                 terraform_plan_renders: review.terraform_plan_renders ?? [],
@@ -373,302 +371,221 @@ export default function PlanPage() {
   );
 }
 
-function ApprovedActions({
+function ApprovedProgress({
   review,
-  admin,
-  busy,
-  mutate,
-  latest,
+  onRefresh,
 }: {
   review: CustomerPlanRevision;
-  admin: boolean;
-  busy: boolean;
-  mutate: (path: string, body?: MutationBody, success?: string) => Promise<void>;
-  latest: <T>(items?: T[]) => T | undefined;
+  onRefresh: () => void;
 }) {
-  const render = latest<Record<string, unknown>>(review.terraform_plan_renders);
-  const preflight = latest<Record<string, unknown>>(review.cloud_readiness_preflights);
-  const planReview = latest<Record<string, unknown>>(review.terraform_plan_reviews);
-  const authenticatedPlanReview = review.terraform_plan_reviews?.find(
-    (item) => item.state === 'AUTHENTICATED_PLAN_REVIEWED',
+  const latestPlanRecord = review.terraform_plan_reviews?.[0];
+  const applyRecord = review.cloud_execution_runs?.find(
+    (item) => item.mode === 'AUTHENTICATED_APP_RUNNER_APPLY',
   );
-  const authenticatedDestroyReview = review.terraform_plan_reviews?.find(
-    (item) => item.state === 'AUTHENTICATED_DESTROY_PLAN_REVIEWED',
+  const teardownRecord = review.cloud_execution_runs?.find(
+    (item) => item.mode === 'AUTHENTICATED_APP_RUNNER_DESTROY',
   );
-  const latestCloudRun = latest<Record<string, unknown>>(review.cloud_execution_runs);
-  const applySucceeded = review.cloud_execution_runs?.some(
-    (item) =>
-      item.mode === 'AUTHENTICATED_APP_RUNNER_APPLY' &&
-      item.state === 'SUCCEEDED_AWAITING_OBSERVATION',
-  );
-  const target = review.content.target ?? {};
-  const region = typeof target.region === 'string' ? target.region : 'us-east-1';
-  const accountId = typeof target.account_id === 'string' ? target.account_id : undefined;
+  const planStatus = describePlanReview(latestPlanRecord);
+  const applyStatus = applyRecord
+    ? describeOperationState(applyRecord.state, 'deployment')
+    : 'Not started. Approval alone does not create resources.';
+  const teardownStatus = teardownRecord
+    ? describeOperationState(teardownRecord.state, 'teardown')
+    : 'Not started. No resources are being deleted; teardown is not available here yet.';
+  const nextStep = describeNextStep(applyRecord, teardownRecord);
   return (
-    <div className="approved-actions">
-      <div className="notice">
-        <strong>01 · Local evidence only</strong>
-        <span>
-          These create fixture evidence. They do not contact or deploy to a cloud account.
-        </span>
+    <section className="approved-progress" aria-labelledby="deployment-progress-title">
+      <div className="approved-progress-heading">
+        <div>
+          <p className="eyebrow">After approval</p>
+          <h3 id="deployment-progress-title">Deployment progress</h3>
+        </div>
+        <div className="approved-progress-actions">
+          <button className="button button-secondary" type="button" onClick={onRefresh}>
+            Refresh status
+          </button>
+          <Link className="button button-secondary" to="/history">
+            Find this plan later
+          </Link>
+        </div>
       </div>
-      <button
-        className="button button-secondary"
-        disabled={busy}
-        type="button"
-        onClick={() =>
-          void mutate(
-            `/api/v1/customer-plan-revisions/${review.id}/execute-dry-run`,
-            undefined,
-            'Local dry-run queued. Refresh to inspect observed state.',
-          )
-        }
-      >
-        Queue local dry-run
-      </button>
-      <button
-        className="button button-secondary"
-        disabled={busy}
-        type="button"
-        onClick={() =>
-          void mutate(
-            `/api/v1/customer-plan-revisions/${review.id}/desired-state-publications`,
-            { content_digest: review.content_digest },
-            'Desired-state publication recorded; human review remains required.',
-          )
-        }
-      >
-        Record desired-state review
-      </button>
-      <button
-        className="button button-secondary"
-        disabled={busy}
-        type="button"
-        onClick={() =>
-          void mutate(
-            `/api/v1/customer-plan-revisions/${review.id}/terraform-plan-renders`,
-            { content_digest: review.content_digest },
-            'Plan-only Terraform contract recorded. Nothing was applied.',
-          )
-        }
-      >
-        Generate plan-only contract
-      </button>
-      {admin ? (
-        <>
-          <p className="execution-stage-label">
-            02 · Pilot preparation: no customer resources change
-          </p>
-          <button
-            className="button button-secondary"
-            disabled={busy}
-            type="button"
-            onClick={() =>
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/cloud-readiness-preflights`,
-                {
-                  content_digest: review.content_digest,
-                  allowed_regions: ['us-east-1'],
-                  required_tags: {},
-                  execution_mode: 'DRY_RUN_ONLY',
-                  require_reviewed_pr: false,
-                  runtime_identity_configured: false,
-                },
-                'Readiness preflight recorded. No provider call occurred.',
-              )
-            }
-          >
-            Run local readiness preflight
-          </button>
-          <button
-            className="button button-secondary"
-            disabled={busy || !preflight}
-            type="button"
-            onClick={() =>
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/terraform-plan-reviews`,
-                {
-                  content_digest: review.content_digest,
-                  preflight_id: preflight?.id ?? null,
-                  expected_region: 'us-east-1',
-                  mode: 'LOCAL_CONTRACT_ONLY',
-                  allow_cloud_plan: false,
-                },
-                'Plan-only review recorded. Apply remains unavailable.',
-              )
-            }
-          >
-            Record local plan-only review
-          </button>
-          <button
-            className="button button-secondary"
-            disabled={busy || !render || !preflight || !planReview}
-            type="button"
-            onClick={() =>
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/cloud-execution-runs`,
-                {
-                  content_digest: review.content_digest,
-                  terraform_render_id: render?.id ?? null,
-                  preflight_id: preflight?.id ?? null,
-                  terraform_plan_review_id: planReview?.id ?? null,
-                  expected_region: 'us-east-1',
-                  mode: 'GUARDED_CLOUD_EXECUTION',
-                  confirmation: null,
-                },
-                'Guarded run request recorded. The backend did not execute cloud changes.',
-              )
-            }
-          >
-            Record guarded-run request
-          </button>
-          <div className="notice execution-pilot-notice">
-            <strong>03 · Separately authorised customer pilot</strong>
-            <span>
-              This path is available only for a verified connection and an enabled operator runtime.
-              A saved cloud plan still needs review before any apply or destroy.
-            </span>
+      <ol className="deployment-steps">
+        <li className="deployment-step is-complete">
+          <span className="deployment-step-marker" aria-hidden="true">
+            ✓
+          </span>
+          <div>
+            <strong>Administrator approval</strong>
+            <span>Approved · revision {review.revision}</span>
           </div>
-          <button
-            className="button button-secondary"
-            disabled={busy}
-            type="button"
-            onClick={() =>
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/cloud-readiness-preflights`,
-                {
-                  content_digest: review.content_digest,
-                  expected_account_id: accountId,
-                  allowed_regions: [region],
-                  required_tags: { ManagedBy: 'davdeploy' },
-                  execution_mode: 'PLAN_ONLY',
-                  require_reviewed_pr: false,
-                  runtime_identity_configured: true,
-                },
-                'Cloud readiness recorded. The next step creates a real plan only.',
-              )
-            }
-          >
-            Check customer-pilot readiness
-          </button>
-          <button
-            className="button button-primary"
-            disabled={busy || !render || !preflight || !applySucceeded}
-            type="button"
-            onClick={() =>
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/terraform-plan-reviews`,
-                {
-                  content_digest: review.content_digest,
-                  preflight_id: preflight?.id ?? null,
-                  expected_account_id: accountId,
-                  expected_region: region,
-                  mode: 'AUTHENTICATED_TERRAFORM_PLAN',
-                  allow_cloud_plan: true,
-                },
-                'Authenticated Terraform plan submitted. Review its saved artifact before applying.',
-              )
-            }
-          >
-            Create reviewed cloud plan
-          </button>
-          <button
-            className="button button-primary"
-            disabled={busy || !render || !preflight || !authenticatedPlanReview}
-            type="button"
-            onClick={() => {
-              const confirmation = window.prompt(
-                'Type EXECUTE_APP_RUNNER_WORKLOAD to queue the reviewed plan.',
-              );
-              if (confirmation !== 'EXECUTE_APP_RUNNER_WORKLOAD') return;
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/cloud-execution-runs`,
-                {
-                  content_digest: review.content_digest,
-                  terraform_render_id: render?.id ?? null,
-                  preflight_id: preflight?.id ?? null,
-                  terraform_plan_review_id: authenticatedPlanReview?.id ?? null,
-                  expected_account_id: accountId,
-                  expected_region: region,
-                  mode: 'AUTHENTICATED_APP_RUNNER_APPLY',
-                  confirmation,
-                },
-                'Reviewed deployment request created. Queue it as the next explicit step.',
-              );
-            }}
-          >
-            Create reviewed deployment request
-          </button>
-          <button
-            className="button button-primary"
-            disabled={busy || latestCloudRun?.state !== 'READY_FOR_OPERATOR_APP_RUNNER_EXECUTION'}
-            type="button"
-            onClick={() => {
-              const confirmation = window.prompt(
-                'Type EXECUTE_APP_RUNNER_WORKLOAD to queue the reviewed deployment.',
-              );
-              if (confirmation !== 'EXECUTE_APP_RUNNER_WORKLOAD') return;
-              void mutate(
-                `/api/v1/cloud-execution-runs/${latestCloudRun?.id}/execute`,
-                { content_digest: review.content_digest, confirmation },
-                'Deployment queued. Refresh to inspect trusted runner evidence.',
-              );
-            }}
-          >
-            Apply reviewed deployment
-          </button>
-          <button
-            className="button button-danger"
-            disabled={busy || !render || !preflight}
-            type="button"
-            onClick={() =>
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/terraform-plan-reviews`,
-                {
-                  content_digest: review.content_digest,
-                  preflight_id: preflight?.id ?? null,
-                  expected_account_id: accountId,
-                  expected_region: region,
-                  mode: 'AUTHENTICATED_TERRAFORM_DESTROY_PLAN',
-                  allow_cloud_plan: true,
-                },
-                'Terraform destroy plan submitted. It is still review-only.',
-              )
-            }
-          >
-            Create reviewed destroy plan
-          </button>
-          <button
-            className="button button-danger"
-            disabled={
-              busy || !render || !preflight || !authenticatedDestroyReview || !applySucceeded
-            }
-            type="button"
-            onClick={() => {
-              const confirmation = window.prompt(
-                'Type DESTROY_APP_RUNNER_WORKLOAD to create the exact teardown request.',
-              );
-              if (confirmation !== 'DESTROY_APP_RUNNER_WORKLOAD') return;
-              void mutate(
-                `/api/v1/customer-plan-revisions/${review.id}/cloud-execution-runs`,
-                {
-                  content_digest: review.content_digest,
-                  terraform_render_id: render?.id ?? null,
-                  preflight_id: preflight?.id ?? null,
-                  terraform_plan_review_id: authenticatedDestroyReview?.id ?? null,
-                  expected_account_id: accountId,
-                  expected_region: region,
-                  mode: 'AUTHENTICATED_APP_RUNNER_DESTROY',
-                  confirmation,
-                },
-                'Reviewed teardown request created. Queue it only after final review.',
-              );
-            }}
-          >
-            Create reviewed teardown request
-          </button>
-        </>
-      ) : null}
-    </div>
+        </li>
+        <li className="deployment-step">
+          <span className="deployment-step-marker" aria-hidden="true">
+            2
+          </span>
+          <div>
+            <strong>Terraform plan</strong>
+            <span>{planStatus}</span>
+          </div>
+        </li>
+        <li className="deployment-step">
+          <span className="deployment-step-marker" aria-hidden="true">
+            3
+          </span>
+          <div>
+            <strong>Deployment</strong>
+            <span>{applyStatus}</span>
+          </div>
+        </li>
+        <li className="deployment-step">
+          <span className="deployment-step-marker" aria-hidden="true">
+            4
+          </span>
+          <div>
+            <strong>Application health</strong>
+            <span>No independent health result is attached to this record.</span>
+          </div>
+        </li>
+        <li className="deployment-step">
+          <span className="deployment-step-marker" aria-hidden="true">
+            5
+          </span>
+          <div>
+            <strong>Teardown</strong>
+            <span>{teardownStatus}</span>
+          </div>
+        </li>
+      </ol>
+      <div className="approved-next-step" role="status">
+        <strong>{nextStep.title}</strong>
+        <p>{nextStep.description}</p>
+        <p>{nextStep.followUp}</p>
+      </div>
+    </section>
   );
+}
+
+function describeOperationState(state: unknown, phase: 'deployment' | 'teardown'): string {
+  if (typeof state !== 'string') return 'An operation record exists; its status is unavailable.';
+  if (state === 'SUCCEEDED_AWAITING_OBSERVATION')
+    return phase === 'deployment'
+      ? 'Apply finished. Application health has not been verified.'
+      : 'Destroy finished. Resource absence has not been verified.';
+  if (state === 'READY_FOR_OPERATOR_APP_RUNNER_EXECUTION')
+    return 'A pilot operation is waiting for an operator.';
+  if (state.includes('RECONCILIATION') || state.includes('UNKNOWN'))
+    return 'The operation needs its outcome confirmed.';
+  if (state.includes('FAIL'))
+    return 'The operation failed. Open the evidence inventory for details.';
+  if (state.includes('RUNNING') || state.includes('PROGRESS') || state.includes('QUEUED'))
+    return phase === 'deployment' ? 'Deployment is in progress.' : 'Teardown is in progress.';
+  return 'An operation record exists; open the evidence inventory for its exact status.';
+}
+
+function describePlanReview(record: Record<string, unknown> | undefined): string {
+  if (!record) return 'No Terraform plan is attached to this approval yet.';
+  if (record.mode === 'LOCAL_CONTRACT_ONLY' || record.state === 'LOCAL_CONTRACT_PLAN_REVIEWED')
+    return 'A local plan contract was recorded. It is not a customer-account Terraform plan.';
+  if (record.state === 'AUTHENTICATED_PLAN_REVIEWED')
+    return 'A customer-account plan review was recorded. Final costed approval is still required.';
+  return 'A plan review record exists. Open the technical records for its details.';
+}
+
+function describeNextStep(
+  apply: Record<string, unknown> | undefined,
+  teardown: Record<string, unknown> | undefined,
+): { title: string; description: string; followUp: ReactNode } {
+  const applyState = typeof apply?.state === 'string' ? apply.state : '';
+  const teardownState = typeof teardown?.state === 'string' ? teardown.state : '';
+  const isActive = (state: string) =>
+    ['QUEUED', 'PENDING', 'STARTED', 'RUNNING', 'IN_PROGRESS'].some((part) => state.includes(part));
+
+  if (teardown && isActive(teardownState)) {
+    return {
+      title: 'Teardown in progress',
+      description:
+        'Resources may still exist while deletion runs. Do not assume teardown is complete yet.',
+      followUp: (
+        <>
+          Refresh this page for updates. The backend must confirm resource absence before this plan
+          can be marked deleted. Return to <Link to="/history">Plan history</Link> to reopen it.
+        </>
+      ),
+    };
+  }
+  if (apply && isActive(applyState)) {
+    return {
+      title: 'Deployment in progress',
+      description:
+        'The recorded deployment operation is still running. Application health has not been confirmed.',
+      followUp: (
+        <>
+          Refresh this page for updates. Return to <Link to="/history">Plan history</Link> to reopen
+          this plan later.
+        </>
+      ),
+    };
+  }
+  if (applyState === 'READY_FOR_OPERATOR_APP_RUNNER_EXECUTION') {
+    return {
+      title: 'Deployment is waiting for an operator',
+      description:
+        'A pilot deployment request is ready, but this customer page cannot start that operation.',
+      followUp: (
+        <>
+          Ask your workspace administrator to review the technical records. Reopen this plan from{' '}
+          <Link to="/history">Plan history</Link>.
+        </>
+      ),
+    };
+  }
+  if (teardownState === 'SUCCEEDED_AWAITING_OBSERVATION') {
+    return {
+      title: 'Teardown finished; deletion is not confirmed',
+      description:
+        'The destroy operation ended, but this page has no independent resource-absence result.',
+      followUp: (
+        <>
+          Do not assume all resources are gone. Wait for a verified absence result and refresh this
+          page. Return to <Link to="/history">Plan history</Link> to check again.
+        </>
+      ),
+    };
+  }
+  if (applyState === 'SUCCEEDED_AWAITING_OBSERVATION') {
+    return {
+      title: 'Apply finished; health is not confirmed',
+      description:
+        'The infrastructure operation ended, but this page has no independent application-health result.',
+      followUp: (
+        <>
+          Do not treat the application as healthy until health checks pass. Refresh this page for
+          backend updates, or return to <Link to="/history">Plan history</Link> later.
+        </>
+      ),
+    };
+  }
+  if (applyState.includes('FAIL') || teardownState.includes('FAIL')) {
+    return {
+      title: 'An operation needs attention',
+      description:
+        'A recorded lifecycle operation failed. Review its technical records; this page has no recovery action.',
+      followUp: (
+        <>
+          Refresh for updates, or reopen this revision from <Link to="/history">Plan history</Link>.
+        </>
+      ),
+    };
+  }
+  return {
+    title: 'What happens next',
+    description:
+      'Approval records permission to continue; it does not start a Terraform plan or create AWS resources. This plan cannot yet prepare the costed saved plan needed for deployment.',
+    followUp: (
+      <>
+        Return to <Link to="/history">Plan history</Link> and open this revision to check again.
+        Plan, apply, health, and deletion updates appear here only when the backend records them.
+      </>
+    ),
+  };
 }

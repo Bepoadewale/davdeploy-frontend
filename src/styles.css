@@ -1760,8 +1760,100 @@ label > small {
 .governance-panel {
   margin: 12px 0;
 }
-.action-stack,
-.approved-actions {
+.approved-progress {
+  width: 100%;
+  display: grid;
+  gap: 16px;
+}
+.approved-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.approved-progress-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.approved-progress-heading h3 {
+  margin: 3px 0 0;
+}
+.deployment-steps {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.deployment-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  position: relative;
+  padding: 0 0 17px;
+}
+.deployment-step:not(:last-child)::after {
+  position: absolute;
+  top: 25px;
+  bottom: 0;
+  left: 12px;
+  width: 2px;
+  background: var(--line);
+  content: '';
+}
+.deployment-step-marker {
+  z-index: 1;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  color: var(--faint);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+}
+.deployment-step.is-complete .deployment-step-marker {
+  color: var(--success, #067647);
+  border-color: currentColor;
+}
+.deployment-step strong,
+.deployment-step span:not(.deployment-step-marker) {
+  display: block;
+}
+.deployment-step strong {
+  margin: 3px 0 4px;
+  font-size: 13px;
+}
+.deployment-step div > span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.approved-next-step {
+  padding: 14px 16px;
+  color: var(--ink);
+  background: var(--surface-soft, #f8fafc);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.approved-next-step strong {
+  display: block;
+  margin-bottom: 5px;
+}
+.approved-next-step p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.approved-next-step a {
+  color: var(--brand);
+  font-weight: 700;
+}
+.action-stack {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -1770,34 +1862,24 @@ label > small {
 .action-stack > label {
   width: min(520px, 100%);
 }
-.approved-actions {
-  width: 100%;
+@media (max-width: 540px) {
+  .approved-progress-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .approved-progress-actions {
+    width: 100%;
+  }
+  .approved-progress-actions .button {
+    flex: 1;
+  }
 }
-.execution-stage-label {
-  flex: 1 0 100%;
-  margin: 8px 0 0;
-  color: var(--faint);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .activity-environment {
   margin-top: 20px;
 }
 
 .activity-date-heading {
   margin-top: 10px;
-}
-.approved-actions .notice {
-  flex: 1 0 100%;
-  margin: 0;
-}
-.approved-actions .execution-pilot-notice {
-  color: #7a2e0e;
-  background: var(--warning-soft);
-  border-color: #fedf89;
 }
 .comment-form {
   display: grid;

@@ -385,8 +385,9 @@ describe('customer workflows', () => {
     expect(applicationDetails).not.toHaveAttribute('open');
   });
 
-  it('keeps approved plans visibly separate from local evidence and deployment', async () => {
+  it('shows one truthful progress path after approval and hides pilot controls', async () => {
     auth.api.request.mockResolvedValue({ ...review, state: 'APPROVED' });
+    const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/plans/revision-1']}>
         <Routes>
@@ -395,23 +396,51 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/local evidence only/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Queue local dry-run' })).toBeEnabled();
-    expect(screen.getByText('Approved, not deployed.')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Deployment progress' })).toBeInTheDocument();
+    expect(screen.getByText('Approved · revision 1')).toBeInTheDocument();
+    expect(
+      screen.getByText('No Terraform plan is attached to this approval yet.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Not started. No resources are being deleted; teardown is not available here yet.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/cannot yet prepare the costed saved plan/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Find this plan later' })).toHaveAttribute(
+      'href',
+      '/history',
+    );
+    expect(screen.queryByRole('button', { name: 'Queue local dry-run' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Apply reviewed deployment' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Create reviewed destroy plan' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Approved.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Refresh status' }));
+    await waitFor(() => expect(auth.api.request).toHaveBeenCalledTimes(2));
   });
 
-  it('requires the exact confirmation before creating a reviewed deployment request', async () => {
-    auth.profile.user.role = 'administrator';
+  it('shows recorded apply and teardown evidence without claiming health or absence', async () => {
     auth.api.request.mockResolvedValue({
       ...review,
       state: 'APPROVED',
-      content: { ...review.content, target: { account_id: '123456789012', region: 'us-east-1' } },
-      terraform_plan_renders: [{ id: 'render-1' }],
-      cloud_readiness_preflights: [{ id: 'preflight-1' }],
       terraform_plan_reviews: [{ id: 'plan-review-1', state: 'AUTHENTICATED_PLAN_REVIEWED' }],
+      cloud_execution_runs: [
+        {
+          id: 'apply-1',
+          mode: 'AUTHENTICATED_APP_RUNNER_APPLY',
+          state: 'SUCCEEDED_AWAITING_OBSERVATION',
+        },
+        {
+          id: 'destroy-1',
+          mode: 'AUTHENTICATED_APP_RUNNER_DESTROY',
+          state: 'SUCCEEDED_AWAITING_OBSERVATION',
+        },
+      ],
     });
-    const prompt = vi.spyOn(window, 'prompt').mockReturnValue('not the confirmation');
-    const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/plans/revision-1']}>
         <Routes>
@@ -420,38 +449,31 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Create reviewed deployment request' }),
-    );
-    expect(prompt).toHaveBeenCalled();
-    expect(auth.api.request).not.toHaveBeenCalledWith(
-      '/api/v1/customer-plan-revisions/revision-1/cloud-execution-runs',
-      expect.objectContaining({ method: 'POST' }),
-    );
-    prompt.mockRestore();
+    expect(
+      await screen.findByText(
+        'A customer-account plan review was recorded. Final costed approval is still required.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Apply finished. Application health has not been verified.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('No independent health result is attached to this record.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Destroy finished. Resource absence has not been verified.'),
+    ).toBeInTheDocument();
   });
 
-  it('records the exact reviewed deployment request only after confirmation', async () => {
-    auth.profile.user.role = 'administrator';
-    auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
-      if (path === '/api/v1/customer-plan-revisions/revision-1' && !options?.method)
-        return Promise.resolve({
-          ...review,
-          state: 'APPROVED',
-          content: {
-            ...review.content,
-            target: { account_id: '123456789012', region: 'us-east-1' },
-          },
-          terraform_plan_renders: [{ id: 'render-1' }],
-          cloud_readiness_preflights: [{ id: 'preflight-1' }],
-          terraform_plan_reviews: [{ id: 'plan-review-1', state: 'AUTHENTICATED_PLAN_REVIEWED' }],
-        });
-      if (path.endsWith('/cloud-execution-runs') && options?.method === 'POST')
-        return Promise.resolve({});
-      return Promise.reject(new Error(`Unexpected ${path}`));
+  it('does not say operations are idle while apply or teardown is running', async () => {
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      cloud_execution_runs: [
+        { id: 'apply-1', mode: 'AUTHENTICATED_APP_RUNNER_APPLY', state: 'RUNNING' },
+        { id: 'destroy-1', mode: 'AUTHENTICATED_APP_RUNNER_DESTROY', state: 'IN_PROGRESS' },
+      ],
     });
-    const prompt = vi.spyOn(window, 'prompt').mockReturnValue('EXECUTE_APP_RUNNER_WORKLOAD');
-    const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/plans/revision-1']}>
         <Routes>
@@ -460,30 +482,40 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
 
-    await user.click(
-      await screen.findByRole('button', { name: 'Create reviewed deployment request' }),
-    );
-    await waitFor(() =>
-      expect(auth.api.request).toHaveBeenCalledWith(
-        '/api/v1/customer-plan-revisions/revision-1/cloud-execution-runs',
-        expect.objectContaining({
-          method: 'POST',
-          retrySafe: false,
-          body: {
-            content_digest: 'a'.repeat(64),
-            terraform_render_id: 'render-1',
-            preflight_id: 'preflight-1',
-            terraform_plan_review_id: 'plan-review-1',
-            expected_account_id: '123456789012',
-            expected_region: 'us-east-1',
-            mode: 'AUTHENTICATED_APP_RUNNER_APPLY',
-            confirmation: 'EXECUTE_APP_RUNNER_WORKLOAD',
-          },
-        }),
+    expect(await screen.findByText('Teardown in progress')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Resources may still exist while deletion runs. Do not assume teardown is complete yet.',
       ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Deployment is in progress.')).toBeInTheDocument();
+    expect(screen.queryByText(/nothing is being deployed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no resources are being deleted/i)).not.toBeInTheDocument();
+  });
+
+  it('shows an active deployment as in progress instead of idle', async () => {
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      cloud_execution_runs: [
+        { id: 'apply-1', mode: 'AUTHENTICATED_APP_RUNNER_APPLY', state: 'RUNNING' },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
     );
-    expect(await screen.findByText(/reviewed deployment request created/i)).toBeInTheDocument();
-    prompt.mockRestore();
+
+    expect(await screen.findByText('Deployment in progress')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'The recorded deployment operation is still running. Application health has not been confirmed.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/nothing is being deployed/i)).not.toBeInTheDocument();
   });
 
   it('groups audit evidence and exposes inspectable event detail', async () => {
