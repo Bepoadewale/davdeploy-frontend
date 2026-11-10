@@ -400,7 +400,7 @@ function ApprovedProgress({
   const teardownStatus = teardownRecord
     ? describeOperationState(teardownRecord.state, 'teardown')
     : 'Not started. No resources are being deleted; teardown is not available here yet.';
-  const nextStep = describeNextStep(applyRecord, teardownRecord);
+  const nextStep = describeNextStep(applyRecord, teardownRecord, generatedRun?.state);
   const hasRecordedOperation = Boolean(
     generatedRun || latestPlanRecord || applyRecord || teardownRecord,
   );
@@ -555,6 +555,7 @@ function describePlanReview(record: Record<string, unknown> | undefined): string
 function describeNextStep(
   apply: Record<string, unknown> | undefined,
   teardown: Record<string, unknown> | undefined,
+  generatedPlanState?: string,
 ): { title: string; description: string; followUp: ReactNode } {
   const applyState = typeof apply?.state === 'string' ? apply.state : '';
   const teardownState = typeof teardown?.state === 'string' ? teardown.state : '';
@@ -635,6 +636,58 @@ function describeNextStep(
         <>
           <Link to="/settings">Contact workspace support</Link>, or reopen this revision from{' '}
           <Link to="/history">Plan history</Link>.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'PLAN_READY_REVIEW_ONLY') {
+    return {
+      title: 'Plan created; costed review is still needed',
+      description:
+        'The Terraform plan is ready and has not been applied. Cost review and final approval are separate steps.',
+      followUp: (
+        <>
+          This page shows planning status. Costed approval and deployment are not available here
+          yet. Return to <Link to="/history">Plan history</Link> to reopen this revision later.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'PREPARING' || generatedPlanState === 'BUILD_STARTED') {
+    return {
+      title: 'Terraform planning is in progress',
+      description:
+        'Nova and Terraform are preparing a review-only plan. Plan creation does not apply changes or create AWS resources.',
+      followUp: (
+        <>
+          Refresh this page to check again, or return to <Link to="/history">Plan history</Link> and
+          reopen this revision later.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'FAILED') {
+    return {
+      title: 'Plan generation failed',
+      description:
+        'No deployment is reported. Contact workspace support for help investigating the plan failure.',
+      followUp: (
+        <>
+          <Link to="/settings">Contact workspace support</Link>, or return to{' '}
+          <Link to="/history">Plan history</Link> to reopen this revision.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'RECONCILIATION_REQUIRED') {
+    return {
+      title: 'Plan status needs confirmation',
+      description:
+        'DavDeploy cannot yet confirm the outcome of this planning request. Do not start another request until its status is resolved.',
+      followUp: (
+        <>
+          <Link to="/settings">Contact workspace support</Link>, or return to{' '}
+          <Link to="/history">Plan history</Link> to check again later.
         </>
       ),
     };

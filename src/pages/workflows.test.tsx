@@ -465,6 +465,10 @@ describe('customer workflows', () => {
     expect(
       await screen.findByText('Terraform plan is ready for review. It has not been applied.'),
     ).toBeInTheDocument();
+    expect(screen.getByText('Plan created; costed review is still needed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/cost review and final approval are separate steps/i),
+    ).toBeInTheDocument();
     expect(screen.getByText('Nova plan request · revision 1')).toBeInTheDocument();
     expect(auth.api.request).toHaveBeenCalledWith(
       '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1',

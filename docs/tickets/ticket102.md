@@ -24,6 +24,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 - Read the exact revision's tenant-scoped Nova plan-run status so the approved
   plan page can report queued, running, ready-for-review, failed, or uncertain
   planning outcomes without implying that apply, health, or teardown happened.
+- Match the next-step explanation to the current plan-generation state.
 - Remove the broad-administrator pilot affordance from customer connection setup.
 - Remove personal/internal allowlist details, operator records and opaque identity IDs from normal customer surfaces.
 - Replace beta/internal settings language and random placeholder text.
@@ -37,6 +38,8 @@ A read-only source audit covered the frontend routes and production bundle bound
 - [x] The approved-plan page requests status for its exact revision, refreshes
       the status with the rest of the plan, and labels a ready Terraform plan as
       review-only and unapplied.
+- [x] Planning-in-progress, plan-ready, failed, and uncertain statuses show
+      next steps that match those outcomes.
 - [x] Customer connection setup offers only read-only discovery or an existing read-only role; broad administrator access and deployment-role fields are removed.
 - [x] Personal publishing allowlist, raw subject IDs, internal beta entitlement details, opaque audit-event payloads, and unnecessary plan-history comparisons are no longer shown or exported.
 - [x] The Team page, route, sitemap entry, navigation link, and public assets remain available.
