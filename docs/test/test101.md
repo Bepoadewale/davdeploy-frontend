@@ -27,8 +27,11 @@ The focused tests passed (3 files, 7 tests). An initial focused invocation throu
 - The author editor includes a live article preview and guidance for Markdown headings, bold text, and lists.
 - Published article bodies render Markdown headings, paragraphs, emphasis, lists, and GitHub Flavored Markdown tables.
 - Markdown level-one headings render as level-two headings within the post body, below the post title.
+- Article links have a persistent underline in both editor preview and public content.
 - Raw HTML is skipped and unsafe link protocols are not rendered.
 - Focused rendering and editor tests passed; the fresh clean install and full verification passed.
+
+After the review follow-up added visible link styling and an external-link rendering assertion, focused tests passed again (3 files, 7 tests) and full `npm run verify` passed again (22 files, 101 tests).
 
 ## Execution boundary
 

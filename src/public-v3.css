@@ -1132,6 +1132,13 @@
   color: var(--ac3-ink);
 }
 
+.ac3-blog-body a,
+.blog-markdown-preview-body a {
+  color: var(--ac3-green);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 .ac3-comments {
   border-top: 1px solid var(--ac3-line);
   margin-top: 64px;

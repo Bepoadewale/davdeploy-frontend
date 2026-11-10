@@ -28,6 +28,7 @@ The authenticated blog manager saves `BlogPost.body` as a string to the existing
 - [x] Published public articles render Markdown rather than showing syntax markers.
 - [x] The public post title remains the page's single level-one heading; body headings keep a valid subordinate heading structure.
 - [x] Raw HTML cannot execute or inject markup through article Markdown.
+- [x] Markdown links have a visible underline in the editor preview and public article.
 - [x] Keyboard/screen-reader users can identify the editor and preview, and the layout works on small screens.
 - [x] Fresh `npm ci` and `npm run verify` pass.
 - [ ] Current-head CI and review are clear before merge.
@@ -42,7 +43,7 @@ Package compatibility was checked with `npm view`. Focused tests passed, and a c
 
 ## Evidence files produced
 
-Runtime evidence will be recorded in `docs/test/test101.md` after implementation and validation.
+`docs/test/test101.md` records focused tests, fresh install, full local verification, execution boundary, and known limitations.
 
 ## Boundaries
 
