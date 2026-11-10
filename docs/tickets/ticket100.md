@@ -24,15 +24,16 @@ After a workspace administrator approves a plan, show the customer one clear sta
 
 ## Acceptance criteria
 
-- [ ] An approved plan page has one clear next-step/status area, without fixture or pilot-operation buttons.
-- [ ] Planning, apply, health, and deletion status never appear successful without matching backend evidence.
-- [ ] Customers can tell where to reopen this plan and what is not yet available.
-- [ ] The page remains keyboard accessible and has responsive layout.
-- [ ] Focused tests and required frontend verification pass; PR CI passes.
+- [x] An approved plan page has one clear next-step/status area, without fixture or pilot-operation buttons.
+- [x] Planning, apply, health, and deletion status never appear successful without matching backend evidence.
+- [x] Customers can tell where to reopen this plan and what is not yet available.
+- [x] The page remains keyboard accessible and has responsive layout.
+- [x] Focused tests, static checks, and build pass locally.
+- [ ] PR CI passes.
 
 ## Validation and evidence
 
-Runtime evidence and exact verification results will be recorded in `docs/test/test100.md`.
+Runtime evidence and exact verification results are recorded in `docs/test/test100.md`.
 
 ## Boundaries and limitations
 
