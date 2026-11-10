@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { BlogComment, BlogPost } from '../api/contracts';
 import BrandMark from '../components/BrandMark';
+import MarkdownArticle from '../components/MarkdownArticle';
 import PublicFooter from '../components/PublicFooter';
 import { useAuth } from '../auth/AuthContext';
 import { useAsync } from '../hooks/useAsync';
@@ -90,12 +91,7 @@ export default function BlogPostPage() {
         <h1 id="post-heading">{post.title}</h1>
         <p className="ac3-intro">{post.summary}</p>
         <div className="ac3-blog-body">
-          {post.body
-            .split('\n')
-            .filter(Boolean)
-            .map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
+          <MarkdownArticle source={post.body} />
         </div>
         <section className="ac3-comments" aria-labelledby="comments-heading">
           <h2 id="comments-heading">Discussion</h2>
