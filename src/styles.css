@@ -1819,10 +1819,6 @@ label > small {
   color: var(--success, #067647);
   border-color: currentColor;
 }
-.deployment-step.is-current .deployment-step-marker {
-  color: var(--brand);
-  border-color: var(--brand);
-}
 .deployment-step strong,
 .deployment-step span:not(.deployment-step-marker) {
   display: block;

@@ -15,7 +15,7 @@ npx vitest run src/pages/workflows.test.tsx
 # 1 test file passed; 17 tests passed
 
 npm run verify
-# Passed: 20 test files, 95 tests; API contract and public-environment checks;
+# Passed: 20 test files, 97 tests; API contract and public-environment checks;
 # production build; static build and SPA checks; npm audit found 0 vulnerabilities.
 ```
 
@@ -27,6 +27,7 @@ The full `npm run verify` gate passed. A fresh `npm ci` cycle is not required fo
 - The page says approval does not start planning or create resources, explains that the costed saved-plan step is not currently available, and links back to Plan history.
 - Fixture and operator-pilot actions are not shown on the approved customer page.
 - Existing plan-review, apply, and destroy records use qualified wording. A successful apply does not imply healthy service; a completed destroy does not imply independently verified absence.
+- Queued/running apply or teardown records are shown as active; the next-step text no longer says execution is idle while an operation is in progress.
 
 ## Execution boundary
 

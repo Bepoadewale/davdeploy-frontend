@@ -465,6 +465,59 @@ describe('customer workflows', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not say operations are idle while apply or teardown is running', async () => {
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      cloud_execution_runs: [
+        { id: 'apply-1', mode: 'AUTHENTICATED_APP_RUNNER_APPLY', state: 'RUNNING' },
+        { id: 'destroy-1', mode: 'AUTHENTICATED_APP_RUNNER_DESTROY', state: 'IN_PROGRESS' },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Teardown in progress')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Resources may still exist while deletion runs. Do not assume teardown is complete yet.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Deployment is in progress.')).toBeInTheDocument();
+    expect(screen.queryByText(/nothing is being deployed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no resources are being deleted/i)).not.toBeInTheDocument();
+  });
+
+  it('shows an active deployment as in progress instead of idle', async () => {
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      cloud_execution_runs: [
+        { id: 'apply-1', mode: 'AUTHENTICATED_APP_RUNNER_APPLY', state: 'RUNNING' },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Deployment in progress')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'The recorded deployment operation is still running. Application health has not been confirmed.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/nothing is being deployed/i)).not.toBeInTheDocument();
+  });
+
   it('groups audit evidence and exposes inspectable event detail', async () => {
     auth.api.request.mockResolvedValue([
       {

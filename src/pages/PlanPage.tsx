@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import type { CustomerPlanRevision } from '../api/contracts';
@@ -391,6 +391,7 @@ function ApprovedProgress({
   const teardownStatus = teardownRecord
     ? describeOperationState(teardownRecord.state, 'teardown')
     : 'Not started. No resources are being deleted; teardown is not available here yet.';
+  const nextStep = describeNextStep(applyRecord, teardownRecord);
   return (
     <section className="approved-progress" aria-labelledby="deployment-progress-title">
       <div className="approved-progress-heading">
@@ -417,7 +418,7 @@ function ApprovedProgress({
             <span>Approved · revision {review.revision}</span>
           </div>
         </li>
-        <li className="deployment-step is-current">
+        <li className="deployment-step">
           <span className="deployment-step-marker" aria-hidden="true">
             2
           </span>
@@ -455,17 +456,9 @@ function ApprovedProgress({
         </li>
       </ol>
       <div className="approved-next-step" role="status">
-        <strong>What happens next</strong>
-        <p>
-          Approval records permission to continue; it does not start a Terraform plan or create AWS
-          resources. This workspace cannot yet prepare the costed saved plan needed for deployment,
-          so there is no action to take here and nothing is being deployed.
-        </p>
-        <p>
-          Return to <Link to="/history">Plan history</Link> and open this revision to check again.
-          Plan, apply, health, and deletion updates will appear here only when the backend records
-          them.
-        </p>
+        <strong>{nextStep.title}</strong>
+        <p>{nextStep.description}</p>
+        <p>{nextStep.followUp}</p>
       </div>
     </section>
   );
@@ -484,7 +477,7 @@ function describeOperationState(state: unknown, phase: 'deployment' | 'teardown'
   if (state.includes('FAIL'))
     return 'The operation failed. Open the evidence inventory for details.';
   if (state.includes('RUNNING') || state.includes('PROGRESS') || state.includes('QUEUED'))
-    return 'The operation is in progress.';
+    return phase === 'deployment' ? 'Deployment is in progress.' : 'Teardown is in progress.';
   return 'An operation record exists; open the evidence inventory for its exact status.';
 }
 
@@ -495,4 +488,103 @@ function describePlanReview(record: Record<string, unknown> | undefined): string
   if (record.state === 'AUTHENTICATED_PLAN_REVIEWED')
     return 'A customer-account plan review was recorded. Final costed approval is still required.';
   return 'A plan review record exists. Open the technical records for its details.';
+}
+
+function describeNextStep(
+  apply: Record<string, unknown> | undefined,
+  teardown: Record<string, unknown> | undefined,
+): { title: string; description: string; followUp: ReactNode } {
+  const applyState = typeof apply?.state === 'string' ? apply.state : '';
+  const teardownState = typeof teardown?.state === 'string' ? teardown.state : '';
+  const isActive = (state: string) =>
+    ['QUEUED', 'PENDING', 'STARTED', 'RUNNING', 'IN_PROGRESS'].some((part) => state.includes(part));
+
+  if (teardown && isActive(teardownState)) {
+    return {
+      title: 'Teardown in progress',
+      description:
+        'Resources may still exist while deletion runs. Do not assume teardown is complete yet.',
+      followUp: (
+        <>
+          Refresh this page for updates. The backend must confirm resource absence before this plan
+          can be marked deleted. Return to <Link to="/history">Plan history</Link> to reopen it.
+        </>
+      ),
+    };
+  }
+  if (apply && isActive(applyState)) {
+    return {
+      title: 'Deployment in progress',
+      description:
+        'The recorded deployment operation is still running. Application health has not been confirmed.',
+      followUp: (
+        <>
+          Refresh this page for updates. Return to <Link to="/history">Plan history</Link> to reopen
+          this plan later.
+        </>
+      ),
+    };
+  }
+  if (applyState === 'READY_FOR_OPERATOR_APP_RUNNER_EXECUTION') {
+    return {
+      title: 'Deployment is waiting for an operator',
+      description:
+        'A pilot deployment request is ready, but this customer page cannot start that operation.',
+      followUp: (
+        <>
+          Ask your workspace administrator to review the technical records. Reopen this plan from{' '}
+          <Link to="/history">Plan history</Link>.
+        </>
+      ),
+    };
+  }
+  if (teardownState === 'SUCCEEDED_AWAITING_OBSERVATION') {
+    return {
+      title: 'Teardown finished; deletion is not confirmed',
+      description:
+        'The destroy operation ended, but this page has no independent resource-absence result.',
+      followUp: (
+        <>
+          Do not assume all resources are gone. Wait for a verified absence result and refresh this
+          page. Return to <Link to="/history">Plan history</Link> to check again.
+        </>
+      ),
+    };
+  }
+  if (applyState === 'SUCCEEDED_AWAITING_OBSERVATION') {
+    return {
+      title: 'Apply finished; health is not confirmed',
+      description:
+        'The infrastructure operation ended, but this page has no independent application-health result.',
+      followUp: (
+        <>
+          Do not treat the application as healthy until health checks pass. Refresh this page for
+          backend updates, or return to <Link to="/history">Plan history</Link> later.
+        </>
+      ),
+    };
+  }
+  if (applyState.includes('FAIL') || teardownState.includes('FAIL')) {
+    return {
+      title: 'An operation needs attention',
+      description:
+        'A recorded lifecycle operation failed. Review its technical records; this page has no recovery action.',
+      followUp: (
+        <>
+          Refresh for updates, or reopen this revision from <Link to="/history">Plan history</Link>.
+        </>
+      ),
+    };
+  }
+  return {
+    title: 'What happens next',
+    description:
+      'Approval records permission to continue; it does not start a Terraform plan or create AWS resources. This plan cannot yet prepare the costed saved plan needed for deployment.',
+    followUp: (
+      <>
+        Return to <Link to="/history">Plan history</Link> and open this revision to check again.
+        Plan, apply, health, and deletion updates appear here only when the backend records them.
+      </>
+    ),
+  };
 }
