@@ -30,7 +30,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 
 - [x] Public product copy describes AWS planning and approval and states that applying a deployment is not available yet.
 - [x] Plan architecture no longer adds Prometheus/Grafana when the proposal does not contain it; raw JSON and internal technical-record panels are removed from plan details and exports are reduced to customer summaries.
-- [x] An approved plan with no recorded operation shows approval and next steps only. Recorded plan/apply/teardown activity remains visible with health and absence limits stated.
+- [x] An approved plan with no recorded operation shows approval and next steps only. Recorded plan/apply/teardown activity remains visible with health and absence limits stated; failed or unclear states direct customers to workspace support rather than hidden technical records.
 - [x] Customer connection setup offers only read-only discovery or an existing read-only role; broad administrator access and deployment-role fields are removed.
 - [x] Personal publishing allowlist, raw subject IDs, internal beta entitlement details, opaque audit-event payloads, and unnecessary plan-history comparisons are no longer shown or exported.
 - [x] Founder-specific Team route and navigation link are removed. Existing personal image asset is untouched pending explicit deletion approval.
@@ -48,6 +48,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 - Read-only audit completed on main commit `b6cb14b`; no files or external systems changed by the audit.
 - `npm run verify` passed after the implementation and export sanitization: 22 test files and 101 tests passed; formatting, lint, typecheck, API contract, public environment, production build, static build, SPA refresh, and production dependency audit passed (0 vulnerabilities).
 - Focused UI run passed after export sanitization: `npx vitest run src/pages/workflows.test.tsx --reporter=dot` (1 file, 20 tests), including customer-summary export redaction.
+- Codex review feedback on the approved-plan error path was addressed: failure, unknown operation, and unknown plan-review messages now point to customer support, and a regression test verifies the support link and absence of internal-record instructions.
 - A clean `npm ci` + `npm run verify` cycle passed in `/private/tmp/davdeploy-frontend-102-cleanroom` at code commit `9f04785`; exact results are in `docs/test/test102.md`.
 - Required GitHub checks are pending.
 

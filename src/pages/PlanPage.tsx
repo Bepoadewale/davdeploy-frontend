@@ -486,10 +486,10 @@ function describeOperationState(state: unknown, phase: 'deployment' | 'teardown'
   if (state.includes('RECONCILIATION') || state.includes('UNKNOWN'))
     return 'The operation needs its outcome confirmed.';
   if (state.includes('FAIL'))
-    return 'The operation failed. Open the evidence inventory for details.';
+    return 'The operation failed. Contact workspace support for help investigating it.';
   if (state.includes('RUNNING') || state.includes('PROGRESS') || state.includes('QUEUED'))
     return phase === 'deployment' ? 'Deployment is in progress.' : 'Teardown is in progress.';
-  return 'An operation record exists; open the evidence inventory for its exact status.';
+  return 'An operation record exists, but its status is unclear. Contact workspace support for help.';
 }
 
 function describePlanReview(record: Record<string, unknown> | undefined): string {
@@ -498,7 +498,7 @@ function describePlanReview(record: Record<string, unknown> | undefined): string
     return 'A local plan contract was recorded. It is not a customer-account Terraform plan.';
   if (record.state === 'AUTHENTICATED_PLAN_REVIEWED')
     return 'A customer-account plan review was recorded. Final costed approval is still required.';
-  return 'A plan review record exists. Open the technical records for its details.';
+  return 'A plan review record exists, but its status is unclear. Contact workspace support for help.';
 }
 
 function describeNextStep(
@@ -543,7 +543,7 @@ function describeNextStep(
         'A pilot deployment request is ready, but this customer page cannot start that operation.',
       followUp: (
         <>
-          Ask your workspace administrator to review the technical records. Reopen this plan from{' '}
+          Contact <Link to="/settings">workspace support</Link> for help. Reopen this plan from{' '}
           <Link to="/history">Plan history</Link>.
         </>
       ),
@@ -579,10 +579,11 @@ function describeNextStep(
     return {
       title: 'An operation needs attention',
       description:
-        'A recorded lifecycle operation failed. Review its technical records; this page has no recovery action.',
+        'A recorded lifecycle operation failed. This page cannot recover it; contact workspace support for help.',
       followUp: (
         <>
-          Refresh for updates, or reopen this revision from <Link to="/history">Plan history</Link>.
+          <Link to="/settings">Contact workspace support</Link>, or reopen this revision from{' '}
+          <Link to="/history">Plan history</Link>.
         </>
       ),
     };

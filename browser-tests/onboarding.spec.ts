@@ -50,19 +50,21 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page);
 });
 
-test('public Team and About pages remain available without workspace sign-in', async ({ page }) => {
+test('public pages avoid founder-specific team content and describe current availability', async ({
+  page,
+}) => {
   await page.goto('/team');
-  await expect(page.getByRole('heading', { name: 'Meet the founder.' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'About Us' })).toHaveAttribute('href', '/about');
+  await expect(page.getByRole('heading', { name: 'That page does not exist.' })).toBeVisible();
+  await expect(page.getByText(/Adewale|founder/i)).toHaveCount(0);
 
   await page.goto('/about');
   await expect(
     page.getByRole('heading', { name: 'Clearer infrastructure choices.' }),
   ).toBeVisible();
   await expect(
-    page.getByText(/AWS is DavDeploy's initial implemented cloud provider/i),
+    page.getByRole('heading', { name: 'AWS is the supported cloud provider.' }),
   ).toBeVisible();
-  await expect(page.getByText('They are not available today.')).toBeVisible();
+  await expect(page.getByText(/Other cloud providers cannot be connected today/i)).toBeVisible();
 });
 
 test('public homepage serves official local brand media at desktop and mobile widths', async ({
@@ -104,16 +106,16 @@ test('local fixture sign-in reaches the first-plan workspace state', async ({ pa
   await expect(page.getByRole('link', { name: 'Read the guide' })).toBeVisible();
 });
 
-test('AWS pilot access stays blocked until it is explicitly acknowledged', async ({ page }) => {
+test('AWS connection setup only offers read-only access', async ({ page }) => {
   await signInToFixtureWorkspace(page, 'Administrator');
   await navigateWorkspace(page, '/connections');
 
-  await page.getByRole('button', { name: /Enable deployment pilot/ }).click();
-  await page.getByRole('textbox', { name: 'AWS account ID' }).fill('123456789012');
-  await expect(page.getByRole('button', { name: 'Enable pilot access' })).toBeDisabled();
-  await page.getByRole('checkbox').check();
-  await expect(page.getByRole('button', { name: 'Enable pilot access' })).toBeEnabled();
-  await expect(page.getByText(/create, change, and delete AWS resources/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Customer-owned environments' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Attach an existing role/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Create read-only access/ })).toBeVisible();
+  await expect(
+    page.getByText(/AdministratorAccess|deployment pilot|create, change, and delete/i),
+  ).toHaveCount(0);
 });
 
 test('plan setup keeps provider limits and input errors in plain English', async ({ page }) => {
@@ -121,14 +123,11 @@ test('plan setup keeps provider limits and input errors in plain English', async
   await navigateWorkspace(page, '/plans/new');
 
   await expect(page.getByRole('heading', { name: 'Start with the outcome.' })).toBeVisible();
-  await page.getByLabel('Cloud provider').selectOption('azure');
-  await expect(page.getByRole('status')).toContainText('Azure connections are coming soon');
-  await page.getByLabel('Cloud provider').selectOption('aws');
+  await expect(page.getByLabel('AWS account ID')).toBeVisible();
+  await expect(page.getByLabel('Cloud provider')).toHaveCount(0);
   await page.getByLabel('AWS account ID').fill('12345678901');
-  await page.getByRole('button', { name: 'Connect Account' }).click();
-  await expect(page.getByText('Enter a 12-digit AWS account ID.')).toBeVisible();
   await expect(
-    page.getByText('Use the account where you want DavDeploy to plan the deployment.'),
+    page.getByText(/DavDeploy never asks your browser for cloud credentials/i),
   ).toBeVisible();
 });
 
@@ -140,7 +139,9 @@ test('mobile navigation keeps support and product boundaries reachable', async (
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('link', { name: 'Help and updates' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Plan. Approve. Prepare.' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Plan and review AWS infrastructure.' }),
+  ).toBeVisible();
   await expect(page.getByRole('link', { name: 'Contact support' })).toHaveAttribute(
     'href',
     'mailto:support@davdeploy.tech',

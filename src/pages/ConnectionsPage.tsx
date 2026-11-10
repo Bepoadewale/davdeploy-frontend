@@ -165,9 +165,7 @@ export default function ConnectionsPage() {
                       <span className="compact-mark">GH</span>
                       <span>
                         <b>{item.account_login}</b>
-                        <small>
-                          {item.account_type} · installation {item.id}
-                        </small>
+                        <small>{item.account_type} GitHub account</small>
                       </span>
                     </div>
                   ))}

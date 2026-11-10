@@ -543,6 +543,30 @@ describe('customer workflows', () => {
     expect(screen.queryByText(/nothing is being deployed/i)).not.toBeInTheDocument();
   });
 
+  it('directs failed lifecycle operations to customer support instead of hidden technical records', async () => {
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      cloud_execution_runs: [
+        { id: 'apply-1', mode: 'AUTHENTICATED_APP_RUNNER_APPLY', state: 'FAILED' },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('An operation needs attention')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contact workspace support' })).toHaveAttribute(
+      'href',
+      '/settings',
+    );
+    expect(screen.queryByText(/technical records|evidence inventory/i)).not.toBeInTheDocument();
+  });
+
   it('groups audit evidence and exposes inspectable event detail', async () => {
     download.json.mockClear();
     auth.api.request.mockResolvedValue([
