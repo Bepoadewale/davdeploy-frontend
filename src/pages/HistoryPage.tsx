@@ -16,20 +16,16 @@ export default function HistoryPage() {
   );
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
-  const [left, setLeft] = useState('');
-  const [right, setRight] = useState('');
   const plans = useMemo(() => state.data?.plans ?? [], [state.data?.plans]);
   const filtered = useMemo(
     () =>
       plans.filter((plan) => {
         const matchesState = filter === 'ALL' || plan.state === filter;
-        const value = `${plan.title} ${plan.state} ${plan.creator_subject ?? ''}`.toLowerCase();
+        const value = `${plan.title} ${plan.state}`.toLowerCase();
         return matchesState && value.includes(query.trim().toLowerCase());
       }),
     [filter, plans, query],
   );
-  const selected = (id: string) => plans.find((plan) => plan.id === id);
-  const compared = left && right ? ([selected(left), selected(right)] as const) : null;
   const groups = filtered.reduce<Record<string, PlanSummary[]>>((result, plan) => {
     const key = plan.project_id ?? plan.project_name ?? 'Plans';
     (result[key] ??= []).push(plan);
@@ -55,7 +51,7 @@ export default function HistoryPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Title, state, or creator"
+            placeholder="Plan name or status"
           />
         </label>
         <label>
@@ -69,53 +65,6 @@ export default function HistoryPage() {
           </select>
         </label>
       </div>
-      <section className="panel comparison">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Revision comparison</p>
-            <h2>Compare immutable metadata</h2>
-          </div>
-        </div>
-        <div className="compare-controls">
-          <label>
-            Earlier revision
-            <select value={left} onChange={(event) => setLeft(event.target.value)}>
-              <option value="">Choose revision</option>
-              {plans.map((plan) => (
-                <option value={plan.id} key={plan.id}>
-                  {plan.title} · r{plan.revision}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Later revision
-            <select value={right} onChange={(event) => setRight(event.target.value)}>
-              <option value="">Choose revision</option>
-              {plans.map((plan) => (
-                <option value={plan.id} key={plan.id}>
-                  {plan.title} · r{plan.revision}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {compared?.[0] && compared[1] ? (
-          <div className="compare-grid">
-            {(['revision', 'state', 'creator_subject', 'created_at'] as const).map((field) => (
-              <div key={field}>
-                <small>{field.replaceAll('_', ' ')}</small>
-                <b>{String(compared[0]?.[field] ?? 'Not available')}</b>
-                <b>{String(compared[1]?.[field] ?? 'Not available')}</b>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="muted">
-            Choose two records to compare. Open either plan for full architecture evidence.
-          </p>
-        )}
-      </section>
       <AsyncRegion
         loading={state.loading}
         error={state.error}

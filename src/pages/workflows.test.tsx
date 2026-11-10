@@ -10,7 +10,9 @@ const auth = vi.hoisted(() => ({
   },
   api: { request: vi.fn() },
 }));
+const download = vi.hoisted(() => ({ json: vi.fn() }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => auth }));
+vi.mock('../utils/downloadJson', () => ({ downloadJson: download.json }));
 
 import ActivityPage from './ActivityPage';
 import NewPlanPage from './NewPlanPage';
@@ -135,7 +137,7 @@ describe('customer workflows', () => {
       '64',
     );
     expect(screen.getByRole('textbox', { name: 'Project name' })).toBeRequired();
-    expect(screen.getByRole('combobox', { name: 'Cloud provider' })).toHaveValue('aws');
+    expect(screen.queryByRole('combobox', { name: 'Cloud provider' })).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'AWS account ID' })).toBeRequired();
     expect(screen.getByRole('combobox', { name: /expected usage/i })).toHaveValue('5');
     expect(screen.getByRole('combobox', { name: /peak pattern/i })).toHaveValue('4');
@@ -144,24 +146,21 @@ describe('customer workflows', () => {
     expect(screen.getByText(/no traffic forecast is required/i)).toBeInTheDocument();
   });
 
-  it('keeps future cloud providers visible without presenting them as available', async () => {
+  it('offers only the currently available cloud provider', async () => {
     auth.api.request.mockImplementation((path: string) => {
       if (path === '/api/v1/github/connection')
         return Promise.resolve({ execution: 'SIMULATED', installations: [] });
       if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
       return Promise.resolve([]);
     });
-    const user = userEvent.setup();
     render(
       <MemoryRouter>
         <NewPlanPage />
       </MemoryRouter>,
     );
 
-    const provider = await screen.findByRole('combobox', { name: 'Cloud provider' });
-    await user.selectOptions(provider, 'azure');
-    expect(screen.getByText(/azure connections are coming soon/i)).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'AWS account ID' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('textbox', { name: 'AWS account ID' })).toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
   });
 
   it('routes account setup from Create Plan into Connections', async () => {
@@ -377,7 +376,7 @@ describe('customer workflows', () => {
       'details',
     );
     expect(applicationDetails).not.toHaveAttribute('open');
-    expect(screen.getAllByText('Read details')).toHaveLength(7);
+    expect(screen.getAllByText('Read details')).toHaveLength(6);
     await user.click(screen.getAllByText('Read details')[0]);
     expect(applicationDetails).toHaveAttribute('open');
     expect(screen.getByText('example/support-api')).toBeVisible();
@@ -396,17 +395,12 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Deployment progress' })).toBeInTheDocument();
-    expect(screen.getByText('Approved · revision 1')).toBeInTheDocument();
-    expect(
-      screen.getByText('No Terraform plan is attached to this approval yet.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Not started. No resources are being deleted; teardown is not available here yet.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/cannot yet prepare the costed saved plan/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Approval status' })).toBeInTheDocument();
+    expect(screen.getByText('Approved. No deployment has started.')).toBeInTheDocument();
+    expect(screen.getByText(/cannot yet create the costed saved plan/i)).toBeInTheDocument();
+    expect(screen.queryByText('Terraform plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application health')).not.toBeInTheDocument();
+    expect(screen.queryByText('Teardown')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Find this plan later' })).toHaveAttribute(
       'href',
       '/history',
@@ -418,9 +412,40 @@ describe('customer workflows', () => {
     expect(
       screen.queryByRole('button', { name: 'Create reviewed destroy plan' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Approved.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Refresh status' }));
     await waitFor(() => expect(auth.api.request).toHaveBeenCalledTimes(2));
+  });
+
+  it('exports a customer plan summary without internal revision records', async () => {
+    download.json.mockClear();
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      local_executions: [{ id: 'local-run-1' }],
+      cloud_execution_runs: [{ id: 'internal-run-1' }],
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Download plan evidence' }));
+    expect(download.json).toHaveBeenCalledWith(
+      'davdeploy-plan-revision-1.json',
+      expect.objectContaining({
+        export_type: 'customer-plan-summary',
+        plan: expect.objectContaining({ revision: 1, title: 'App Runner' }),
+      }),
+    );
+    const exported = JSON.stringify(download.json.mock.calls[0]);
+    expect(exported).not.toContain('creator_subject');
+    expect(exported).not.toContain('local_executions');
+    expect(exported).not.toContain('internal-run-1');
+    expect(exported).not.toContain('content_digest');
   });
 
   it('shows recorded apply and teardown evidence without claiming health or absence', async () => {
@@ -519,6 +544,7 @@ describe('customer workflows', () => {
   });
 
   it('groups audit evidence and exposes inspectable event detail', async () => {
+    download.json.mockClear();
     auth.api.request.mockResolvedValue([
       {
         id: 'event-1',
@@ -546,13 +572,20 @@ describe('customer workflows', () => {
     await user.click(await screen.findByRole('button', { name: /plan submitted/i }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByRole('heading', { name: /plan submitted/i })).toBeInTheDocument();
-    expect(within(dialog).getByText(/event evidence/i)).toBeInTheDocument();
+    expect(within(dialog).getByText('Payments')).toBeInTheDocument();
+    expect(within(dialog).queryByText('developer')).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
 
     await user.selectOptions(screen.getByLabelText('Project'), 'Payments');
     await user.selectOptions(screen.getByLabelText('Environment'), 'production');
     expect(screen.queryByRole('button', { name: /plan created/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Download evidence' })).toBeEnabled();
+    const downloadButton = screen.getByRole('button', { name: 'Download activity summary' });
+    expect(downloadButton).toBeEnabled();
+    await user.click(downloadButton);
+    const exported = JSON.stringify(download.json.mock.calls[0]);
+    expect(exported).not.toContain('actor_subject');
+    expect(exported).not.toContain('developer');
+    expect(exported).not.toContain('event-1');
   });
 
   it('records a support request without claiming it sends an email', async () => {
@@ -561,7 +594,6 @@ describe('customer workflows', () => {
       if (path.endsWith('/members'))
         return Promise.resolve([{ subject: 'developer', role: 'developer' }]);
       if (path.endsWith('/usage')) return Promise.resolve({});
-      if (path.endsWith('/subscription')) return Promise.resolve({});
       if (path === '/api/v1/support/tickets' && !options?.method) return Promise.resolve([]);
       if (path === '/api/v1/support/tickets' && options?.method === 'POST')
         return Promise.resolve({ id: 'support-1', state: 'OPEN' });
@@ -600,7 +632,7 @@ describe('customer workflows', () => {
     auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
       if (path.endsWith('/members')) return Promise.resolve([]);
       if (path.endsWith('/workspace/invitations')) return Promise.resolve([]);
-      if (path.endsWith('/usage') || path.endsWith('/subscription')) return Promise.resolve({});
+      if (path.endsWith('/usage')) return Promise.resolve({});
       if (path === '/api/v1/support/tickets' && !options?.method)
         return Promise.resolve([
           {
@@ -631,12 +663,12 @@ describe('customer workflows', () => {
     );
   });
 
-  it('filters support history by status while retaining requester and timestamp context', async () => {
+  it('filters support history by status without exposing internal requester IDs', async () => {
     auth.profile.user.role = 'administrator';
     auth.api.request.mockImplementation((path: string) => {
       if (path.endsWith('/members') || path.endsWith('/workspace/invitations'))
         return Promise.resolve([]);
-      if (path.endsWith('/usage') || path.endsWith('/subscription')) return Promise.resolve({});
+      if (path.endsWith('/usage')) return Promise.resolve({});
       if (path === '/api/v1/support/tickets')
         return Promise.resolve([
           {
@@ -666,24 +698,20 @@ describe('customer workflows', () => {
     );
 
     expect(await screen.findByText('Open request')).toBeInTheDocument();
-    expect(screen.getByText(/developer ·/i)).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText('Support request history')).queryByText('developer'),
+    ).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Filter support status'), 'RESOLVED');
     expect(screen.queryByText('Open request')).not.toBeInTheDocument();
     expect(screen.getByText('Resolved request')).toBeInTheDocument();
   });
 
-  it('keeps payment collection out of billing-ready settings', async () => {
+  it('keeps internal entitlement names and payment collection out of customer settings', async () => {
     auth.profile.user.role = 'developer';
     auth.api.request.mockImplementation((path: string) => {
       if (path.endsWith('/members'))
         return Promise.resolve([{ subject: 'developer', role: 'developer' }]);
       if (path.endsWith('/usage')) return Promise.resolve({ plans_created: 2 });
-      if (path.endsWith('/subscription'))
-        return Promise.resolve({
-          plan_name: 'private-beta',
-          state: 'ACTIVE',
-          limits: { plans: 20 },
-        });
       if (path === '/api/v1/support/tickets') return Promise.resolve([]);
       return Promise.resolve({});
     });
@@ -692,10 +720,12 @@ describe('customer workflows', () => {
         <SettingsPage />
       </MemoryRouter>,
     );
-    expect(await screen.findByText(/does not collect payment details/i)).toBeInTheDocument();
+    expect(await screen.findByText('Metered product activity')).toBeInTheDocument();
     expect(document.querySelector('.settings-stack')).toBeInTheDocument();
     expect(document.querySelector('.settings-grid')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/card number/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-beta/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/billing-ready/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /request deletion/i })).toBeDisabled();
   });
 
@@ -719,8 +749,6 @@ describe('customer workflows', () => {
           },
         ]);
       if (path.endsWith('/usage')) return Promise.resolve({});
-      if (path.endsWith('/subscription'))
-        return Promise.resolve({ plan_name: 'private-beta', state: 'ACTIVE', limits: {} });
       if (path === '/api/v1/support/tickets') return Promise.resolve([]);
       if (path.endsWith('/resend') || path.endsWith('/cancel')) return Promise.resolve({});
       return Promise.reject(new Error(`Unexpected ${path}`));

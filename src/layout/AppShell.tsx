@@ -88,8 +88,11 @@ export function AppShell() {
               <span aria-hidden="true">+</span> New plan
             </Link>
           ) : null}
-          <span className="workspace-user" title={profile?.user.subject}>
-            {profile?.user.subject.slice(0, 1).toUpperCase() ?? 'A'}
+          <span
+            className="workspace-user"
+            aria-label={profile?.user.role === 'administrator' ? 'Administrator' : 'Developer'}
+          >
+            {profile?.user.role === 'administrator' ? 'A' : 'D'}
           </span>
         </div>
         <button

@@ -53,17 +53,29 @@ describe('application routes', () => {
     auth.loading = false;
   });
 
-  it.each([
-    ['/team', /meet the founder/i],
-    ['/about', /clearer infrastructure choices/i],
-  ])('renders %s without requiring workspace authentication', async (path, heading) => {
+  it('renders public company information without requiring workspace authentication', async () => {
     auth.profile = null;
     render(
-      <MemoryRouter initialEntries={[path]}>
+      <MemoryRouter initialEntries={['/about']}>
         <App />
       </MemoryRouter>,
     );
-    expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /clearer infrastructure choices/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not expose a founder-specific public Team page', async () => {
+    auth.profile = null;
+    render(
+      <MemoryRouter initialEntries={['/team']}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(
+      await screen.findByRole('heading', { name: /that page does not exist/i }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Adewale Ayeni-Bepo/i)).not.toBeInTheDocument();
   });
 
   it('renders role-aware administrator review work from the backend', async () => {

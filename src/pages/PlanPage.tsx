@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import type { CustomerPlanRevision } from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
-import { ReadableData, RawData } from '../components/ReadableData';
+import { ReadableData } from '../components/ReadableData';
 import { StatusBadge } from '../components/StatusBadge';
 import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
@@ -16,13 +16,11 @@ function PlanDetail({
   title,
   summary,
   value,
-  raw,
 }: {
   eyebrow: string;
   title: string;
   summary: string;
   value: unknown;
-  raw?: boolean;
 }) {
   return (
     <section className="panel plan-detail">
@@ -40,7 +38,6 @@ function PlanDetail({
         <p className="plan-detail-summary">{summary}</p>
         <div className="plan-detail-content">
           <ReadableData value={value} />
-          {raw ? <RawData value={value} /> : null}
         </div>
         <button
           className="button button-quiet plan-detail-close-bottom"
@@ -93,10 +90,22 @@ export default function PlanPage() {
 
   function exportSummary() {
     if (!review) return;
-    downloadJson(`davdeploy-plan-${review.id}.json`, {
+    downloadJson(`davdeploy-plan-revision-${review.revision}.json`, {
       exported_at: new Date().toISOString(),
-      export_type: 'plan-review-evidence',
-      revision: review,
+      export_type: 'customer-plan-summary',
+      plan: {
+        title: review.title ?? review.content.summary.selected_profile,
+        revision: review.revision,
+        approval_state: review.state.toLowerCase().replaceAll('_', ' '),
+        summary: review.content.summary,
+        resources: review.content.resource_breakdown,
+        requirements: review.content.application_analysis,
+        estimated_cost: review.content.cost_estimate,
+        security: review.content.security,
+        observability: review.content.observability,
+        deployment_strategy: review.content.deployment_strategy,
+        risks: review.content.risks_and_limitations,
+      },
     });
   }
 
@@ -185,10 +194,6 @@ export default function PlanPage() {
                     <small>{resource.purpose}</small>
                   </div>
                 ))}
-                <div className="monitoring">
-                  <b>Prometheus + Grafana</b>
-                  <small>Metrics and dashboards</small>
-                </div>
               </div>
             </section>
             <div className="review-grid">
@@ -197,14 +202,12 @@ export default function PlanPage() {
                 title="Interpreted requirements"
                 summary="Repository, workload, and constraints used for this plan."
                 value={review.content.application_analysis}
-                raw
               />
               <PlanDetail
                 eyebrow="Cost"
                 title="Estimated range and assumptions"
                 summary="A planning estimate, not an AWS bill."
                 value={review.content.cost_estimate}
-                raw
               />
               <PlanDetail
                 eyebrow="Security"
@@ -240,7 +243,7 @@ export default function PlanPage() {
                   <p className="eyebrow">Governance</p>
                   <h2>
                     {review.state === 'APPROVED' || review.state === 'SELF_APPROVED'
-                      ? 'Deployment status'
+                      ? 'Decision recorded'
                       : 'Available next action'}
                   </h2>
                 </div>
@@ -351,19 +354,6 @@ export default function PlanPage() {
                 </button>
               </form>
             </section>
-            <PlanDetail
-              eyebrow="Evidence inventory"
-              title="Technical records (optional)"
-              summary="Detailed audit records for support and review. Most customers can ignore these."
-              value={{
-                desired_state_publications: review.desired_state_publications ?? [],
-                terraform_plan_renders: review.terraform_plan_renders ?? [],
-                cloud_readiness_preflights: review.cloud_readiness_preflights ?? [],
-                terraform_plan_reviews: review.terraform_plan_reviews ?? [],
-                cloud_execution_runs: review.cloud_execution_runs ?? [],
-                local_executions: review.local_executions ?? [],
-              }}
-            />
           </>
         ) : null}
       </AsyncRegion>
@@ -393,12 +383,15 @@ function ApprovedProgress({
     ? describeOperationState(teardownRecord.state, 'teardown')
     : 'Not started. No resources are being deleted; teardown is not available here yet.';
   const nextStep = describeNextStep(applyRecord, teardownRecord);
+  const hasRecordedOperation = Boolean(latestPlanRecord || applyRecord || teardownRecord);
   return (
     <section className="approved-progress" aria-labelledby="deployment-progress-title">
       <div className="approved-progress-heading">
         <div>
           <p className="eyebrow">After approval</p>
-          <h3 id="deployment-progress-title">Deployment progress</h3>
+          <h3 id="deployment-progress-title">
+            {hasRecordedOperation ? 'Recorded activity' : 'Approval status'}
+          </h3>
         </div>
         <div className="approved-progress-actions">
           <button className="button button-secondary" type="button" onClick={onRefresh}>
@@ -409,58 +402,75 @@ function ApprovedProgress({
           </Link>
         </div>
       </div>
-      <ol className="deployment-steps">
-        <li className="deployment-step is-complete">
-          <span className="deployment-step-marker" aria-hidden="true">
-            ✓
-          </span>
-          <div>
-            <strong>Administrator approval</strong>
-            <span>Approved · revision {review.revision}</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            2
-          </span>
-          <div>
-            <strong>Terraform plan</strong>
-            <span>{planStatus}</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            3
-          </span>
-          <div>
-            <strong>Deployment</strong>
-            <span>{applyStatus}</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            4
-          </span>
-          <div>
-            <strong>Application health</strong>
-            <span>No independent health result is attached to this record.</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            5
-          </span>
-          <div>
-            <strong>Teardown</strong>
-            <span>{teardownStatus}</span>
-          </div>
-        </li>
-      </ol>
-      <div className="approved-next-step" role="status">
-        <strong>{nextStep.title}</strong>
-        <p>{nextStep.description}</p>
-        <p>{nextStep.followUp}</p>
-      </div>
+      {!hasRecordedOperation ? (
+        <div className="approved-next-step" role="status">
+          <strong>Approved. No deployment has started.</strong>
+          <p>
+            DavDeploy has recorded the administrator&apos;s decision. This workspace cannot yet
+            create the costed saved plan needed to start a deployment.
+          </p>
+          <p>
+            Reopen this record from <Link to="/history">Plan history</Link>. Refresh it later to
+            check for updates.
+          </p>
+        </div>
+      ) : null}
+      {hasRecordedOperation ? (
+        <ol className="deployment-steps">
+          <li className="deployment-step is-complete">
+            <span className="deployment-step-marker" aria-hidden="true">
+              ✓
+            </span>
+            <div>
+              <strong>Administrator approval</strong>
+              <span>Approved · revision {review.revision}</span>
+            </div>
+          </li>
+          <li className="deployment-step">
+            <span className="deployment-step-marker" aria-hidden="true">
+              2
+            </span>
+            <div>
+              <strong>Terraform plan</strong>
+              <span>{planStatus}</span>
+            </div>
+          </li>
+          <li className="deployment-step">
+            <span className="deployment-step-marker" aria-hidden="true">
+              3
+            </span>
+            <div>
+              <strong>Deployment</strong>
+              <span>{applyStatus}</span>
+            </div>
+          </li>
+          <li className="deployment-step">
+            <span className="deployment-step-marker" aria-hidden="true">
+              4
+            </span>
+            <div>
+              <strong>Application health</strong>
+              <span>No independent health result is attached to this record.</span>
+            </div>
+          </li>
+          <li className="deployment-step">
+            <span className="deployment-step-marker" aria-hidden="true">
+              5
+            </span>
+            <div>
+              <strong>Teardown</strong>
+              <span>{teardownStatus}</span>
+            </div>
+          </li>
+        </ol>
+      ) : null}
+      {hasRecordedOperation ? (
+        <div className="approved-next-step" role="status">
+          <strong>{nextStep.title}</strong>
+          <p>{nextStep.description}</p>
+          <p>{nextStep.followUp}</p>
+        </div>
+      ) : null}
     </section>
   );
 }

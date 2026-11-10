@@ -4,7 +4,6 @@ import { useAuth } from './auth/AuthContext';
 import { AppShell } from './layout/AppShell';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
-const TeamPage = lazy(() => import('./pages/TeamPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
@@ -43,7 +42,6 @@ export default function App() {
     <Suspense fallback={<RouteLoading />}>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/team" element={<TeamPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />

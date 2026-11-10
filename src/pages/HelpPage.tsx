@@ -7,8 +7,8 @@ export default function HelpPage() {
       <div className="page-heading visual-page-heading">
         <div>
           <p className="eyebrow">Help & updates</p>
-          <h1>Plan. Approve. Prepare.</h1>
-          <p>Clear decisions before any cloud change.</p>
+          <h1>Plan and review AWS infrastructure.</h1>
+          <p>DavDeploy records decisions; approval does not start deployment.</p>
         </div>
         <ProductVisual kind="help" />
       </div>
@@ -27,26 +27,26 @@ export default function HelpPage() {
         </article>
         <article className="panel">
           <span className="feature-icon">03</span>
-          <h2>Execution pilot</h2>
+          <h2>After approval</h2>
           <p>
-            Approved plans can prepare a bounded next action. Deployment needs a separately
-            authorised customer pilot and independently observed results.
+            Approval records an administrator&apos;s decision. The current workspace cannot yet
+            create a costed saved plan, apply infrastructure, or tear it down.
           </p>
-          <Link to="/activity">Inspect activity</Link>
+          <Link to="/history">Find an approved plan</Link>
         </article>
       </div>
       <section className="panel changelog">
         <p className="eyebrow">Current release</p>
         <h2>What is available today</h2>
         <ul>
-          <li>Plan with repository and cloud-account context.</li>
-          <li>Review immutable evidence and record an approval decision.</li>
-          <li>Connect AWS through a customer-owned role; no browser access keys are requested.</li>
+          <li>Create an AWS infrastructure plan using repository and account context.</li>
+          <li>Review plan evidence and record an administrator&apos;s approval decision.</li>
+          <li>Connect AWS with read-only access; the browser never receives cloud credentials.</li>
+          <li>AWS is currently the only cloud provider that can be connected.</li>
           <li>
-            AWS is available today. Azure, Google Cloud, and other providers are planned, not
-            active.
+            Approval is not deployment. Applying and tearing down infrastructure are not available
+            yet.
           </li>
-          <li>Approval, a plan, and pilot access are not a deployment.</li>
           <li>Contact support if a workspace invitation, connection, or plan needs help.</li>
         </ul>
         <a className="button button-secondary" href="mailto:support@davdeploy.tech">

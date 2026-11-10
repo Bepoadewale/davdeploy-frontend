@@ -172,13 +172,6 @@ export interface UsageSummary {
   [key: string]: unknown;
 }
 
-export interface Subscription {
-  plan_name?: string;
-  state?: string;
-  limits?: Record<string, number>;
-  [key: string]: unknown;
-}
-
 export interface SupportTicket {
   id: string;
   subject: string;

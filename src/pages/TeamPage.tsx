@@ -6,8 +6,7 @@ import { usePublicMetadata } from '../hooks/usePublicMetadata';
 export default function TeamPage() {
   usePublicMetadata({
     title: 'Team | DavDeploy',
-    description:
-      'Meet Adewale Ayeni-Bepo, founder of DavDeploy, an evidence-led cloud infrastructure platform.',
+    description: 'Learn about the principles behind DavDeploy.',
     path: '/team',
   });
 
@@ -25,41 +24,11 @@ export default function TeamPage() {
 
       <article className="ac3-editorial" aria-labelledby="team-heading">
         <p className="ac3-eyebrow">The team</p>
-        <h1 id="team-heading">Meet the founder.</h1>
-        <div className="ac3-founder-profile">
-          <img
-            className="ac3-founder-portrait"
-            src="/images/adewale-ayeni-bepo.jpeg"
-            width="1254"
-            height="1254"
-            alt="Adewale Ayeni-Bepo, founder of DavDeploy"
-          />
-          <div className="ac3-founder-copy">
-            <h2>Adewale Ayeni-Bepo</h2>
-            <p className="ac3-founder-role">Founder, DavDeploy</p>
-            <p>
-              Adewale is a cloud and platform engineer focused on practical infrastructure that
-              helps teams move with confidence. His work spans cloud architecture, Kubernetes and
-              containers, Terraform and infrastructure as code, CI/CD, automation, reliability,
-              monitoring, security, cloud cost optimisation, and practical AI-assisted engineering.
-            </p>
-            <p>
-              DavDeploy grew from that work: a belief that deploying and managing cloud
-              infrastructure should not require unnecessary cost, complexity, or operational
-              overhead. The goal is to give builders clearer choices and controlled paths forward.
-            </p>
-            <div className="ac3-founder-contact">
-              <a href="mailto:bepoadewale@davdeploy.tech">bepoadewale@davdeploy.tech</a>
-              <a
-                href="https://www.linkedin.com/in/adewale-ayeni-bepo/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                LinkedIn
-              </a>
-            </div>
-          </div>
-        </div>
+        <h1 id="team-heading">Built around clear infrastructure decisions.</h1>
+        <p>
+          DavDeploy helps teams understand the infrastructure choices behind an application, review
+          the trade-offs, and keep decisions tied to evidence.
+        </p>
         <section className="ac3-team-feature" aria-labelledby="engineering-heading">
           <div>
             <h2 id="engineering-heading">Built from practical cloud engineering.</h2>

@@ -1,7 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import type {
-  Subscription,
   SupportTicket,
   UsageSummary,
   WorkspaceInvitation,
@@ -25,7 +24,6 @@ export default function SettingsPage() {
         ? await api.request<WorkspaceInvitation[]>('/api/v1/workspace/invitations', { signal })
         : [],
       usage: await api.request<UsageSummary>('/api/v1/usage', { signal }),
-      subscription: await api.request<Subscription>('/api/v1/billing/subscription', { signal }),
       supportTickets: await api.request<SupportTicket[]>('/api/v1/support/tickets', { signal }),
     }),
     [admin, api],
@@ -191,15 +189,14 @@ export default function SettingsPage() {
               <div className="section-heading">
                 <div>
                   <p className="eyebrow">Members</p>
-                  <h2>Server-resolved access</h2>
+                  <h2>Workspace members and roles</h2>
                 </div>
               </div>
               <div className="member-list">
                 {state.data.members.map((member) => (
                   <div key={member.subject}>
                     <span>
-                      <b>{member.email ?? member.subject}</b>
-                      <small>{member.subject}</small>
+                      <b>{member.email ?? 'Workspace member'}</b>
                     </span>
                     <StatusBadge state={member.role} />
                   </div>
@@ -265,15 +262,6 @@ export default function SettingsPage() {
               ) : (
                 <p className="muted">Only administrators can change workspace membership.</p>
               )}
-            </section>
-            <section className="panel">
-              <p className="eyebrow">Subscription</p>
-              <h2>Billing-ready controls</h2>
-              <ReadableData value={state.data.subscription} />
-              <p className="muted">
-                The private-beta backend uses manual entitlements. This UI does not collect payment
-                details.
-              </p>
             </section>
             <section className="panel">
               <p className="eyebrow">Usage</p>
@@ -425,9 +413,8 @@ export default function SettingsPage() {
                         <b>{ticket.subject}</b>
                         <small>
                           {ticket.state.toLowerCase().replaceAll('_', ' ')} ·{' '}
-                          {ticket.created_by_subject}
                           {ticket.created_at
-                            ? ` · ${new Date(ticket.created_at).toLocaleString()}`
+                            ? ` · created ${new Date(ticket.created_at).toLocaleString()}`
                             : ''}
                         </small>
                       </span>

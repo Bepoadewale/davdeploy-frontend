@@ -165,11 +165,7 @@ export default function OverviewPage() {
                               <b>
                                 {plan.title ?? `Infrastructure plan, revision ${plan.revision}`}
                               </b>
-                              <small>
-                                {'creator_subject' in plan && plan.creator_subject
-                                  ? `Submitted by ${plan.creator_subject}`
-                                  : `${'project_name' in plan && plan.project_name ? plan.project_name : 'Workspace plan'} · ${formatDate(plan.created_at)}`}
-                              </small>
+                              <small>{`${'project_name' in plan && plan.project_name ? plan.project_name : 'Workspace plan'} · ${formatDate(plan.created_at)}`}</small>
                             </span>
                             <StatusBadge state={plan.state} />
                             <span className="plan-row-arrow" aria-hidden="true">

@@ -18,7 +18,7 @@ export default function AboutPage() {
   usePublicMetadata({
     title: 'About Us | DavDeploy',
     description:
-      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans and controlled paths to deployment.',
+      'Learn how DavDeploy helps teams review evidence-based AWS infrastructure plans and trade-offs.',
     path: '/about',
   });
 
@@ -104,29 +104,12 @@ export default function AboutPage() {
         </section>
 
         <section aria-labelledby="clouds-heading">
-          <p className="ac3-eyebrow">Starting with AWS</p>
-          <h2 id="clouds-heading">Designed for a multicloud future.</h2>
+          <p className="ac3-eyebrow">Available today</p>
+          <h2 id="clouds-heading">AWS is the supported cloud provider.</h2>
           <p>
-            AWS is DavDeploy&apos;s initial implemented cloud provider. The product is being
-            designed to support the infrastructure choices that best fit a customer&apos;s
-            application, region, budget, and operating needs, without unnecessary provider lock-in.
+            DavDeploy can connect an AWS account and prepare plans for review. Other cloud providers
+            cannot be connected today.
           </p>
-          <p>
-            Future integrations may include Microsoft Azure, Google Cloud Platform, Oracle Cloud
-            Infrastructure, DigitalOcean, and other providers as they are developed and validated.
-            They are not available today.
-          </p>
-          <figure className="ac3-about-media ac3-about-future">
-            <img
-              src="/media/davdeploy/about-future-vision.webp"
-              width="1376"
-              height="768"
-              loading="lazy"
-              decoding="async"
-              alt="Illustration of a future multicloud infrastructure landscape"
-            />
-            <figcaption>Starting with AWS. Designed for a multicloud future.</figcaption>
-          </figure>
         </section>
 
         <section aria-labelledby="approach-heading">
@@ -155,18 +138,15 @@ export default function AboutPage() {
         </section>
 
         <section aria-labelledby="vision-heading">
-          <h2 id="vision-heading">Our vision</h2>
+          <h2 id="vision-heading">Our focus</h2>
           <p>
-            DavDeploy aims to make cloud infrastructure more accessible to developers, founders, and
-            businesses of every engineering-team size. The ambition is a reliable, intelligent,
-            multicloud infrastructure assistant that helps people move from an idea to a deployed
-            and maintainable product with less unnecessary cost and complexity.
+            Make infrastructure choices easier to understand by showing the evidence, assumptions,
+            costs, and risks behind each AWS plan.
           </p>
         </section>
 
         <div className="ac3-about-closing">
           <p>Founded in October 2026.</p>
-          <Link to="/team">Meet the founder</Link>
         </div>
       </article>
       <PublicFooter />

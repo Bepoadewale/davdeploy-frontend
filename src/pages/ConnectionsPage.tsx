@@ -18,14 +18,9 @@ export default function ConnectionsPage() {
     }),
     [api],
   );
-  const [cloudProvider, setCloudProvider] = useState('aws');
   const [accountId, setAccountId] = useState(searchParams.get('account') ?? '');
-  const [accessMode, setAccessMode] = useState<
-    'existing-role' | 'discovery' | 'administrator-pilot'
-  >('discovery');
+  const [accessMode, setAccessMode] = useState<'existing-role' | 'discovery'>('discovery');
   const [discoveryRoleArn, setDiscoveryRoleArn] = useState('');
-  const [executionRoleArn, setExecutionRoleArn] = useState('');
-  const [administratorAcknowledged, setAdministratorAcknowledged] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,7 +47,6 @@ export default function ConnectionsPage() {
             body: {
               account_id: accountId,
               discovery_role_arn: discoveryRoleArn,
-              execution_role_arn: executionRoleArn || undefined,
             },
             retrySafe: false,
           },
@@ -70,16 +64,14 @@ export default function ConnectionsPage() {
           body: {
             account_id: accountId,
             access_mode: accessMode,
-            acknowledge_administrator_access: administratorAcknowledged,
+            acknowledge_administrator_access: false,
           },
           retrySafe: false,
         },
       );
       window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
       setMessage(
-        accessMode === 'administrator-pilot'
-          ? 'AWS opened a review page for a separate AdministratorAccess pilot role.'
-          : 'AWS opened a review page for a read-only discovery role. No workload resources were requested.',
+        'AWS opened a review page for a read-only discovery role. No workload resources were requested.',
       );
       state.reload();
     } catch (error) {
@@ -221,8 +213,8 @@ export default function ConnectionsPage() {
                 </div>
               </div>
               <p className="muted">
-                DavDeploy never asks the browser for provider access keys. AWS setup creates scoped
-                role metadata through an AWS review.
+                DavDeploy never asks the browser for provider access keys. Connect an AWS account
+                with read-only access for planning, or attach an existing read-only role.
               </p>
               <div
                 className="connection-access-options"
@@ -230,13 +222,12 @@ export default function ConnectionsPage() {
                 aria-label="AWS access type"
               >
                 {[
-                  ['existing-role', 'Use an existing role', 'Bring a customer-managed role.'],
-                  ['discovery', 'Create read-only access', 'Recommended for planning.'],
                   [
-                    'administrator-pilot',
-                    'Enable deployment pilot',
-                    'Creates a separate AdministratorAccess role.',
+                    'existing-role',
+                    'Attach an existing role',
+                    'Bring a customer-managed read-only role.',
                   ],
+                  ['discovery', 'Create read-only access', 'For account discovery and planning.'],
                 ].map(([value, title, detail]) => (
                   <button
                     key={value}
@@ -244,7 +235,6 @@ export default function ConnectionsPage() {
                     className={accessMode === value ? 'is-selected' : ''}
                     onClick={() => {
                       setAccessMode(value as typeof accessMode);
-                      setAdministratorAcknowledged(false);
                     }}
                   >
                     <b>{title}</b>
@@ -252,22 +242,6 @@ export default function ConnectionsPage() {
                   </button>
                 ))}
               </div>
-              {accessMode === 'administrator-pilot' ? (
-                <div className="notice notice-error">
-                  <p>
-                    Pilot access can create, change, and delete AWS resources. Use it only for a
-                    reviewed deployment pilot.
-                  </p>
-                  <label className="administrator-acknowledgement">
-                    <input
-                      type="checkbox"
-                      checked={administratorAcknowledged}
-                      onChange={(event) => setAdministratorAcknowledged(event.target.checked)}
-                    />
-                    <span>I understand this creates an AdministratorAccess role.</span>
-                  </label>
-                </div>
-              ) : null}
               {accessMode === 'existing-role' ? (
                 <div className="form-grid">
                   <label>
@@ -278,69 +252,29 @@ export default function ConnectionsPage() {
                       placeholder="arn:aws:iam::123456789012:role/DavDeployDiscovery"
                     />
                   </label>
-                  <label>
-                    Deployment role ARN <small>(optional)</small>
-                    <input
-                      value={executionRoleArn}
-                      onChange={(event) => setExecutionRoleArn(event.target.value)}
-                      placeholder="arn:aws:iam::123456789012:role/DavDeployExecution"
-                    />
-                  </label>
                 </div>
               ) : null}
               <div className="inline-form">
                 <label>
-                  Cloud provider
-                  <select
-                    value={cloudProvider}
-                    onChange={(event) => setCloudProvider(event.target.value)}
-                  >
-                    <option value="aws">AWS</option>
-                    <option value="azure">Azure (coming soon)</option>
-                    <option value="gcp">Google Cloud (coming soon)</option>
-                    <option value="other">Other cloud (coming soon)</option>
-                  </select>
+                  AWS account ID
+                  <input
+                    inputMode="numeric"
+                    maxLength={12}
+                    value={accountId}
+                    onChange={(event) => setAccountId(event.target.value.replace(/\D/g, ''))}
+                    placeholder="123456789012"
+                  />
                 </label>
-                {cloudProvider === 'aws' ? (
-                  <>
-                    <label>
-                      AWS account ID
-                      <input
-                        inputMode="numeric"
-                        maxLength={12}
-                        value={accountId}
-                        onChange={(event) => setAccountId(event.target.value.replace(/\D/g, ''))}
-                        placeholder="123456789012"
-                      />
-                    </label>
-                    <button
-                      className="button button-primary"
-                      type="button"
-                      disabled={
-                        busy ||
-                        !accountId ||
-                        (accessMode === 'existing-role' && !discoveryRoleArn) ||
-                        (accessMode === 'administrator-pilot' && !administratorAcknowledged)
-                      }
-                      onClick={() => void beginCloudConnection()}
-                    >
-                      {accessMode === 'existing-role'
-                        ? 'Use role contract'
-                        : accessMode === 'administrator-pilot'
-                          ? 'Enable pilot access'
-                          : 'Connect Account'}
-                    </button>
-                  </>
-                ) : (
-                  <p className="cloud-provider-coming-soon" role="status">
-                    {cloudProvider === 'azure'
-                      ? 'Azure'
-                      : cloudProvider === 'gcp'
-                        ? 'Google Cloud'
-                        : 'This cloud'}{' '}
-                    connections are coming soon. Choose AWS to connect an account today.
-                  </p>
-                )}
+                <button
+                  className="button button-primary"
+                  type="button"
+                  disabled={
+                    busy || !accountId || (accessMode === 'existing-role' && !discoveryRoleArn)
+                  }
+                  onClick={() => void beginCloudConnection()}
+                >
+                  {accessMode === 'existing-role' ? 'Attach read-only role' : 'Connect account'}
+                </button>
               </div>
               {state.data.cloud.length ? (
                 <div className="connection-list">
