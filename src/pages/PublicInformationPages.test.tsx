@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import AboutPage from './AboutPage';
 import HomePage from './HomePage';
+import TeamPage from './TeamPage';
 
 describe('public company information pages', () => {
   it('adds subtle Team and About Us links to the existing homepage footer', () => {
@@ -14,7 +15,7 @@ describe('public company information pages', () => {
     );
 
     const footer = screen.getByRole('contentinfo', { name: /public site navigation/i });
-    expect(within(footer).queryByRole('link', { name: 'Team' })).not.toBeInTheDocument();
+    expect(within(footer).getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/team');
     expect(within(footer).getByRole('link', { name: 'About Us' })).toHaveAttribute(
       'href',
       '/about',
@@ -30,7 +31,53 @@ describe('public company information pages', () => {
     );
   });
 
-  it('describes AWS as the only supported provider and avoids personal founder details', async () => {
+  it('presents the solo founder accurately with the approved portrait', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <TeamPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: /meet the founder/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Adewale Ayeni-Bepo' })).toBeInTheDocument();
+    expect(screen.getByText('Founder, DavDeploy')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'bepoadewale@davdeploy.tech' })).toHaveAttribute(
+      'href',
+      'mailto:bepoadewale@davdeploy.tech',
+    );
+    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
+      'href',
+      'https://www.linkedin.com/in/adewale-ayeni-bepo/',
+    );
+    expect(screen.queryByText(/founded october 2026 · nigeria/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /adewale ayeni-bepo, founder of davdeploy/i }),
+    ).toHaveAttribute('src', '/images/adewale-ayeni-bepo.jpeg');
+    expect(
+      screen.getByRole('img', {
+        name: /practical cloud engineering and infrastructure decisions/i,
+      }),
+    ).toHaveAttribute('src', '/media/davdeploy/team-engineering-origin.webp');
+    expect(document.title).toBe('Team | DavDeploy');
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
+      'content',
+      'Meet Adewale Ayeni-Bepo, founder of DavDeploy, an evidence-led cloud infrastructure platform.',
+    );
+    expect(document.querySelector('meta[property="og:url"]')).toHaveAttribute(
+      'content',
+      'https://davdeploy.tech/team',
+    );
+    expect(document.querySelector('link[rel="canonical"]')).toHaveAttribute(
+      'href',
+      'https://davdeploy.tech/team',
+    );
+    const result = await axe.run(container, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] },
+    });
+    expect(result.violations).toEqual([]);
+  });
+
+  it('keeps AWS current and names every other cloud as future work', async () => {
     const { container } = render(
       <MemoryRouter>
         <AboutPage />
@@ -41,14 +88,15 @@ describe('public company information pages', () => {
       screen.getByRole('heading', { name: /clearer infrastructure choices/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /AWS is the supported cloud provider/i }),
+      screen.getByText(/AWS is DavDeploy's initial implemented cloud provider/i),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(/customer workload deployment is a controlled pilot capability/i),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/other cloud providers cannot be connected today/i),
+      screen.getByText(/future integrations may include microsoft azure/i),
     ).toBeInTheDocument();
+    expect(screen.getByText(/they are not available today/i)).toBeInTheDocument();
     expect(screen.getByText('Founded in October 2026.')).toBeInTheDocument();
     expect(screen.getByText(/AI proposes. Humans approve./i)).toBeInTheDocument();
     expect(
@@ -61,13 +109,15 @@ describe('public company information pages', () => {
       container.querySelector('img[src="/media/davdeploy/about-complexity-to-clarity-poster.jpg"]'),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('img', { name: /future multicloud infrastructure landscape/i }),
+    ).toHaveAttribute('src', '/media/davdeploy/about-future-vision.webp');
+    expect(
       screen.queryByRole('link', { name: 'bepoadewale@davdeploy.tech' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/Adewale Ayeni-Bepo/i)).not.toBeInTheDocument();
     expect(document.title).toBe('About Us | DavDeploy');
     expect(document.querySelector('meta[name="description"]')).toHaveAttribute(
       'content',
-      'Learn how DavDeploy helps teams review evidence-based AWS infrastructure plans and trade-offs.',
+      'Learn how DavDeploy helps teams create simpler, cost-aware cloud infrastructure plans and controlled paths to deployment.',
     );
     expect(document.querySelector('meta[property="og:url"]')).toHaveAttribute(
       'content',

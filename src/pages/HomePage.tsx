@@ -5,9 +5,10 @@ import WebsiteMedia from '../components/WebsiteMedia';
 import { usePublicMetadata } from '../hooks/usePublicMetadata';
 
 const workflow = [
-  ['01', 'Describe'],
+  ['01', 'Connect'],
   ['02', 'Plan'],
   ['03', 'Review'],
+  ['04', 'Deploy'],
 ];
 
 function ArrowIcon() {
@@ -30,7 +31,7 @@ export default function HomePage() {
   usePublicMetadata({
     title: 'DavDeploy | Cloud decisions built on evidence',
     description:
-      'Describe a workload, review an evidence-based AWS infrastructure plan, and record an approval decision.',
+      'Plan, approve, deploy, and operate the simplest viable infrastructure in your cloud, with every decision and change tied to evidence.',
     path: '/',
   });
 
@@ -49,14 +50,14 @@ export default function HomePage() {
       <section className="ac3-hero" aria-labelledby="hero-heading">
         <div className="ac3-hero-copy">
           <p className="ac3-kicker">
-            <span /> Governed infrastructure planning for AWS
+            <span /> Governed infrastructure for every cloud
           </p>
           <h1 id="hero-heading" className="ac3-sr-only">
             DavDeploy
           </h1>
           <p className="ac3-hero-summary">
-            Describe your product in natural language. DavDeploy creates an AWS infrastructure plan
-            you can review and approve. Applying a deployment is not available yet.
+            Describe your product in natural language. DavDeploy turns it into a cloud plan you can
+            review and deploy, across any cloud.
           </p>
           <div className="ac3-actions">
             <Link className="ac3-button ac3-button-primary" to="/overview">
@@ -112,7 +113,7 @@ export default function HomePage() {
           <strong>Evidence-led</strong>
         </div>
         <div>
-          <strong>AWS-first</strong>
+          <strong>Multi-cloud</strong>
         </div>
         <div>
           <strong>Human-approved</strong>
@@ -164,15 +165,15 @@ export default function HomePage() {
         <p className="ac3-eyebrow">Who it is for</p>
         <h2 id="audience-heading">Founders and product teams making cloud decisions.</h2>
         <p>
-          Start in the browser, automate from the command line, or bring DavDeploy into your AI
-          tools with MCP. AWS is the only cloud provider currently available.
+          Choose your cloud, then start in the browser, automate from the command line, or bring
+          DavDeploy into your AI tools with MCP.
         </p>
       </section>
 
       <section id="workflow" className="ac3-workflow" aria-labelledby="workflow-heading">
         <div className="ac3-workflow-heading">
           <p className="ac3-eyebrow">How it works</p>
-          <h2 id="workflow-heading">Three clear steps</h2>
+          <h2 id="workflow-heading">Four clear steps</h2>
         </div>
         <ol>
           {workflow.map(([number, title]) => (

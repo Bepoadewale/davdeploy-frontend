@@ -17,20 +17,16 @@ describe('public product overview', () => {
       screen.getByRole('figure', { name: /illustrative davdeploy decision brief/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Recommended approach')).toBeInTheDocument();
-    expect(screen.getByText('Three clear steps')).toBeInTheDocument();
-    expect(screen.getByText(/infrastructure planning for AWS/i)).toBeInTheDocument();
-    expect(screen.getByText(/Applying a deployment is not available yet/i)).toBeInTheDocument();
+    expect(screen.getByText('Four clear steps')).toBeInTheDocument();
+    expect(screen.getByText(/governed infrastructure for every cloud/i)).toBeInTheDocument();
+    expect(screen.getByText(/deploy, across any cloud/i)).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: /founders and product teams making cloud decisions/i }),
     ).toBeInTheDocument();
     expect(screen.getByText('Customer-cloud')).toBeInTheDocument();
-    expect(screen.getByText('AWS-first')).toBeInTheDocument();
-    expect(
-      screen.getByText(/AWS is the only cloud provider currently available/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/AWS is the only cloud provider currently available/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Multi-cloud')).toBeInTheDocument();
+    expect(screen.getByText(/choose your cloud, then start in the browser/i)).toBeInTheDocument();
+    expect(screen.queryByText(/AWS/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/customers trust/i)).not.toBeInTheDocument();
     for (const link of screen.getAllByRole('link', { name: /open workspace/i })) {
       expect(link).toHaveAttribute('href', '/overview');

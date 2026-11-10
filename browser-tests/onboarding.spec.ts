@@ -50,21 +50,20 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page);
 });
 
-test('public pages avoid founder-specific team content and describe current availability', async ({
-  page,
-}) => {
+test('public Team and About pages remain available without workspace sign-in', async ({ page }) => {
   await page.goto('/team');
-  await expect(page.getByRole('heading', { name: 'That page does not exist.' })).toBeVisible();
-  await expect(page.getByText(/Adewale|founder/i)).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Meet the founder.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Adewale Ayeni-Bepo' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'About Us' })).toHaveAttribute('href', '/about');
 
   await page.goto('/about');
   await expect(
     page.getByRole('heading', { name: 'Clearer infrastructure choices.' }),
   ).toBeVisible();
   await expect(
-    page.getByRole('heading', { name: 'AWS is the supported cloud provider.' }),
+    page.getByText(/AWS is DavDeploy's initial implemented cloud provider/i),
   ).toBeVisible();
-  await expect(page.getByText(/Other cloud providers cannot be connected today/i)).toBeVisible();
+  await expect(page.getByText('They are not available today.')).toBeVisible();
 });
 
 test('public homepage serves official local brand media at desktop and mobile widths', async ({
@@ -139,9 +138,7 @@ test('mobile navigation keeps support and product boundaries reachable', async (
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('link', { name: 'Help and updates' }).click();
 
-  await expect(
-    page.getByRole('heading', { name: 'Plan and review AWS infrastructure.' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Plan. Approve. Prepare.' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Contact support' })).toHaveAttribute(
     'href',
     'mailto:support@davdeploy.tech',

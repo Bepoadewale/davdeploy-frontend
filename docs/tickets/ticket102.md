@@ -1,11 +1,11 @@
-# ticket102 — remove internal and misleading customer UI
+# ticket102 — refine customer-facing workflows and evidence
 
 PR: [#102](https://github.com/Bepoadewale/davdeploy-frontend/pull/102) (draft)
 Branch: `fix/customer-facing-surface-audit-102`
 
 ## Problem / goal
 
-Review and correct customer-visible pages so they describe available capabilities accurately, avoid exposing personal/internal access details, and present only useful customer actions and evidence.
+Review customer-facing routes to reduce internal-only data and controls, make operation status understandable, and keep existing public product claims unchanged.
 
 ## Current repo state
 
@@ -18,28 +18,28 @@ A read-only source audit covered the frontend routes and production bundle bound
 
 ## Work planned for the PR
 
-- Align public marketing and help copy with AWS-only availability and the current plan-only product boundary.
+- Preserve existing public marketing, availability, and roadmap claims.
 - Show monitoring only when present in plan evidence.
 - Clarify the approved-plan next step and avoid an unsupported future-looking lifecycle display.
 - Remove the broad-administrator pilot affordance from customer connection setup.
 - Remove personal/internal allowlist details, operator records and opaque identity IDs from normal customer surfaces.
 - Replace beta/internal settings language and random placeholder text.
-- Remove the founder-specific Team page from public navigation and routes.
+- Keep the Team page, its public route, navigation link, sitemap entry, and existing public assets.
 
 ## Acceptance criteria
 
-- [x] Public product copy describes AWS planning and approval and states that applying a deployment is not available yet.
+- [x] Existing public product and availability claims remain unchanged.
 - [x] Plan architecture no longer adds Prometheus/Grafana when the proposal does not contain it; raw JSON and internal technical-record panels are removed from plan details and exports are reduced to customer summaries.
 - [x] An approved plan with no recorded operation shows approval and next steps only. Recorded plan/apply/teardown activity remains visible with health and absence limits stated; failed or unclear states direct customers to workspace support rather than hidden technical records.
 - [x] Customer connection setup offers only read-only discovery or an existing read-only role; broad administrator access and deployment-role fields are removed.
 - [x] Personal publishing allowlist, raw subject IDs, internal beta entitlement details, opaque audit-event payloads, and unnecessary plan-history comparisons are no longer shown or exported.
-- [x] Founder-specific Team route and navigation link are removed. Existing personal image asset is untouched pending explicit deletion approval.
+- [x] The Team page, route, sitemap entry, navigation link, and public assets remain available.
 - [x] Settings, help, and project creation use customer-facing language and a realistic project-name example.
 - [x] Production build, route/static checks, accessibility checks, and full verification pass locally.
 
 ## Acceptance status
 
-- [x] Public AWS planning and non-available deployment boundaries are stated truthfully.
+- [x] Existing public product and availability claims are preserved.
 - [x] Personal/internal customer surface, broad access setup and unsubstantiated plan details are removed or summarized safely.
 - [x] Clean-room local verification passed; hosted checks remain the merge gate.
 
@@ -60,7 +60,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 
 - This frontend PR cannot add backend plan/apply/health/teardown capability or change authorization. It must describe those boundaries honestly.
 - Do not add or expose customer or developer credentials, local infrastructure, internal allowlists, or administrator-only controls.
-- No repository files or personal assets are deleted without explicit approval. The Team route is removed from the application, and its public image asset remains pending user direction.
+- No public product claim, Team page, or public image is removed by this PR.
 
 ## Follow-up work
 
