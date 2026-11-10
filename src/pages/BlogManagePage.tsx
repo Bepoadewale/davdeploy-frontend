@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { BlogPost } from '../api/contracts';
 import { useAuth } from '../auth/AuthContext';
+import MarkdownArticle from '../components/MarkdownArticle';
 import { useAsync } from '../hooks/useAsync';
 
 const blankPost = { slug: '', title: '', summary: '', body: '', state: 'DRAFT' as const };
@@ -142,16 +143,37 @@ export default function BlogManagePage() {
             maxLength={360}
           />
         </label>
-        <label>
-          Article
-          <textarea
-            value={value.body}
-            onChange={(event) => setValue('body', event.target.value)}
-            required
-            maxLength={40000}
-            rows={14}
-          />
-        </label>
+        <div className="blog-markdown-editor">
+          <label htmlFor="blog-article-body">Article body (Markdown)</label>
+          <p className="blog-markdown-help" id="blog-markdown-help">
+            Use # for a section heading, ## for a subheading, **bold** for emphasis, and - for a
+            list. Your post title is shown above the article.
+          </p>
+          <div className="blog-markdown-columns">
+            <textarea
+              id="blog-article-body"
+              aria-describedby="blog-markdown-help"
+              value={value.body}
+              onChange={(event) => setValue('body', event.target.value)}
+              required
+              maxLength={40000}
+              rows={14}
+            />
+            <section
+              className="blog-markdown-preview"
+              aria-labelledby="blog-markdown-preview-heading"
+            >
+              <h2 id="blog-markdown-preview-heading">Preview</h2>
+              {value.body.trim() ? (
+                <div className="blog-markdown-preview-body">
+                  <MarkdownArticle source={value.body} />
+                </div>
+              ) : (
+                <p>Start typing to see your article preview.</p>
+              )}
+            </section>
+          </div>
+        </div>
         <label>
           Visibility
           <select value={value.state} onChange={(event) => setValue('state', event.target.value)}>

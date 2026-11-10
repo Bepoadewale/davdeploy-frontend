@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BlogManagePage from './BlogManagePage';
@@ -42,6 +42,26 @@ describe('blog author access', () => {
 
     expect(await screen.findByRole('heading', { name: 'Publish a note' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save post' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Article body (Markdown)')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Preview' })).toBeInTheDocument();
+  });
+
+  it('previews Markdown headings and formatting as the author types', async () => {
+    mocks.request.mockImplementation((path: string) =>
+      Promise.resolve(path === '/api/v1/blog/team/posts' ? [] : { can_publish: true }),
+    );
+
+    renderManagePage();
+
+    const article = await screen.findByLabelText('Article body (Markdown)');
+    fireEvent.change(article, {
+      target: { value: '# Overview\n\n## Details\n\n**Bold note**' },
+    });
+
+    expect(screen.getByRole('heading', { name: 'Overview', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Details', level: 3 })).toBeInTheDocument();
+    expect(screen.getByText('Bold note')).toHaveStyle({ fontWeight: 'bold' });
+    await waitFor(() => expect(article).toHaveValue('# Overview\n\n## Details\n\n**Bold note**'));
   });
 
   it('explains the author rule instead of redirecting workspace users without access', async () => {
