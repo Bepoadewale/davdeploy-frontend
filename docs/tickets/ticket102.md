@@ -21,6 +21,9 @@ A read-only source audit covered the frontend routes and production bundle bound
 - Preserve existing public marketing, availability, and roadmap claims.
 - Show monitoring only when present in plan evidence.
 - Clarify the approved-plan next step and avoid an unsupported future-looking lifecycle display.
+- Read the exact revision's tenant-scoped Nova plan-run status so the approved
+  plan page can report queued, running, ready-for-review, failed, or uncertain
+  planning outcomes without implying that apply, health, or teardown happened.
 - Remove the broad-administrator pilot affordance from customer connection setup.
 - Remove personal/internal allowlist details, operator records and opaque identity IDs from normal customer surfaces.
 - Replace beta/internal settings language and random placeholder text.
@@ -31,6 +34,9 @@ A read-only source audit covered the frontend routes and production bundle bound
 - [x] Existing public product and availability claims remain unchanged.
 - [x] Plan architecture no longer adds Prometheus/Grafana when the proposal does not contain it; raw JSON and internal technical-record panels are removed from plan details and exports are reduced to customer summaries.
 - [x] An approved plan with no recorded operation shows approval and next steps only. Recorded plan/apply/teardown activity remains visible with health and absence limits stated; failed or unclear states direct customers to workspace support rather than hidden technical records.
+- [x] The approved-plan page requests status for its exact revision, refreshes
+      the status with the rest of the plan, and labels a ready Terraform plan as
+      review-only and unapplied.
 - [x] Customer connection setup offers only read-only discovery or an existing read-only role; broad administrator access and deployment-role fields are removed.
 - [x] Personal publishing allowlist, raw subject IDs, internal beta entitlement details, opaque audit-event payloads, and unnecessary plan-history comparisons are no longer shown or exported.
 - [x] The Team page, route, sitemap entry, navigation link, and public assets remain available.
@@ -49,6 +55,10 @@ A read-only source audit covered the frontend routes and production bundle bound
 - `npm run verify` passed after the implementation and export sanitization: 22 test files and 101 tests passed; formatting, lint, typecheck, API contract, public environment, production build, static build, SPA refresh, and production dependency audit passed (0 vulnerabilities).
 - Focused UI run passed after export sanitization: `npx vitest run src/pages/workflows.test.tsx --reporter=dot` (1 file, 20 tests), including customer-summary export redaction.
 - Codex review feedback on the approved-plan error path was addressed: failure, unknown operation, and unknown plan-review messages now point to customer support, and a regression test verifies the support link and absence of internal-record instructions.
+- The Nova status view uses the backend project plan history API with an exact
+  revision filter. Backend support is tracked in davdeploy PR #334; it is not
+  deployed yet, so this draft UI change is not a claim that hosted status is
+  available.
 - A clean `npm ci` + `npm run verify` cycle passed in `/private/tmp/davdeploy-frontend-102-cleanroom` at code commit `9f04785`; exact results are in `docs/test/test102.md`.
 - Required GitHub checks are pending.
 

@@ -15,13 +15,21 @@
 - Focused UI test: `npx vitest run src/pages/workflows.test.tsx --reporter=dot` (21 tests passed).
 - Latest full local verification at `e14df47`: `npm run verify` passed with 22 test files and 102 tests, lint, typecheck, API contract, public environment, production build, static build, SPA refresh, and production-only dependency audit (0 vulnerabilities).
 - Latest browser acceptance at `e14df47`: `npm run test:browser` passed 11 desktop/mobile tests; one desktop-only/mobile-only counterpart was skipped by its project guard.
+- Nova plan-status integration: `npx vitest run src/pages/workflows.test.tsx`
+  passed 22 tests; `npm run verify` passed 22 test files and 104 tests,
+  formatting, lint, typecheck, API contract, public environment, production
+  build, static build, SPA refresh, and production-only dependency audit
+  (0 vulnerabilities).
 
 ## Result
 
 - Clean-room `npm run verify` passed: Prettier, ESLint, and TypeScript checks; 22 test files and 101 tests; API contract and public-environment checks; production build; static-hosting and single-page-app refresh checks.
-- After review feedback, the current code passed another full local `npm run verify` plus desktop/mobile Playwright acceptance. The browser tests now match the AWS-only, read-only customer surfaces and removed Team route.
+- After review feedback, the operation-error path now links to customer support. A later customer instruction to preserve existing product claims and the Team page is reflected in the current branch; final verification must be rerun after those reversions.
 - Production-only dependency audit: 0 vulnerabilities. `npm ci` reported 9 moderate development-dependency advisories.
 - GitHub Actions for the latest pushed commit remain the required merge gate.
+- The customer page requests Nova status for the exact revision and labels
+  `PLAN_READY_REVIEW_ONLY` as ready for review and not applied. The backend
+  route is tracked by davdeploy PR #334 and is not deployed yet.
 
 ## Execution boundary
 
@@ -29,4 +37,4 @@ This is a frontend presentation and export change. Tests used local fixtures. No
 
 ## Known limitations
 
-This frontend change does not add Terraform planning, apply, health observation, teardown, pricing, or backend authorization. The UI now states these limits instead of implying those actions are available. GitHub Actions for the PR remains the required merge gate.
+This frontend change does not add Terraform planning, apply, health observation, teardown, pricing, or backend authorization. Existing public product claims are left as they were. GitHub Actions for the PR remains the required merge gate.

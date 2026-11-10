@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import type { CustomerPlanRevision } from '../api/contracts';
+import type { CustomerPlanRevision, GeneratedPlanRunHistory } from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
 import { ReadableData } from '../components/ReadableData';
 import { StatusBadge } from '../components/StatusBadge';
@@ -327,7 +327,7 @@ export default function PlanPage() {
                   </button>
                 ) : null}
                 {review.state === 'APPROVED' || review.state === 'SELF_APPROVED' ? (
-                  <ApprovedProgress review={review} onRefresh={state.reload} />
+                  <ApprovedProgress review={review} api={api} onRefresh={state.reload} />
                 ) : null}
               </div>
             </section>
@@ -363,11 +363,27 @@ export default function PlanPage() {
 
 function ApprovedProgress({
   review,
+  api,
   onRefresh,
 }: {
   review: CustomerPlanRevision;
+  api: ReturnType<typeof useAuth>['api'];
   onRefresh: () => void;
 }) {
+  const generatedRunHistory = useAsync(
+    (signal) => {
+      if (!review.project_id) {
+        return Promise.resolve({ project_id: '', items: [], next_cursor: null });
+      }
+      const query = new URLSearchParams({ revision_id: review.id, limit: '1' });
+      return api.request<GeneratedPlanRunHistory>(
+        `/api/v1/projects/${encodeURIComponent(review.project_id)}/generated-plan-runs?${query}`,
+        { signal },
+      );
+    },
+    [api, review.id, review.project_id],
+  );
+  const generatedRun = generatedRunHistory.data?.items?.[0];
   const latestPlanRecord = review.terraform_plan_reviews?.[0];
   const applyRecord = review.cloud_execution_runs?.find(
     (item) => item.mode === 'AUTHENTICATED_APP_RUNNER_APPLY',
@@ -375,7 +391,9 @@ function ApprovedProgress({
   const teardownRecord = review.cloud_execution_runs?.find(
     (item) => item.mode === 'AUTHENTICATED_APP_RUNNER_DESTROY',
   );
-  const planStatus = describePlanReview(latestPlanRecord);
+  const planStatus = generatedRun
+    ? describeGeneratedPlanRun(generatedRun.state)
+    : describePlanReview(latestPlanRecord);
   const applyStatus = applyRecord
     ? describeOperationState(applyRecord.state, 'deployment')
     : 'Not started. Approval alone does not create resources.';
@@ -383,7 +401,9 @@ function ApprovedProgress({
     ? describeOperationState(teardownRecord.state, 'teardown')
     : 'Not started. No resources are being deleted; teardown is not available here yet.';
   const nextStep = describeNextStep(applyRecord, teardownRecord);
-  const hasRecordedOperation = Boolean(latestPlanRecord || applyRecord || teardownRecord);
+  const hasRecordedOperation = Boolean(
+    generatedRun || latestPlanRecord || applyRecord || teardownRecord,
+  );
   return (
     <section className="approved-progress" aria-labelledby="deployment-progress-title">
       <div className="approved-progress-heading">
@@ -394,7 +414,14 @@ function ApprovedProgress({
           </h3>
         </div>
         <div className="approved-progress-actions">
-          <button className="button button-secondary" type="button" onClick={onRefresh}>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => {
+              onRefresh();
+              generatedRunHistory.reload();
+            }}
+          >
             Refresh status
           </button>
           <Link className="button button-secondary" to="/history">
@@ -404,10 +431,15 @@ function ApprovedProgress({
       </div>
       {!hasRecordedOperation ? (
         <div className="approved-next-step" role="status">
-          <strong>Approved. No deployment has started.</strong>
+          <strong>
+            {generatedRunHistory.loading
+              ? 'Checking plan status…'
+              : 'Approved. No deployment has started.'}
+          </strong>
           <p>
-            DavDeploy has recorded the administrator&apos;s decision. This workspace cannot yet
-            create the costed saved plan needed to start a deployment.
+            {generatedRunHistory.error
+              ? 'Plan status could not be retrieved right now. Refresh this page to try again.'
+              : 'DavDeploy has recorded the administrator’s decision. Approval does not start deployment; a generated Terraform plan must be reviewed and approved separately.'}
           </p>
           <p>
             Reopen this record from <Link to="/history">Plan history</Link>. Refresh it later to
@@ -433,6 +465,9 @@ function ApprovedProgress({
             <div>
               <strong>Terraform plan</strong>
               <span>{planStatus}</span>
+              {generatedRun ? (
+                <span>Nova plan request · revision {generatedRun.revision_number}</span>
+              ) : null}
             </div>
           </li>
           <li className="deployment-step">
@@ -464,6 +499,11 @@ function ApprovedProgress({
           </li>
         </ol>
       ) : null}
+      {hasRecordedOperation && generatedRunHistory.error ? (
+        <p className="muted" role="status">
+          The latest Nova plan status could not be refreshed. Refresh this page to try again.
+        </p>
+      ) : null}
       {hasRecordedOperation ? (
         <div className="approved-next-step" role="status">
           <strong>{nextStep.title}</strong>
@@ -473,6 +513,17 @@ function ApprovedProgress({
       ) : null}
     </section>
   );
+}
+
+function describeGeneratedPlanRun(state: string): string {
+  if (state === 'PREPARING') return 'Nova is preparing the Terraform plan.';
+  if (state === 'BUILD_STARTED') return 'Terraform is creating the plan.';
+  if (state === 'PLAN_READY_REVIEW_ONLY')
+    return 'Terraform plan is ready for review. It has not been applied.';
+  if (state === 'RECONCILIATION_REQUIRED')
+    return 'Plan status needs confirmation. Contact workspace support for help.';
+  if (state === 'FAILED') return 'Plan generation failed. Contact workspace support for help.';
+  return 'A Nova plan request exists, but its status is unclear. Contact workspace support for help.';
 }
 
 function describeOperationState(state: unknown, phase: 'deployment' | 'teardown'): string {

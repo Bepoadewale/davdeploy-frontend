@@ -149,6 +149,29 @@ export interface CustomerPlanRevision {
   created_at?: string;
 }
 
+export interface GeneratedPlanRunHistory {
+  project_id: string;
+  items: GeneratedPlanRunSummary[];
+  next_cursor: string | null;
+}
+
+export interface GeneratedPlanRunSummary {
+  id: string;
+  project_id: string;
+  revision_id: string;
+  revision_sha256: string;
+  proposal_sha256: string;
+  state: string;
+  plan_title: string;
+  revision_number: number;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error_code?: string | null;
+  error_summary?: string | null;
+  execution_boundary?: string;
+}
+
 export interface PlanGenerationResult {
   id: string;
   plan_hash?: string;

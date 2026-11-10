@@ -22,6 +22,7 @@ import SettingsPage from './SettingsPage';
 const review = {
   id: 'revision-1',
   plan_id: 'customer-plan-1',
+  project_id: 'project-1',
   revision: 1,
   state: 'SUBMITTED',
   creator_subject: 'developer',
@@ -396,8 +397,8 @@ describe('customer workflows', () => {
     );
 
     expect(await screen.findByRole('heading', { name: 'Approval status' })).toBeInTheDocument();
-    expect(screen.getByText('Approved. No deployment has started.')).toBeInTheDocument();
-    expect(screen.getByText(/cannot yet create the costed saved plan/i)).toBeInTheDocument();
+    expect(await screen.findByText('Approved. No deployment has started.')).toBeInTheDocument();
+    expect(screen.getByText(/approval does not start deployment/i)).toBeInTheDocument();
     expect(screen.queryByText('Terraform plan')).not.toBeInTheDocument();
     expect(screen.queryByText('Application health')).not.toBeInTheDocument();
     expect(screen.queryByText('Teardown')).not.toBeInTheDocument();
@@ -412,8 +413,63 @@ describe('customer workflows', () => {
     expect(
       screen.queryByRole('button', { name: 'Create reviewed destroy plan' }),
     ).not.toBeInTheDocument();
+    const runHistoryPath =
+      '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1';
+    await waitFor(() =>
+      expect(
+        auth.api.request.mock.calls.filter(([path]) => path === runHistoryPath).length,
+      ).toBeGreaterThan(0),
+    );
+    const runHistoryCallsBeforeRefresh = auth.api.request.mock.calls.filter(
+      ([path]) => path === runHistoryPath,
+    ).length;
     await user.click(screen.getByRole('button', { name: 'Refresh status' }));
-    await waitFor(() => expect(auth.api.request).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        auth.api.request.mock.calls.filter(([path]) => path === runHistoryPath).length,
+      ).toBeGreaterThan(runHistoryCallsBeforeRefresh),
+    );
+  });
+
+  it('retrieves Nova status for this exact revision and labels a ready plan as unapplied', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/customer-plan-revisions/revision-1')
+        return Promise.resolve({ ...review, state: 'APPROVED' });
+      if (path === '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1')
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'run-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_sha256: 'a'.repeat(64),
+              proposal_sha256: 'b'.repeat(64),
+              state: 'PLAN_READY_REVIEW_ONLY',
+              plan_title: 'Support API',
+              revision_number: 1,
+            },
+          ],
+          next_cursor: null,
+        });
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText('Terraform plan is ready for review. It has not been applied.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Nova plan request · revision 1')).toBeInTheDocument();
+    expect(auth.api.request).toHaveBeenCalledWith(
+      '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('exports a customer plan summary without internal revision records', async () => {
