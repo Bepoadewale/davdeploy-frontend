@@ -24,20 +24,21 @@ The authenticated blog manager saves `BlogPost.body` as a string to the existing
 
 ## Acceptance criteria
 
-- [ ] Authors can see Markdown rendered while editing, including `#` and `##` headings.
-- [ ] Published public articles render Markdown rather than showing syntax markers.
-- [ ] The public post title remains the page's single level-one heading; body headings keep a valid subordinate heading structure.
-- [ ] Raw HTML cannot execute or inject markup through article Markdown.
-- [ ] Keyboard/screen-reader users can identify the editor and preview, and the layout works on small screens.
-- [ ] Fresh `npm ci` and `npm run verify` pass; CI and review are clear before merge.
+- [x] Authors can see Markdown rendered while editing, including `#` and `##` headings.
+- [x] Published public articles render Markdown rather than showing syntax markers.
+- [x] The public post title remains the page's single level-one heading; body headings keep a valid subordinate heading structure.
+- [x] Raw HTML cannot execute or inject markup through article Markdown.
+- [x] Keyboard/screen-reader users can identify the editor and preview, and the layout works on small screens.
+- [x] Fresh `npm ci` and `npm run verify` pass.
+- [ ] Current-head CI and review are clear before merge.
 
 ## Acceptance status
 
-The editor preview and public article rendering are implemented. Focused tests pass. A fresh install, full verification, and hosted checks remain pending.
+The editor preview and public article rendering are implemented and locally verified with a clean `npm ci` and full `npm run verify` (22 test files, 101 tests). Hosted checks and current-head review remain pending.
 
 ## Tests / validation performed
 
-Only package metadata was checked before implementation: `npm view react-markdown version peerDependencies engines --json` and `npm view remark-gfm version engines --json`.
+Package compatibility was checked with `npm view`. Focused tests passed, and a clean verification worktree passed `npm ci` and full `npm run verify`. The installation reports nine moderate advisories in existing development dependencies also present on `main`; the production dependency audit passes with zero vulnerabilities.
 
 ## Evidence files produced
 

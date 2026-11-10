@@ -16,9 +16,11 @@ npm view remark-gfm version engines --json
 npm install react-markdown@^10.1.0 remark-gfm@^4.0.1
 npm audit --omit=dev --audit-level=moderate
 npx vitest run --coverage.enabled=false src/components/MarkdownArticle.test.tsx src/pages/BlogManagePage.test.tsx src/pages/BlogPostPage.test.tsx
+npm ci
+npm run verify
 ```
 
-The focused tests passed (3 files, 7 tests). An initial focused invocation through the repository's `npm test` script ran the same tests but exited nonzero because the global coverage thresholds are intended for the complete suite; the focused command was rerun with coverage disabled. A fresh `npm ci` and complete `npm run verify` are required and pending before merge.
+The focused tests passed (3 files, 7 tests). An initial focused invocation through the repository's `npm test` script ran the same tests but exited nonzero because the global coverage thresholds are intended for the complete suite; the focused command was rerun with coverage disabled. In a clean verification worktree, `npm ci` succeeded and `npm run verify` passed: 22 test files, 101 tests, format, lint, typecheck, API contract, public environment, production build, static build, SPA route checks, and the production dependency audit (0 vulnerabilities). The install also reported nine moderate advisories in existing development dependencies; the same affected direct dependency versions are present on `main`, and this PR does not change them.
 
 ## Result
 
@@ -26,7 +28,7 @@ The focused tests passed (3 files, 7 tests). An initial focused invocation throu
 - Published article bodies render Markdown headings, paragraphs, emphasis, lists, and GitHub Flavored Markdown tables.
 - Markdown level-one headings render as level-two headings within the post body, below the post title.
 - Raw HTML is skipped and unsafe link protocols are not rendered.
-- Focused rendering and editor tests passed.
+- Focused rendering and editor tests passed; the fresh clean install and full verification passed.
 
 ## Execution boundary
 
@@ -34,4 +36,4 @@ No API changes, AWS calls, infrastructure changes, or customer data access. Blog
 
 ## Known limitations
 
-Raw HTML is intentionally unsupported. Full clean install, full verification, and hosted PR checks remain pending.
+Raw HTML is intentionally unsupported. Hosted PR checks and current-head review remain pending.
