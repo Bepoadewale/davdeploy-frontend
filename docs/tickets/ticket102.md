@@ -56,9 +56,8 @@ A read-only source audit covered the frontend routes and production bundle bound
 
 - [x] Existing public product and availability claims are preserved.
 - [x] Personal/internal customer surface, broad access setup and unsubstantiated plan details are removed or summarized safely.
-- [x] Earlier clean-room verification passed; this latest pagination addition
-      passed local verification, with a fresh clean-room cycle and hosted
-      checks still pending.
+- [x] Clean-room `npm ci` + `npm run verify` passed on the latest source head;
+      hosted checks remain pending.
 - [x] History-page pagination consumes deployed backend PR #346; this draft
       frontend branch is not deployed.
 
@@ -76,8 +75,8 @@ A read-only source audit covered the frontend routes and production bundle bound
 - Current focused test `npx vitest run src/pages/connectedRoutes.test.tsx
 --reporter=dot` passed (5 tests); `npm run verify` passed with 22 files and
   105 tests; `npm run test:browser` passed 11 desktop/mobile cases with one
-  desktop-only skip. A fresh `npm ci && npm run verify` for this pagination
-  integration remains to be recorded.
+  desktop-only skip. Fresh worktree `npm ci` installed 410 packages and
+  `npm run verify` passed at `bc81e91`.
 - A clean `npm ci` + `npm run verify` cycle passed in `/private/tmp/davdeploy-frontend-102-cleanroom` at code commit `9f04785`; exact results are in `docs/test/test102.md`.
 - Required GitHub checks are pending.
 

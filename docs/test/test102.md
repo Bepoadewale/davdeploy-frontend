@@ -55,12 +55,11 @@
   SPA refresh, and production dependency audit passed (0 vulnerabilities).
 - `npm run test:browser`: 11 desktop/mobile cases passed; one desktop-only
   case was skipped by its project guard.
-- A fresh `npm ci && npm run verify` is required before treating this new API
-  contract use as clean-room verified.
+- The clean-room current-head verification is recorded below.
 
 ## Pagination integration clean-room update
 
-- Current implementation commit: `15010a454a445d507a05a5445fc62b3c6d20fc1f`.
+- Clean-room checked revision: `bc81e91aef4e233840f942e10cdf6573d6705867`.
 - Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
   5 passed, including cursor-based loading of older revisions.
 - Current local `npm run verify`: 22 test files and 105 tests passed; format,
@@ -68,9 +67,11 @@
   build, SPA refresh and production dependency audit passed (0 vulnerabilities).
 - Current `npm run test:browser`: 11 desktop/mobile cases passed; one
   desktop-only case was skipped by its project guard.
-- Fresh isolated `npm ci`: installed 410 packages successfully. Its first
-  `npm run verify` stopped at ticket formatting; the ticket formatting fix is
-  followed by a rerun in the retained worktree.
+- Fresh worktree `/private/tmp/davdeploy-frontend-pr102-cleanroom-20261111`:
+  `npm ci` installed 410 packages. After documentation-only commit `bc81e91`
+  (with no package or runtime changes after install), `npm run verify` passed
+  in that retained worktree with 22 test files and 105 tests plus formatting,
+  lint, contract, build, static, SPA and production dependency checks.
 
 ## Execution boundary
 
