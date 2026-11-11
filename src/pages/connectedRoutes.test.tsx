@@ -174,6 +174,33 @@ describe('authenticated connected-route acceptance', () => {
             },
           ],
         });
+      if (path === '/api/v1/projects/project-1/generated-plan-runs?limit=100')
+        return Promise.resolve({
+          project_id: 'project-1',
+          next_cursor: null,
+          items: [
+            {
+              id: 'run-2',
+              project_id: 'project-1',
+              revision_id: 'revision-2',
+              revision_sha256: 'b'.repeat(64),
+              proposal_sha256: 'c'.repeat(64),
+              state: 'PLAN_READY_REVIEW_ONLY',
+              plan_title: 'Payments API',
+              revision_number: 2,
+            },
+            {
+              id: 'run-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_sha256: 'a'.repeat(64),
+              proposal_sha256: 'd'.repeat(64),
+              state: 'BUILD_STARTED',
+              plan_title: 'Payments API',
+              revision_number: 1,
+            },
+          ],
+        });
       throw new Error(`Unexpected ${path}`);
     });
     const user = userEvent.setup();
@@ -184,11 +211,17 @@ describe('authenticated connected-route acceptance', () => {
     );
 
     expect(await screen.findByText('2 shown · 2 loaded')).toBeInTheDocument();
+    expect(await screen.findByText('Terraform plan ready · not applied')).toBeInTheDocument();
+    expect(screen.getByText('Terraform planning is in progress')).toBeInTheDocument();
     await user.type(screen.getByRole('textbox', { name: 'Search' }), 'admin-1');
     expect(screen.queryByText(/Revision 1/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Revision 2/)).not.toBeInTheDocument();
     expect(screen.queryByText('admin-1')).not.toBeInTheDocument();
     expect(screen.queryByText('dev-1')).not.toBeInTheDocument();
+    await user.clear(screen.getByRole('textbox', { name: 'Search' }));
+    await user.type(screen.getByRole('textbox', { name: 'Search' }), 'not applied');
+    expect(screen.getByText('Payments API')).toBeInTheDocument();
+    expect(screen.queryByText(/Revision 1/)).not.toBeInTheDocument();
   });
 
   it('loads older plan revisions from the project history cursor', async () => {
@@ -247,6 +280,11 @@ describe('authenticated connected-route acceptance', () => {
     );
 
     expect(await screen.findByText(/Revision 2/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Terraform plan status could not be loaded. Open a plan to check again.',
+      ),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Load older revisions' }));
     expect(await screen.findByText(/Revision 1/)).toBeInTheDocument();
     expect(state.api.request).toHaveBeenCalledWith(

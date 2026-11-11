@@ -91,3 +91,20 @@ This frontend change does not add Terraform planning, apply, health observation,
 - This is presentation-only. No product claims, Team routes/assets, backend operations, customer resources, or AWS infrastructure were changed. PR #102 remains draft and is not deployed.
 - Hosted PR run `43041928942` passed `verify` but its browser setup failed twice before executing tests because Ubuntu package mirror DNS resolution failed during `playwright install --with-deps chromium`. The workflow now downloads the Chromium browser without running an apt package installation; the subsequent final-head hosted retry passed as recorded below. The browser test command itself remains unchanged and unsuppressed.
 - Final-head hosted run `43046086566` passed all four jobs (verify, browser acceptance, PR evidence, and secrets) at head `c6a774a`. Browser acceptance passed after removing the apt package dependency. Current-head Codex review of `c6a774a` found no major issues. PR #102 remains draft and is not deployed.
+
+## Plan-history run status update — 2026-11-11
+
+- `HistoryPage` now requests the latest 100 tenant-visible Nova plan-run
+  summaries for each project alongside paginated plan revisions. It displays
+  the newest available run state separately from the revision's approval
+  badge, including a clear “ready · not applied” label.
+- If the run-status request fails, revision history remains available and the
+  page explains that Terraform status could not be loaded. The row links to
+  the exact plan revision for apply, health, and teardown records.
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
+  5 passed. `npm run verify`: 22 test files, 105 tests passed, including
+  formatting, lint, typecheck, API contract, public environment, production
+  build, static build, SPA refresh, and dependency audit (0 production
+  vulnerabilities).
+- No customer API call or cloud operation was made. PR #102 remains a draft
+  and is not deployed.

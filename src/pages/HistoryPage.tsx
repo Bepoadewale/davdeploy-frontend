@@ -6,6 +6,8 @@ import type {
   CustomerPlanRevisionHistory,
   CustomerPlanRevisionSummary,
   DashboardResponse,
+  GeneratedPlanRunHistory,
+  GeneratedPlanRunSummary,
   ProjectSummary,
 } from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
@@ -18,6 +20,8 @@ interface ProjectHistory {
   project: ProjectSummary;
   items: CustomerPlanRevisionSummary[];
   nextCursor: string | null;
+  latestRunsByRevision: Record<string, GeneratedPlanRunSummary>;
+  runHistoryUnavailable: boolean;
 }
 
 function historyUrl(projectId: string, cursor?: string | null) {
@@ -33,10 +37,31 @@ export default function HistoryPage() {
       const dashboard = await api.request<DashboardResponse>('/api/v1/dashboard', { signal });
       const histories = await Promise.all(
         dashboard.projects.map(async (project) => {
-          const page = await api.request<CustomerPlanRevisionHistory>(historyUrl(project.id), {
-            signal,
-          });
-          return { project, items: page.items, nextCursor: page.next_cursor };
+          const [page, runHistory] = await Promise.all([
+            api.request<CustomerPlanRevisionHistory>(historyUrl(project.id), { signal }),
+            Promise.resolve()
+              .then(() =>
+                api.request<GeneratedPlanRunHistory>(
+                  `/api/v1/projects/${encodeURIComponent(project.id)}/generated-plan-runs?limit=100`,
+                  { signal },
+                ),
+              )
+              .then((runs) => ({ runs, unavailable: false as const }))
+              .catch(() => ({ runs: null, unavailable: true as const })),
+          ]);
+          const latestRunsByRevision: Record<string, GeneratedPlanRunSummary> = {};
+          for (const run of runHistory.runs?.items ?? []) {
+            if (!latestRunsByRevision[run.revision_id]) {
+              latestRunsByRevision[run.revision_id] = run;
+            }
+          }
+          return {
+            project,
+            items: page.items,
+            nextCursor: page.next_cursor,
+            latestRunsByRevision,
+            runHistoryUnavailable: runHistory.unavailable,
+          };
         }),
       );
       return histories;
@@ -66,7 +91,9 @@ export default function HistoryPage() {
           ...history,
           filteredItems: history.items.filter((plan) => {
             const matchesState = filter === 'ALL' || plan.state === filter;
-            const value = `${plan.title} ${plan.state}`.toLowerCase();
+            const run = history.latestRunsByRevision[plan.id];
+            const value =
+              `${plan.title} ${plan.state} ${run ? describeRunState(run.state) : ''}`.toLowerCase();
             return matchesState && value.includes(query.trim().toLowerCase());
           }),
         }))
@@ -162,6 +189,11 @@ export default function HistoryPage() {
                     {history.filteredItems.length} shown · {history.items.length} loaded
                   </small>
                 </div>
+                {history.runHistoryUnavailable ? (
+                  <p className="muted" role="status">
+                    Terraform plan status could not be loaded. Open a plan to check again.
+                  </p>
+                ) : null}
                 {history.filteredItems.length ? (
                   <div className="row-list">
                     {history.filteredItems.map((plan) => (
@@ -174,6 +206,11 @@ export default function HistoryPage() {
                               ? new Date(plan.created_at).toLocaleString()
                               : 'Date unavailable'}
                           </small>
+                          {history.latestRunsByRevision[plan.id] ? (
+                            <small className="plan-run-status">
+                              {describeRunState(history.latestRunsByRevision[plan.id].state)}
+                            </small>
+                          ) : null}
                         </span>
                         <StatusBadge state={plan.state} />
                         <span aria-hidden="true">›</span>
@@ -236,4 +273,13 @@ export default function HistoryPage() {
       </AsyncRegion>
     </div>
   );
+}
+
+function describeRunState(state: string): string {
+  if (state === 'PREPARING') return 'Nova is preparing the Terraform plan';
+  if (state === 'BUILD_STARTED') return 'Terraform planning is in progress';
+  if (state === 'PLAN_READY_REVIEW_ONLY') return 'Terraform plan ready · not applied';
+  if (state === 'FAILED') return 'Terraform plan generation failed';
+  if (state === 'RECONCILIATION_REQUIRED') return 'Plan status needs confirmation';
+  return 'Nova plan status is unclear';
 }

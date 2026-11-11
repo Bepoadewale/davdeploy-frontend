@@ -29,7 +29,9 @@ A read-only source audit covered the frontend routes and production bundle bound
   not-started stage is a future milestone and not an action available here.
 - Load project-scoped customer plan revisions from the paginated backend API;
   allow customers to retrieve older revisions without relying on the
-  dashboard's latest-20 snapshot.
+  dashboard's latest-20 snapshot. Show the latest available Nova plan-run
+  status beside each revision and keep approval state distinct from planning
+  state.
 - Match the next-step explanation to the current plan-generation state.
 - Remove the broad-administrator pilot affordance from customer connection setup.
 - Remove personal/internal allowlist details, operator records and opaque identity IDs from normal customer surfaces.
@@ -47,6 +49,10 @@ A read-only source audit covered the frontend routes and production bundle bound
 - [x] Plan history loads revision pages per project and lets customers load
       older revisions, while making clear that search/status filters cover the
       revisions loaded so far.
+- [x] Plan history shows each visible revision's latest available Nova run
+      status without confusing a ready plan with deployment; a run-history
+      lookup failure leaves revision history available and reports that status
+      could not be loaded.
 - [x] Planning-in-progress, plan-ready, failed, and uncertain statuses show
       next steps that match those outcomes.
 - [x] Recorded lifecycle progress has distinct, accessible stage labels;
@@ -66,6 +72,8 @@ A read-only source audit covered the frontend routes and production bundle bound
       final hosted checks passed in run `43046086566`.
 - [x] History-page pagination consumes deployed backend PR #346; this draft
       frontend branch is not deployed.
+- [x] History rows show the latest available Nova plan status from the
+      tenant-scoped run-history API; approval state remains a separate badge.
 
 ## Tests / validation performed
 
@@ -104,6 +112,17 @@ test:browser` passed 11 desktop/mobile cases with one desktop-only skip.
 - Required GitHub checks passed all four jobs in run `43046086566` on head
   `c6a774a`; current-head Codex review found no major issues. PR #102 remains
   draft per the user's instruction and is not deployed.
+- Plan history now loads the latest 100 Nova plan-run summaries per project
+  alongside paginated revision history. Each revision can display its newest
+  available planning state (preparing, running, ready/not applied, failed, or
+  needs confirmation). If the status request fails, revision history still
+  loads and explains that the status is unavailable. The detail page remains
+  the place to inspect apply, health, and teardown records.
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
+  5 passed. Full `npm run verify`: 22 files and 105 tests passed; formatting,
+  lint, typecheck, API contract, public environment, production build,
+  static/SPA checks, and production dependency audit passed (0 vulnerabilities).
+- This change remains on draft PR #102 and has not been deployed.
 
 ## Evidence files produced
 
