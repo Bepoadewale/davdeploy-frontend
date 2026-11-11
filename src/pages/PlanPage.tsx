@@ -452,91 +452,93 @@ function ApprovedProgress({
         </div>
       ) : null}
       {hasRecordedOperation ? (
-        <p className="deployment-progress-help">
-          Statuses show what has happened. “Not started” marks a future step; it does not mean this
-          page can start it.
-        </p>
+        <div className="approved-next-step current-deployment-status" role="status">
+          <span className="eyebrow">Current status</span>
+          <strong>{nextStep.title}</strong>
+          <p>{nextStep.description}</p>
+          <p>{nextStep.followUp}</p>
+        </div>
       ) : null}
       {hasRecordedOperation ? (
-        <ol className="deployment-steps" aria-label="Deployment progress">
-          <li className="deployment-step is-complete">
-            <span className="deployment-step-marker" aria-hidden="true">
-              ✓
-            </span>
-            <div>
-              <strong>Administrator approval</strong>
-              <span className="deployment-step-status">Complete</span>
-              <span>Approved · revision {review.revision}</span>
-            </div>
-          </li>
-          <li
-            className={`deployment-step is-${planStepTone}`}
-            aria-current={planStepTone === 'in-progress' ? 'step' : undefined}
-          >
-            <span className="deployment-step-marker" aria-hidden="true">
-              2
-            </span>
-            <div>
-              <strong>Terraform plan</strong>
-              <span className="deployment-step-status">{stageLabel(planStepTone)}</span>
-              <span>{planStatus}</span>
-              {generatedRun ? (
-                <span>Nova plan request · revision {generatedRun.revision_number}</span>
-              ) : null}
-            </div>
-          </li>
-          <li
-            className={`deployment-step is-${applyStepTone}`}
-            aria-current={applyStepTone === 'in-progress' ? 'step' : undefined}
-          >
-            <span className="deployment-step-marker" aria-hidden="true">
-              3
-            </span>
-            <div>
-              <strong>Deployment</strong>
-              <span className="deployment-step-status">{stageLabel(applyStepTone)}</span>
-              <span>{applyStatus}</span>
-            </div>
-          </li>
-          <li
-            className={`deployment-step is-${healthStep.tone}`}
-            aria-current={healthStep.tone === 'in-progress' ? 'step' : undefined}
-          >
-            <span className="deployment-step-marker" aria-hidden="true">
-              4
-            </span>
-            <div>
-              <strong>Application health</strong>
-              <span className="deployment-step-status">{healthStep.label}</span>
-              <span>{healthStep.description}</span>
-            </div>
-          </li>
-          <li
-            className={`deployment-step is-${teardownStepTone}`}
-            aria-current={teardownStepTone === 'in-progress' ? 'step' : undefined}
-          >
-            <span className="deployment-step-marker" aria-hidden="true">
-              5
-            </span>
-            <div>
-              <strong>Teardown</strong>
-              <span className="deployment-step-status">{stageLabel(teardownStepTone)}</span>
-              <span>{teardownStatus}</span>
-            </div>
-          </li>
-        </ol>
+        <details className="deployment-details">
+          <summary>View all deployment stages</summary>
+          <p className="deployment-progress-help">
+            This history shows completed and current stages as well as future stages. “Not started”
+            is informational; it does not mean an action is available on this page.
+          </p>
+          <ol className="deployment-steps" aria-label="Deployment progress">
+            <li className="deployment-step is-complete">
+              <span className="deployment-step-marker" aria-hidden="true">
+                ✓
+              </span>
+              <div>
+                <strong>Administrator approval</strong>
+                <span className="deployment-step-status">Complete</span>
+                <span>Approved · revision {review.revision}</span>
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${planStepTone}`}
+              aria-current={planStepTone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                2
+              </span>
+              <div>
+                <strong>Terraform plan</strong>
+                <span className="deployment-step-status">{stageLabel(planStepTone)}</span>
+                <span>{planStatus}</span>
+                {generatedRun ? (
+                  <span>Nova plan request · revision {generatedRun.revision_number}</span>
+                ) : null}
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${applyStepTone}`}
+              aria-current={applyStepTone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                3
+              </span>
+              <div>
+                <strong>Deployment</strong>
+                <span className="deployment-step-status">{stageLabel(applyStepTone)}</span>
+                <span>{applyStatus}</span>
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${healthStep.tone}`}
+              aria-current={healthStep.tone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                4
+              </span>
+              <div>
+                <strong>Application health</strong>
+                <span className="deployment-step-status">{healthStep.label}</span>
+                <span>{healthStep.description}</span>
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${teardownStepTone}`}
+              aria-current={teardownStepTone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                5
+              </span>
+              <div>
+                <strong>Teardown</strong>
+                <span className="deployment-step-status">{stageLabel(teardownStepTone)}</span>
+                <span>{teardownStatus}</span>
+              </div>
+            </li>
+          </ol>
+        </details>
       ) : null}
       {hasRecordedOperation && generatedRunHistory.error ? (
         <p className="muted" role="status">
           The latest Nova plan status could not be refreshed. Refresh this page to try again.
         </p>
-      ) : null}
-      {hasRecordedOperation ? (
-        <div className="approved-next-step" role="status">
-          <strong>{nextStep.title}</strong>
-          <p>{nextStep.description}</p>
-          <p>{nextStep.followUp}</p>
-        </div>
       ) : null}
     </section>
   );

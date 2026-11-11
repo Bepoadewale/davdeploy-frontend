@@ -73,6 +73,21 @@
   in that retained worktree with 22 test files and 105 tests plus formatting,
   lint, contract, build, static, SPA and production dependency checks.
 
+## Current-status-first progress disclosure update — 2026-11-11
+
+- Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot`: 22
+  passed. The case confirms the current next-step status remains prominent,
+  while the five-stage timeline is available through a collapsed disclosure
+  and opens on request.
+- `npm run verify`: passed; 22 test files and 107 tests, with formatting,
+  lint, typecheck, API contract, environment, build, static/SPA, and production
+  dependency checks all passing (0 production vulnerabilities).
+- `npm run test:browser`: 11 desktop/mobile passed; one project-guarded
+  desktop-only case skipped.
+- Local UI validation with fixtures only. No authenticated customer request,
+  AWS call, plan, apply, or infrastructure change was made. PR #102 remains
+  open as a draft and is not deployed.
+
 ## Execution boundary
 
 This is a frontend presentation and export change. Tests used local fixtures. No customer workload, cloud API call, AWS resource, or infrastructure operation was run or claimed.

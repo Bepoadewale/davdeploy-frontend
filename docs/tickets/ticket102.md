@@ -20,7 +20,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 
 - Preserve existing public marketing, availability, and roadmap claims.
 - Show monitoring only when present in plan evidence.
-- Clarify the approved-plan next step and avoid an unsupported future-looking lifecycle display.
+- Lead the approved-plan page with the current status and next step; keep the complete lifecycle timeline available in a collapsed details section so future phases do not compete with current activity.
 - Read the exact revision's tenant-scoped Nova plan-run status so the approved
   plan page can report queued, running, ready-for-review, failed, or uncertain
   planning outcomes without implying that apply, health, or teardown happened.
@@ -62,6 +62,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 - [x] Recorded lifecycle progress has distinct, accessible stage labels;
       upcoming apply/health/teardown steps are clearly marked and do not look
       like operational controls.
+- [x] When lifecycle activity is recorded, show the current status and next-step guidance before the stage history; keep the complete five-stage history available through an accessible disclosure.
 - [x] Customer connection setup offers only read-only discovery or an existing read-only role; broad administrator access and deployment-role fields are removed.
 - [x] Personal publishing allowlist, raw subject IDs, internal beta entitlement details, opaque audit-event payloads, and unnecessary plan-history comparisons are no longer shown or exported.
 - [x] The Team page, route, sitemap entry, navigation link, and public assets remain available.
@@ -82,6 +83,9 @@ A read-only source audit covered the frontend routes and production bundle bound
       separate plan-only role setup when the backend says it is available, then
       verify the role; it distinguishes account identity verification from
       effective-permission attestation.
+- [x] The approved-plan page leads with the current status and what happens
+      next. The full lifecycle timeline remains available in an accessible,
+      collapsed “View all deployment stages” section.
 
 ## Tests / validation performed
 
@@ -157,3 +161,21 @@ test:browser` passed 11 desktop/mobile tests; one desktop-only case was
 ## Follow-up work
 
 - Backend plan/apply/state/pricing/health/lifecycle work remains tracked in the private Nova goal ledger. Revisit the progress page only when those API capabilities exist.
+
+## Current-status-first plan progress update — 2026-11-11
+
+- When a plan has recorded activity, the page now presents the latest status
+  and its next-step guidance first. The complete approval, Terraform plan,
+  deployment, health, and teardown timeline is retained under the collapsed
+  “View all deployment stages” disclosure.
+- The disclosure explains that future “Not started” steps are informational,
+  not actions the customer can trigger. Refresh and Plan history links remain
+  available outside the disclosure.
+- Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot` passed
+  (22 tests). `npm run verify` passed (22 files, 107 tests; formatting, lint,
+  typecheck, contract, production build, static/SPA checks, and dependency
+  audit with 0 production vulnerabilities). `npm run test:browser` passed 11
+  desktop/mobile cases with one project-guarded desktop skip.
+- This is a presentation change only. No claims, Team page/assets/sitemap,
+  API operations, customer data, or AWS resources were removed or changed.
+  PR #102 remains a draft and is not deployed.

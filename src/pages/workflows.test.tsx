@@ -470,6 +470,11 @@ describe('customer workflows', () => {
       screen.getByText(/cost review and final approval are separate steps/i),
     ).toBeInTheDocument();
     expect(screen.getByText('Nova plan request · revision 1')).toBeInTheDocument();
+    const stageDisclosure = screen.getByText('View all deployment stages');
+    const stageDetails = stageDisclosure.closest('details');
+    expect(stageDetails).not.toHaveAttribute('open');
+    await userEvent.setup().click(stageDisclosure);
+    expect(stageDetails).toHaveAttribute('open');
     const progress = await screen.findByRole('list', { name: 'Deployment progress' });
     const steps = within(progress).getAllByRole('listitem');
     expect(steps[0]).toHaveTextContent('Administrator approval');
@@ -482,7 +487,9 @@ describe('customer workflows', () => {
     expect(within(steps[3]).getByText('Not started')).toBeInTheDocument();
     expect(steps[4]).toHaveTextContent('Teardown');
     expect(within(steps[4]).getByText('Not started')).toBeInTheDocument();
-    expect(screen.getByText(/not started.*future step/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/not started.*informational.*action is available/i),
+    ).toBeInTheDocument();
     expect(auth.api.request).toHaveBeenCalledWith(
       '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),

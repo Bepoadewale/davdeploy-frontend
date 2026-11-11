@@ -1771,6 +1771,23 @@ label > small {
   padding: 0;
   list-style: none;
 }
+.current-deployment-status .eyebrow {
+  margin: 0 0 4px;
+}
+.deployment-details {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.deployment-details > summary {
+  width: fit-content;
+  color: var(--brand);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+.deployment-details[open] > summary {
+  margin-bottom: 12px;
+}
 .deployment-step {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
