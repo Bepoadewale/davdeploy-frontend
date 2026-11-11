@@ -89,6 +89,11 @@ A read-only source audit covered the frontend routes and production bundle bound
   checks, production dependency audit with 0 vulnerabilities). `npm run
 test:browser` passed 11 desktop/mobile cases with one desktop-only skip.
   This PR remains a draft and is not deployed.
+- Hosted run `43041928942` passed verification but the browser job failed
+  before tests twice while `playwright install --with-deps` tried to retrieve
+  Ubuntu packages from a DNS-failing mirror. The browser setup now downloads
+  only the pinned Chromium binary; final-head hosted browser verification is
+  pending. This keeps the same browser suite and does not skip tests.
 - Current focused test `npx vitest run src/pages/connectedRoutes.test.tsx
 --reporter=dot` passed (5 tests); `npm run verify` passed with 22 files and
   105 tests; `npm run test:browser` passed 11 desktop/mobile cases with one
