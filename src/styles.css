@@ -1800,6 +1800,21 @@ label > small {
   color: var(--success, #067647);
   border-color: currentColor;
 }
+.deployment-step.is-in-progress .deployment-step-marker {
+  color: var(--brand);
+  border-color: currentColor;
+}
+.deployment-step.is-needs-attention .deployment-step-marker,
+.deployment-step.is-not-verified .deployment-step-marker {
+  color: var(--danger);
+  border-color: currentColor;
+}
+.deployment-step.is-not-verified .deployment-step-marker {
+  color: #7a2e0e;
+}
+.deployment-step.is-not-started .deployment-step-marker {
+  border-style: dashed;
+}
 .deployment-step strong,
 .deployment-step span:not(.deployment-step-marker) {
   display: block;
@@ -1812,6 +1827,43 @@ label > small {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
+}
+.deployment-step-status {
+  width: max-content;
+  margin: 0 0 5px;
+  padding: 2px 8px;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11px !important;
+  font-weight: 700;
+}
+.deployment-step.is-complete .deployment-step-status {
+  color: var(--success);
+  background: var(--success-soft);
+  border-color: #abefc6;
+}
+.deployment-step.is-in-progress .deployment-step-status {
+  color: var(--brand-strong);
+  background: var(--brand-soft);
+  border-color: #b2ccff;
+}
+.deployment-step.is-needs-attention .deployment-step-status,
+.deployment-step.is-not-verified .deployment-step-status {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: #fecdca;
+}
+.deployment-step.is-not-verified .deployment-step-status {
+  color: #7a2e0e;
+  background: var(--warning-soft);
+  border-color: #fedf89;
+}
+.deployment-progress-help {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 12px;
 }
 .approved-next-step {
   padding: 14px 16px;

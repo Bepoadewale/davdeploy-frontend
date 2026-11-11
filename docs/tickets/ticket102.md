@@ -24,6 +24,9 @@ A read-only source audit covered the frontend routes and production bundle bound
 - Read the exact revision's tenant-scoped Nova plan-run status so the approved
   plan page can report queued, running, ready-for-review, failed, or uncertain
   planning outcomes without implying that apply, health, or teardown happened.
+- When lifecycle activity exists, label each displayed stage as complete,
+  in progress, not started, needs attention, or not verified; explain that a
+  not-started stage is a future milestone and not an action available here.
 - Load project-scoped customer plan revisions from the paginated backend API;
   allow customers to retrieve older revisions without relying on the
   dashboard's latest-20 snapshot.
@@ -46,6 +49,9 @@ A read-only source audit covered the frontend routes and production bundle bound
       revisions loaded so far.
 - [x] Planning-in-progress, plan-ready, failed, and uncertain statuses show
       next steps that match those outcomes.
+- [x] Recorded lifecycle progress has distinct, accessible stage labels;
+      upcoming apply/health/teardown steps are clearly marked and do not look
+      like operational controls.
 - [x] Customer connection setup offers only read-only discovery or an existing read-only role; broad administrator access and deployment-role fields are removed.
 - [x] Personal publishing allowlist, raw subject IDs, internal beta entitlement details, opaque audit-event payloads, and unnecessary plan-history comparisons are no longer shown or exported.
 - [x] The Team page, route, sitemap entry, navigation link, and public assets remain available.
@@ -72,6 +78,17 @@ A read-only source audit covered the frontend routes and production bundle bound
   backend PR #346's deployed paginated API. This frontend branch remains a
   draft and is not live. No authenticated production history request was made
   during backend PR #346's release.
+- The recorded-activity timeline now adds a visible status label to each
+  stage, visually distinguishes active/completed/unverified/future steps, and
+  explains that “Not started” does not mean a customer can trigger the action.
+  The page continues to show lifecycle checkpoints when there is recorded
+  activity so customers can revisit plan, deployment, health, and teardown
+  status without implying unsupported operations.
+- Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot` passed
+  (22 tests). `npm run verify` passed (22 files, 105 tests, all static/build
+  checks, production dependency audit with 0 vulnerabilities). `npm run
+test:browser` passed 11 desktop/mobile cases with one desktop-only skip.
+  This PR remains a draft and is not deployed.
 - Current focused test `npx vitest run src/pages/connectedRoutes.test.tsx
 --reporter=dot` passed (5 tests); `npm run verify` passed with 22 files and
   105 tests; `npm run test:browser` passed 11 desktop/mobile cases with one

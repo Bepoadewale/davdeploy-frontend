@@ -394,6 +394,10 @@ function ApprovedProgress({
   const planStatus = generatedRun
     ? describeGeneratedPlanRun(generatedRun.state)
     : describePlanReview(latestPlanRecord);
+  const planStepTone = getPlanStepTone(generatedRun?.state, latestPlanRecord);
+  const applyStepTone = getOperationStepTone(applyRecord, 'deployment');
+  const healthStep = getHealthStep(applyRecord);
+  const teardownStepTone = getOperationStepTone(teardownRecord, 'teardown');
   const applyStatus = applyRecord
     ? describeOperationState(applyRecord.state, 'deployment')
     : 'Not started. Approval alone does not create resources.';
@@ -448,52 +452,75 @@ function ApprovedProgress({
         </div>
       ) : null}
       {hasRecordedOperation ? (
-        <ol className="deployment-steps">
+        <p className="deployment-progress-help">
+          Statuses show what has happened. “Not started” marks a future step; it does not mean this
+          page can start it.
+        </p>
+      ) : null}
+      {hasRecordedOperation ? (
+        <ol className="deployment-steps" aria-label="Deployment progress">
           <li className="deployment-step is-complete">
             <span className="deployment-step-marker" aria-hidden="true">
               ✓
             </span>
             <div>
               <strong>Administrator approval</strong>
+              <span className="deployment-step-status">Complete</span>
               <span>Approved · revision {review.revision}</span>
             </div>
           </li>
-          <li className="deployment-step">
+          <li
+            className={`deployment-step is-${planStepTone}`}
+            aria-current={planStepTone === 'in-progress' ? 'step' : undefined}
+          >
             <span className="deployment-step-marker" aria-hidden="true">
               2
             </span>
             <div>
               <strong>Terraform plan</strong>
+              <span className="deployment-step-status">{stageLabel(planStepTone)}</span>
               <span>{planStatus}</span>
               {generatedRun ? (
                 <span>Nova plan request · revision {generatedRun.revision_number}</span>
               ) : null}
             </div>
           </li>
-          <li className="deployment-step">
+          <li
+            className={`deployment-step is-${applyStepTone}`}
+            aria-current={applyStepTone === 'in-progress' ? 'step' : undefined}
+          >
             <span className="deployment-step-marker" aria-hidden="true">
               3
             </span>
             <div>
               <strong>Deployment</strong>
+              <span className="deployment-step-status">{stageLabel(applyStepTone)}</span>
               <span>{applyStatus}</span>
             </div>
           </li>
-          <li className="deployment-step">
+          <li
+            className={`deployment-step is-${healthStep.tone}`}
+            aria-current={healthStep.tone === 'in-progress' ? 'step' : undefined}
+          >
             <span className="deployment-step-marker" aria-hidden="true">
               4
             </span>
             <div>
               <strong>Application health</strong>
-              <span>No independent health result is attached to this record.</span>
+              <span className="deployment-step-status">{healthStep.label}</span>
+              <span>{healthStep.description}</span>
             </div>
           </li>
-          <li className="deployment-step">
+          <li
+            className={`deployment-step is-${teardownStepTone}`}
+            aria-current={teardownStepTone === 'in-progress' ? 'step' : undefined}
+          >
             <span className="deployment-step-marker" aria-hidden="true">
               5
             </span>
             <div>
               <strong>Teardown</strong>
+              <span className="deployment-step-status">{stageLabel(teardownStepTone)}</span>
               <span>{teardownStatus}</span>
             </div>
           </li>
@@ -543,6 +570,84 @@ function describeOperationState(state: unknown, phase: 'deployment' | 'teardown'
   return 'An operation record exists, but its status is unclear. Contact workspace support for help.';
 }
 
+type ProgressTone = 'complete' | 'in-progress' | 'not-started' | 'needs-attention' | 'not-verified';
+
+function stageLabel(tone: ProgressTone): string {
+  if (tone === 'complete') return 'Complete';
+  if (tone === 'in-progress') return 'In progress';
+  if (tone === 'needs-attention') return 'Needs attention';
+  if (tone === 'not-verified') return 'Not verified';
+  return 'Not started';
+}
+
+function getPlanStepTone(
+  state: string | undefined,
+  record: Record<string, unknown> | undefined,
+): ProgressTone {
+  if (state === 'PREPARING' || state === 'BUILD_STARTED') return 'in-progress';
+  if (state === 'PLAN_READY_REVIEW_ONLY') return 'complete';
+  if (state === 'FAILED' || state === 'RECONCILIATION_REQUIRED') return 'needs-attention';
+  if (state) return 'needs-attention';
+  if (!record) return 'not-started';
+  if (record.mode === 'LOCAL_CONTRACT_ONLY' || record.state === 'LOCAL_CONTRACT_PLAN_REVIEWED')
+    return 'not-started';
+  if (record.state === 'AUTHENTICATED_PLAN_REVIEWED') return 'complete';
+  return 'needs-attention';
+}
+
+function getOperationStepTone(
+  operation: Record<string, unknown> | undefined,
+  phase: 'deployment' | 'teardown',
+): ProgressTone {
+  if (!operation) return 'not-started';
+  const state = typeof operation.state === 'string' ? operation.state : '';
+  if (state === 'READY_FOR_OPERATOR_APP_RUNNER_EXECUTION') return 'needs-attention';
+  if (isActiveOperationState(state)) return 'in-progress';
+  if (state === 'SUCCEEDED_AWAITING_OBSERVATION')
+    return phase === 'deployment' ? 'complete' : 'not-verified';
+  return 'needs-attention';
+}
+
+function getHealthStep(apply: Record<string, unknown> | undefined): {
+  tone: ProgressTone;
+  label: string;
+  description: string;
+} {
+  if (!apply) {
+    return {
+      tone: 'not-started',
+      label: 'Not started',
+      description: 'A health check can run after a deployment finishes.',
+    };
+  }
+  const state = typeof apply.state === 'string' ? apply.state : '';
+  if (isActiveOperationState(state)) {
+    return {
+      tone: 'not-started',
+      label: 'Waiting for deployment',
+      description: 'Health is checked only after the deployment operation finishes.',
+    };
+  }
+  if (state === 'SUCCEEDED_AWAITING_OBSERVATION') {
+    return {
+      tone: 'not-verified',
+      label: 'Not verified',
+      description: 'No independent health result is attached to this record.',
+    };
+  }
+  return {
+    tone: 'needs-attention',
+    label: 'Unavailable',
+    description: 'Health cannot be confirmed from the current deployment record.',
+  };
+}
+
+function isActiveOperationState(state: string): boolean {
+  return ['QUEUED', 'PENDING', 'STARTED', 'RUNNING', 'IN_PROGRESS', 'PROGRESS'].some((part) =>
+    state.includes(part),
+  );
+}
+
 function describePlanReview(record: Record<string, unknown> | undefined): string {
   if (!record) return 'No Terraform plan is attached to this approval yet.';
   if (record.mode === 'LOCAL_CONTRACT_ONLY' || record.state === 'LOCAL_CONTRACT_PLAN_REVIEWED')
@@ -559,10 +664,7 @@ function describeNextStep(
 ): { title: string; description: string; followUp: ReactNode } {
   const applyState = typeof apply?.state === 'string' ? apply.state : '';
   const teardownState = typeof teardown?.state === 'string' ? teardown.state : '';
-  const isActive = (state: string) =>
-    ['QUEUED', 'PENDING', 'STARTED', 'RUNNING', 'IN_PROGRESS'].some((part) => state.includes(part));
-
-  if (teardown && isActive(teardownState)) {
+  if (teardown && isActiveOperationState(teardownState)) {
     return {
       title: 'Teardown in progress',
       description:
@@ -575,7 +677,7 @@ function describeNextStep(
       ),
     };
   }
-  if (apply && isActive(applyState)) {
+  if (apply && isActiveOperationState(applyState)) {
     return {
       title: 'Deployment in progress',
       description:

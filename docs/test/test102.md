@@ -80,3 +80,12 @@ This is a frontend presentation and export change. Tests used local fixtures. No
 ## Known limitations
 
 This frontend change does not add Terraform planning, apply, health observation, teardown, pricing, or backend authorization. Existing public product claims are left as they were. GitHub Actions for the PR remains the required merge gate.
+
+## Recorded progress clarity update — 2026-11-11
+
+- The approved-plan timeline now puts an explicit state label on every stage and marks each as complete, in progress, not started, needs attention, or not verified.
+- A short note explains that a not-started phase is a future milestone, not a button or action the customer can start from this page. Completed apply and teardown remain distinct from unverified application health and resource absence.
+- Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot`: 22 passed.
+- `npm run verify`: 22 test files and 105 tests passed; formatting, lint, typecheck, API contract, public environment, production build, static build, SPA refresh, and production dependency audit passed (0 production vulnerabilities).
+- `npm run test:browser`: 11 desktop/mobile tests passed; one desktop-only case skipped by its project guard.
+- This is presentation-only. No product claims, Team routes/assets, backend operations, customer resources, or AWS infrastructure were changed. PR #102 remains draft and is not deployed.
