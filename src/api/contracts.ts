@@ -112,6 +112,10 @@ export interface CloudConnection {
   account_id?: string | null;
   role_arn?: string | null;
   setup_state: string;
+  plan_role_arn?: string | null;
+  plan_role_setup_state?: string;
+  plan_role_policy_status?: string;
+  plan_role_setup_available?: boolean;
   authorized_regions?: string[];
   capabilities?: string[];
   verified_at?: string | null;

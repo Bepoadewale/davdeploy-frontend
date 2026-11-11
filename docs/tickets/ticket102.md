@@ -32,6 +32,10 @@ A read-only source audit covered the frontend routes and production bundle bound
   dashboard's latest-20 snapshot. Show the latest available Nova plan-run
   status beside each revision and keep approval state distinct from planning
   state.
+- Show workspace administrators the separate plan-only role setup action only
+  when the backend confirms the verified discovery connection and setup gate
+  are ready. Let them return to verify the role identity, and state clearly
+  that effective AWS permissions are not attested.
 - Match the next-step explanation to the current plan-generation state.
 - Remove the broad-administrator pilot affordance from customer connection setup.
 - Remove personal/internal allowlist details, operator records and opaque identity IDs from normal customer surfaces.
@@ -74,6 +78,10 @@ A read-only source audit covered the frontend routes and production bundle bound
       frontend branch is not deployed.
 - [x] History rows show the latest available Nova plan status from the
       tenant-scoped run-history API; approval state remains a separate badge.
+- [x] The Connections page lets only workspace administrators start the
+      separate plan-only role setup when the backend says it is available, then
+      verify the role; it distinguishes account identity verification from
+      effective-permission attestation.
 
 ## Tests / validation performed
 
@@ -126,6 +134,15 @@ test:browser` passed 11 desktop/mobile cases with one desktop-only skip.
   was skipped by its project guard. Run status text is styled separately from
   the revision approval badge.
 - This change remains on draft PR #102 and has not been deployed.
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`
+  covers administrator-only setup, backend-gated availability, Quick Create,
+  plan-role verification, and honest permission wording.
+- Full `npm run verify` passed with 22 files and 107 tests. `npm run
+test:browser` passed 11 desktop/mobile tests; one desktop-only case was
+  skipped by its project guard. The setup flow remains dependent on the
+  backend readiness field in draft PR #351 being merged/deployed and its
+  plan-role flag/configuration being enabled. Until then the action stays
+  hidden.
 
 ## Evidence files produced
 

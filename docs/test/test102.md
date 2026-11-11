@@ -110,3 +110,24 @@ This frontend change does not add Terraform planning, apply, health observation,
   case was skipped by its project guard.
 - No customer API call or cloud operation was made. PR #102 remains a draft
   and is not deployed.
+
+## Plan-only role setup UX update — 2026-11-11
+
+- The Connections page now offers “Set up plan-only role” only to a workspace
+  administrator when the backend's `plan_role_setup_available` field is true.
+  It opens the existing separate AWS Quick Create plan-only template, then
+  offers “Verify plan-only role” for the returned setup state. The UI says
+  account identity may be verified while effective AWS permissions remain
+  unattested.
+- If the backend gate/configuration is absent or false, no setup action is
+  shown. The backend in draft PR #351 supplies this readiness field; until that
+  change is deployed, this UI path remains hidden.
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
+  7 passed, including non-administrator denial, setup availability, Quick
+  Create launch, verification queue, and honest permissions wording. Full
+  `npm run verify`: 22 test files, 107 tests passed, API contract/build/static
+  checks and production dependency audit passed (0 vulnerabilities). Browser
+  acceptance: 11 desktop/mobile passed; one desktop-only project-guarded case
+  skipped.
+- These tests use mocked API responses. No customer API login, AWS role
+  creation, AWS verification, plan, or infrastructure change occurred.

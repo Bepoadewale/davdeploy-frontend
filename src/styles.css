@@ -1955,6 +1955,10 @@ label > small {
 .member-list small {
   display: block;
 }
+.connection-list .plan-role-status {
+  flex-basis: 100%;
+  color: var(--ink-soft);
+}
 .inline-form {
   display: grid;
   grid-template-columns: 1fr auto;

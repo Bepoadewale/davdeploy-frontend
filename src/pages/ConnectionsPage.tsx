@@ -9,7 +9,7 @@ import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
 
 export default function ConnectionsPage() {
-  const { api } = useAuth();
+  const { api, profile } = useAuth();
   const [searchParams] = useSearchParams();
   const state = useAsync(
     async (signal) => ({
@@ -96,7 +96,7 @@ export default function ConnectionsPage() {
     }
   }
 
-  async function verifyConnection(id: string) {
+  async function verifyConnection(id: string, planRoleSetup = false) {
     setBusy(true);
     setMessage(null);
     setError(null);
@@ -107,12 +107,45 @@ export default function ConnectionsPage() {
       );
       setMessage(
         job.state === 'SUCCEEDED'
-          ? 'Cloud connection verified. Live inventory is now available for planning.'
-          : 'Verification queued. Refresh this page shortly to see the verified connection.',
+          ? planRoleSetup
+            ? 'Plan-only role identity verified. Its effective permissions are not attested.'
+            : 'Cloud connection verified. Live inventory is now available for planning.'
+          : planRoleSetup
+            ? 'Plan-only role verification queued. Refresh this page shortly to check its status.'
+            : 'Verification queued. Refresh this page shortly to see the verified connection.',
       );
       state.reload();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Connection verification failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function beginPlanRoleSetup(connection: CloudConnection) {
+    if (!connection.account_id) {
+      setError('The verified AWS connection is missing its account ID.');
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const setup = await api.request<{ quick_create_url: string }>(
+        `/api/v1/cloud-connections/${connection.id}/aws-quick-create`,
+        {
+          method: 'POST',
+          body: { account_id: connection.account_id, access_mode: 'plan-only' },
+          retrySafe: false,
+        },
+      );
+      window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
+      setMessage(
+        'AWS opened the plan-only role review page. Review and create the role there, then return and verify it here.',
+      );
+      state.reload();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Plan-only role setup failed.');
     } finally {
       setBusy(false);
     }
@@ -286,15 +319,51 @@ export default function ConnectionsPage() {
                         </small>
                       </div>
                       <StatusBadge state={item.setup_state} />
-                      {item.setup_state === 'SETUP_LINK_GENERATED' ? (
+                      {item.plan_role_arn ? (
+                        <div className="plan-role-status">
+                          <small>
+                            Plan-only role · {describePlanRoleState(item.plan_role_setup_state)}
+                            {item.plan_role_policy_status === 'POLICY_UNATTESTED'
+                              ? ' · effective AWS permissions have not been verified'
+                              : ''}
+                          </small>
+                        </div>
+                      ) : null}
+                      {item.plan_role_setup_available && profile?.user.role === 'administrator' ? (
                         <button
                           className="button button-secondary"
                           disabled={busy}
                           type="button"
-                          onClick={() => void verifyConnection(item.id)}
+                          onClick={() => void beginPlanRoleSetup(item)}
                         >
-                          Verify setup
+                          Set up plan-only role
                         </button>
+                      ) : null}
+                      {item.setup_state === 'SETUP_LINK_GENERATED' ||
+                      item.plan_role_setup_state === 'SETUP_LINK_GENERATED' ? (
+                        <button
+                          className="button button-secondary"
+                          disabled={busy}
+                          type="button"
+                          onClick={() =>
+                            void verifyConnection(
+                              item.id,
+                              item.plan_role_setup_state === 'SETUP_LINK_GENERATED',
+                            )
+                          }
+                        >
+                          {item.plan_role_setup_state === 'SETUP_LINK_GENERATED'
+                            ? 'Verify plan-only role'
+                            : 'Verify setup'}
+                        </button>
+                      ) : null}
+                      {item.setup_state === 'VERIFIED' &&
+                      !item.plan_role_arn &&
+                      !item.plan_role_setup_available &&
+                      profile?.user.role === 'administrator' ? (
+                        <small className="muted">
+                          Plan-only role setup is not currently available for this connection.
+                        </small>
                       ) : null}
                       <button
                         className="button button-quiet"
@@ -319,4 +388,11 @@ export default function ConnectionsPage() {
       </AsyncRegion>
     </div>
   );
+}
+
+function describePlanRoleState(state: string | undefined): string {
+  if (state === 'SETUP_LINK_GENERATED') return 'setup waiting for verification';
+  if (state === 'VERIFIED') return 'account identity verified';
+  if (state === 'VERIFICATION_FAILED') return 'verification failed';
+  return 'status unavailable';
 }
