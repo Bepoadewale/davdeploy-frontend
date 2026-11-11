@@ -1209,6 +1209,10 @@ code {
   margin-top: 2px;
   font-size: 10px;
 }
+.row-link .plan-run-status {
+  color: var(--brand);
+  font-weight: 700;
+}
 .row-link > span:last-child {
   color: var(--faint);
   font-size: 20px;

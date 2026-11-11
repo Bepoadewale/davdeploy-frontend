@@ -106,5 +106,7 @@ This frontend change does not add Terraform planning, apply, health observation,
   formatting, lint, typecheck, API contract, public environment, production
   build, static build, SPA refresh, and dependency audit (0 production
   vulnerabilities).
+- `npm run test:browser`: 11 desktop/mobile cases passed; one desktop-only
+  case was skipped by its project guard.
 - No customer API call or cloud operation was made. PR #102 remains a draft
   and is not deployed.

@@ -122,6 +122,9 @@ test:browser` passed 11 desktop/mobile cases with one desktop-only skip.
   5 passed. Full `npm run verify`: 22 files and 105 tests passed; formatting,
   lint, typecheck, API contract, public environment, production build,
   static/SPA checks, and production dependency audit passed (0 vulnerabilities).
+- `npm run test:browser` passed 11 desktop/mobile cases; one desktop-only case
+  was skipped by its project guard. Run status text is styled separately from
+  the revision approval badge.
 - This change remains on draft PR #102 and has not been deployed.
 
 ## Evidence files produced
