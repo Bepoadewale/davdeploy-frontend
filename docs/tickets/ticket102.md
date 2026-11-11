@@ -57,6 +57,9 @@ A read-only source audit covered the frontend routes and production bundle bound
       status without confusing a ready plan with deployment; a run-history
       lookup failure leaves revision history available and reports that status
       could not be loaded.
+- [x] The project revision-history and generated-plan-run operations, including
+      pagination and exact-revision filtering, are present in the frontend's
+      API snapshot and required by the contract checker.
 - [x] Planning-in-progress, plan-ready, failed, and uncertain statuses show
       next steps that match those outcomes.
 - [x] Recorded lifecycle progress has distinct, accessible stage labels;
@@ -171,6 +174,10 @@ test:browser` passed 11 desktop/mobile tests; one desktop-only case was
 - The disclosure explains that future “Not started” steps are informational,
   not actions the customer can trigger. Refresh and Plan history links remain
   available outside the disclosure.
+- The frontend API snapshot now includes both project-scoped history endpoints
+  from the backend OpenAPI contract. The contract checker requires `limit` and
+  `cursor` for revision history and also requires `revision_id` for plan-run
+  filtering.
 - Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot` passed
   (22 tests). `npm run verify` passed (22 files, 107 tests; formatting, lint,
   typecheck, contract, production build, static/SPA checks, and dependency

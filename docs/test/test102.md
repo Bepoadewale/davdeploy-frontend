@@ -81,7 +81,9 @@
   and opens on request.
 - `npm run verify`: passed; 22 test files and 107 tests, with formatting,
   lint, typecheck, API contract, environment, build, static/SPA, and production
-  dependency checks all passing (0 production vulnerabilities).
+  dependency checks all passing (0 production vulnerabilities). The API
+  contract check now verifies both history endpoints and their required query
+  parameters against the backend contract.
 - `npm run test:browser`: 11 desktop/mobile passed; one project-guarded
   desktop-only case skipped before the plan-progress browser case was added.
 - Final `npm run test:browser`: 13 passed across desktop and mobile, including

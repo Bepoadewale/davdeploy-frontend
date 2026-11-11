@@ -37,6 +37,8 @@ const required = [
   ['post', '/api/v1/customer-plan-revisions/{revision_id}/cloud-readiness-preflights'],
   ['post', '/api/v1/customer-plan-revisions/{revision_id}/terraform-plan-reviews'],
   ['post', '/api/v1/customer-plan-revisions/{revision_id}/cloud-execution-runs'],
+  ['get', '/api/v1/projects/{project_id}/customer-plan-revisions'],
+  ['get', '/api/v1/projects/{project_id}/generated-plan-runs'],
   ['post', '/api/v1/customer-plans/{plan_id}/revisions'],
   ['post', '/api/v1/customer-plans/revisions/{revision_id}/comments'],
   ['get', '/api/v1/audit-evidence'],
@@ -49,6 +51,23 @@ if (missing.length) {
       .map(([method, path]) => `${method.toUpperCase()} ${path}`)
       .join('\n')}`,
   );
+}
+const requiredQueryParameters = new Map([
+  ['/api/v1/projects/{project_id}/customer-plan-revisions', ['limit', 'cursor']],
+  ['/api/v1/projects/{project_id}/generated-plan-runs', ['limit', 'cursor', 'revision_id']],
+]);
+for (const [path, requiredNames] of requiredQueryParameters) {
+  const queryNames = new Set(
+    (document.paths?.[path]?.get?.parameters ?? [])
+      .filter((parameter) => parameter.in === 'query')
+      .map((parameter) => parameter.name),
+  );
+  const missingParameters = requiredNames.filter((name) => !queryNames.has(name));
+  if (missingParameters.length) {
+    throw new Error(
+      `Frontend-required query parameters are missing from ${path}: ${missingParameters.join(', ')}`,
+    );
+  }
 }
 if (document.info?.title !== 'davdeploy') throw new Error('Unexpected API title.');
 if (!document.info?.version) throw new Error('API version is missing.');
