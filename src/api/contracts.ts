@@ -58,6 +58,24 @@ export interface DashboardResponse {
   recent_activity?: AuditEvent[];
 }
 
+export interface CustomerPlanRevisionHistory {
+  project_id: string;
+  items: CustomerPlanRevisionSummary[];
+  next_cursor: string | null;
+}
+
+export interface CustomerPlanRevisionSummary {
+  id: string;
+  plan_id: string;
+  project_id: string;
+  title: string;
+  revision: number;
+  state: PlanState | string;
+  content_digest: string;
+  created_at?: string | null;
+  submitted_at?: string | null;
+}
+
 export interface GitHubInstallation {
   id: string;
   account_login: string;

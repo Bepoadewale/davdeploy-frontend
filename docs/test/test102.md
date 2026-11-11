@@ -31,12 +31,45 @@
 ## Result
 
 - Clean-room `npm run verify` passed: Prettier, ESLint, and TypeScript checks; 22 test files and 101 tests; API contract and public-environment checks; production build; static-hosting and single-page-app refresh checks.
-- After review feedback, the operation-error path now links to customer support. A later customer instruction to preserve existing product claims and the Team page is reflected in the current branch; final verification must be rerun after those reversions.
+- Existing public product claims, the Team page, route, sitemap entry, navigation link, and assets remain preserved.
 - Production-only dependency audit: 0 vulnerabilities. `npm ci` reported 9 moderate development-dependency advisories.
 - GitHub Actions for the latest pushed commit remain the required merge gate.
 - The customer page requests Nova status for the exact revision and labels
   `PLAN_READY_REVIEW_ONLY` as ready for review and not applied. The backend
-  route is tracked by davdeploy PR #334 and is not deployed yet.
+  status API and paginated revision-history API are deployed in backend PR
+  #346. No authenticated production customer history request was made during
+  that release, and this frontend draft is not deployed.
+
+## Current draft update — paginated plan history
+
+- `HistoryPage` loads the first page of each project through
+  `/api/v1/projects/{project_id}/customer-plan-revisions` and offers a
+  per-project “Load older revisions” action using the returned cursor.
+- Search and status filters apply to loaded revisions; the page explains when
+  older revisions remain unloaded. Permission and session errors have plain
+  customer-facing messages.
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
+  5 passed.
+- `npm run verify`: 22 test files and 105 tests passed; formatting, lint,
+  typecheck, API contract, public environment, production build, static build,
+  SPA refresh, and production dependency audit passed (0 vulnerabilities).
+- `npm run test:browser`: 11 desktop/mobile cases passed; one desktop-only
+  case was skipped by its project guard.
+- A fresh `npm ci && npm run verify` is required before treating this new API
+  contract use as clean-room verified.
+
+## Pagination integration clean-room update
+
+- Current branch commit: pending implementation commit.
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
+  5 passed, including cursor-based loading of older revisions.
+- Current local `npm run verify`: 22 test files and 105 tests passed; format,
+  lint, typecheck, API contract, public environment, production build, static
+  build, SPA refresh and production dependency audit passed (0 vulnerabilities).
+- Current `npm run test:browser`: 11 desktop/mobile cases passed; one
+  desktop-only case was skipped by its project guard.
+- Fresh isolated `npm ci && npm run verify`: pending after the implementation
+  commit.
 
 ## Execution boundary
 

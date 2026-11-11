@@ -139,32 +139,42 @@ describe('authenticated connected-route acceptance', () => {
   });
 
   it('shows plan history without exposing opaque member IDs', async () => {
-    state.api.request.mockResolvedValue({
-      workspace: { id: 'workspace-1', name: 'Acme' },
-      projects: [],
-      cloud_connections: [],
-      plans: [
-        {
-          id: 'plan-1',
+    state.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/dashboard')
+        return Promise.resolve({
+          workspace: { id: 'workspace-1', name: 'Acme' },
+          projects: [{ id: 'project-1', name: 'Payments' }],
+          cloud_connections: [],
+          plans: [],
+        });
+      if (path === '/api/v1/projects/project-1/customer-plan-revisions?limit=20')
+        return Promise.resolve({
           project_id: 'project-1',
-          project_name: 'Payments',
-          title: 'Payments API',
-          revision: 1,
-          state: 'SUBMITTED',
-          creator_subject: 'dev-1',
-          created_at: '2026-10-25T12:00:00Z',
-        },
-        {
-          id: 'plan-2',
-          project_id: 'project-1',
-          project_name: 'Payments',
-          title: 'Payments API',
-          revision: 2,
-          state: 'APPROVED',
-          creator_subject: 'admin-1',
-          created_at: '2026-10-25T13:00:00Z',
-        },
-      ],
+          next_cursor: null,
+          items: [
+            {
+              id: 'revision-1',
+              plan_id: 'plan-1',
+              project_id: 'project-1',
+              title: 'Payments API',
+              revision: 1,
+              state: 'SUBMITTED',
+              content_digest: 'a'.repeat(64),
+              created_at: '2026-10-25T12:00:00Z',
+            },
+            {
+              id: 'revision-2',
+              plan_id: 'plan-1',
+              project_id: 'project-1',
+              title: 'Payments API',
+              revision: 2,
+              state: 'APPROVED',
+              content_digest: 'b'.repeat(64),
+              created_at: '2026-10-25T13:00:00Z',
+            },
+          ],
+        });
+      throw new Error(`Unexpected ${path}`);
     });
     const user = userEvent.setup();
     render(
@@ -173,11 +183,75 @@ describe('authenticated connected-route acceptance', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('2 revisions')).toBeInTheDocument();
+    expect(await screen.findByText('2 shown · 2 loaded')).toBeInTheDocument();
     await user.type(screen.getByRole('textbox', { name: 'Search' }), 'admin-1');
     expect(screen.queryByText(/Revision 1/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Revision 2/)).not.toBeInTheDocument();
     expect(screen.queryByText('admin-1')).not.toBeInTheDocument();
     expect(screen.queryByText('dev-1')).not.toBeInTheDocument();
+  });
+
+  it('loads older plan revisions from the project history cursor', async () => {
+    state.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/dashboard')
+        return Promise.resolve({
+          workspace: { id: 'workspace-1', name: 'Acme' },
+          projects: [{ id: 'project-1', name: 'Payments' }],
+          cloud_connections: [],
+          plans: [],
+        });
+      if (path === '/api/v1/projects/project-1/customer-plan-revisions?limit=20')
+        return Promise.resolve({
+          project_id: 'project-1',
+          next_cursor: '00000000-0000-4000-8000-000000000002',
+          items: [
+            {
+              id: 'revision-2',
+              plan_id: 'plan-1',
+              project_id: 'project-1',
+              title: 'Payments API',
+              revision: 2,
+              state: 'APPROVED',
+              content_digest: 'b'.repeat(64),
+              created_at: '2026-10-25T13:00:00Z',
+            },
+          ],
+        });
+      if (
+        path ===
+        '/api/v1/projects/project-1/customer-plan-revisions?limit=20&cursor=00000000-0000-4000-8000-000000000002'
+      )
+        return Promise.resolve({
+          project_id: 'project-1',
+          next_cursor: null,
+          items: [
+            {
+              id: 'revision-1',
+              plan_id: 'plan-1',
+              project_id: 'project-1',
+              title: 'Payments API',
+              revision: 1,
+              state: 'SUBMITTED',
+              content_digest: 'a'.repeat(64),
+              created_at: '2026-10-25T12:00:00Z',
+            },
+          ],
+        });
+      throw new Error(`Unexpected ${path}`);
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <HistoryPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/Revision 2/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Load older revisions' }));
+    expect(await screen.findByText(/Revision 1/)).toBeInTheDocument();
+    expect(state.api.request).toHaveBeenCalledWith(
+      '/api/v1/projects/project-1/customer-plan-revisions?limit=20&cursor=00000000-0000-4000-8000-000000000002',
+    );
+    expect(screen.getByText('2 shown · 2 loaded')).toBeInTheDocument();
   });
 });
