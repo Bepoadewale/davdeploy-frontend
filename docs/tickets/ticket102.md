@@ -74,7 +74,7 @@ A read-only source audit covered the frontend routes and production bundle bound
   draft and is not live. No authenticated production history request was made
   during backend PR #346's release.
 - Current focused test `npx vitest run src/pages/connectedRoutes.test.tsx
-  --reporter=dot` passed (5 tests); `npm run verify` passed with 22 files and
+--reporter=dot` passed (5 tests); `npm run verify` passed with 22 files and
   105 tests; `npm run test:browser` passed 11 desktop/mobile cases with one
   desktop-only skip. A fresh `npm ci && npm run verify` for this pagination
   integration remains to be recorded.

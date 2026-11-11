@@ -60,7 +60,7 @@
 
 ## Pagination integration clean-room update
 
-- Current branch commit: pending implementation commit.
+- Current implementation commit: `15010a454a445d507a05a5445fc62b3c6d20fc1f`.
 - Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
   5 passed, including cursor-based loading of older revisions.
 - Current local `npm run verify`: 22 test files and 105 tests passed; format,
@@ -68,8 +68,9 @@
   build, SPA refresh and production dependency audit passed (0 vulnerabilities).
 - Current `npm run test:browser`: 11 desktop/mobile cases passed; one
   desktop-only case was skipped by its project guard.
-- Fresh isolated `npm ci && npm run verify`: pending after the implementation
-  commit.
+- Fresh isolated `npm ci`: installed 410 packages successfully. Its first
+  `npm run verify` stopped at ticket formatting; the ticket formatting fix is
+  followed by a rerun in the retained worktree.
 
 ## Execution boundary
 
