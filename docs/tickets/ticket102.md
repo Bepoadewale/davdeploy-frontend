@@ -63,7 +63,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 - [x] Existing public product and availability claims are preserved.
 - [x] Personal/internal customer surface, broad access setup and unsubstantiated plan details are removed or summarized safely.
 - [x] Clean-room `npm ci` + `npm run verify` passed on the latest source head;
-      hosted checks remain pending.
+      final hosted checks passed in run `43046086566`.
 - [x] History-page pagination consumes deployed backend PR #346; this draft
       frontend branch is not deployed.
 
@@ -92,15 +92,18 @@ test:browser` passed 11 desktop/mobile cases with one desktop-only skip.
 - Hosted run `43041928942` passed verification but the browser job failed
   before tests twice while `playwright install --with-deps` tried to retrieve
   Ubuntu packages from a DNS-failing mirror. The browser setup now downloads
-  only the pinned Chromium binary; final-head hosted browser verification is
-  pending. This keeps the same browser suite and does not skip tests.
+  only the pinned Chromium binary. Final-head CI run `43046086566` passed all
+  four frontend jobs, including browser acceptance. Current-head Codex review
+  of `c6a774a` found no major issues. The PR remains a draft and is not live.
 - Current focused test `npx vitest run src/pages/connectedRoutes.test.tsx
 --reporter=dot` passed (5 tests); `npm run verify` passed with 22 files and
   105 tests; `npm run test:browser` passed 11 desktop/mobile cases with one
   desktop-only skip. Fresh worktree `npm ci` installed 410 packages and
   `npm run verify` passed at `bc81e91`.
 - A clean `npm ci` + `npm run verify` cycle passed in `/private/tmp/davdeploy-frontend-102-cleanroom` at code commit `9f04785`; exact results are in `docs/test/test102.md`.
-- Required GitHub checks are pending.
+- Required GitHub checks passed all four jobs in run `43046086566` on head
+  `c6a774a`; current-head Codex review found no major issues. PR #102 remains
+  draft per the user's instruction and is not deployed.
 
 ## Evidence files produced
 
