@@ -83,7 +83,10 @@
   lint, typecheck, API contract, environment, build, static/SPA, and production
   dependency checks all passing (0 production vulnerabilities).
 - `npm run test:browser`: 11 desktop/mobile passed; one project-guarded
-  desktop-only case skipped.
+  desktop-only case skipped before the plan-progress browser case was added.
+- Final `npm run test:browser`: 13 passed across desktop and mobile, including
+  the approved-plan status/disclosure interaction; one desktop-only case was
+  skipped by its project guard.
 - Local UI validation with fixtures only. No authenticated customer request,
   AWS call, plan, apply, or infrastructure change was made. PR #102 remains
   open as a draft and is not deployed.
@@ -135,8 +138,8 @@ This frontend change does not add Terraform planning, apply, health observation,
   account identity may be verified while effective AWS permissions remain
   unattested.
 - If the backend gate/configuration is absent or false, no setup action is
-  shown. The backend in draft PR #351 supplies this readiness field; until that
-  change is deployed, this UI path remains hidden.
+  shown. Merged backend PR #351 supplies this readiness field; until that code
+  is deployed, this UI path remains hidden.
 - Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
   7 passed, including non-administrator denial, setup availability, Quick
   Create launch, verification queue, and honest permissions wording. Full

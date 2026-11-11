@@ -144,7 +144,7 @@ test:browser` passed 11 desktop/mobile cases with one desktop-only skip.
 - Full `npm run verify` passed with 22 files and 107 tests. `npm run
 test:browser` passed 11 desktop/mobile tests; one desktop-only case was
   skipped by its project guard. The setup flow remains dependent on the
-  backend readiness field in draft PR #351 being merged/deployed and its
+  backend readiness field in PR #351 being deployed and its
   plan-role flag/configuration being enabled. Until then the action stays
   hidden.
 
@@ -174,8 +174,12 @@ test:browser` passed 11 desktop/mobile tests; one desktop-only case was
 - Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot` passed
   (22 tests). `npm run verify` passed (22 files, 107 tests; formatting, lint,
   typecheck, contract, production build, static/SPA checks, and dependency
-  audit with 0 production vulnerabilities). `npm run test:browser` passed 11
-  desktop/mobile cases with one project-guarded desktop skip.
+  audit with 0 production vulnerabilities). `npm run test:browser` passed 13
+  desktop/mobile cases, including the new page-flow check; one project-guarded
+  desktop skip remains.
+- Backend PR #351 has merged, but its runtime deployment is still pending.
+  The plan-role setup action remains hidden while the corresponding feature
+  gate and configuration are disabled.
 - This is a presentation change only. No claims, Team page/assets/sitemap,
   API operations, customer data, or AWS resources were removed or changed.
   PR #102 remains a draft and is not deployed.

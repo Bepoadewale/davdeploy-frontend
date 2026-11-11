@@ -5,6 +5,28 @@ const profile = {
   workspace: { id: 'workspace-fixture', name: 'Fixture workspace', organization_id: 'org-fixture' },
 };
 
+const approvedRevision = {
+  id: 'revision-1',
+  plan_id: 'plan-1',
+  project_id: 'project-1',
+  revision: 1,
+  state: 'APPROVED',
+  creator_subject: 'fixture-founder',
+  content_digest: 'a'.repeat(64),
+  content: {
+    summary: { selected_profile: 'App Runner', why: 'Lowest-complexity option for this API.' },
+    resource_breakdown: [
+      { name: 'Application', service: 'Managed application runtime', purpose: 'Run the API' },
+    ],
+    security: ['Private customer data'],
+    cost_estimate: { monthly_low: 20, monthly_high: 50, assumptions: ['Fixture estimate'] },
+    observability: {},
+    risks_and_limitations: ['A generated plan must be reviewed before deployment.'],
+  },
+  terraform_plan_reviews: [],
+  cloud_execution_runs: [],
+};
+
 async function mockApi(page: Page) {
   await page.route('http://api.fixture/api/v1/**', async (route) => {
     const url = new URL(route.request().url());
@@ -128,6 +150,57 @@ test('plan setup keeps provider limits and input errors in plain English', async
   await expect(
     page.getByText(/DavDeploy never asks your browser for cloud credentials/i),
   ).toBeVisible();
+});
+
+test('approved plan leads with current status and keeps future stages collapsed', async ({
+  page,
+}) => {
+  await page.route('http://api.fixture/api/v1/customer-plan-revisions/revision-1', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(approvedRevision),
+    }),
+  );
+  await page.route('http://api.fixture/api/v1/projects/project-1/generated-plan-runs?*', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        project_id: 'project-1',
+        items: [
+          {
+            id: 'run-1',
+            project_id: 'project-1',
+            revision_id: 'revision-1',
+            revision_sha256: 'a'.repeat(64),
+            proposal_sha256: 'b'.repeat(64),
+            state: 'PLAN_READY_REVIEW_ONLY',
+            plan_title: 'Support API',
+            revision_number: 1,
+          },
+        ],
+        next_cursor: null,
+      }),
+    }),
+  );
+
+  await signInToFixtureWorkspace(page, 'Administrator');
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/plans/revision-1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+
+  await expect(page.getByText('Current status')).toBeVisible();
+  await expect(page.getByText('Plan created; costed review is still needed')).toBeVisible();
+  const stageDetails = page.locator('.deployment-details');
+  await expect(stageDetails).not.toHaveAttribute('open', '');
+  await expect(stageDetails.getByRole('list', { name: 'Deployment progress' })).toBeHidden();
+
+  await page.getByText('View all deployment stages').click();
+  await expect(stageDetails).toHaveAttribute('open', '');
+  await expect(stageDetails.getByRole('list', { name: 'Deployment progress' })).toBeVisible();
+  await expect(stageDetails.getByRole('listitem')).toHaveCount(5);
 });
 
 test('mobile navigation keeps support and product boundaries reachable', async ({
