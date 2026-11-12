@@ -240,6 +240,59 @@ describe('customer workflows', () => {
     expect(screen.getByText('Technical details')).toBeInTheDocument();
   });
 
+  it('explains that unrelated requests are out of scope without showing a generic planning failure', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/github/connection')
+        return Promise.resolve({ execution: 'SIMULATED', installations: [] });
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([verifiedAwsConnection]);
+      if (path.startsWith('/api/v1/github/public-repository?'))
+        return Promise.resolve({
+          full_name: 'example/support-api',
+          html_url: 'https://github.com/example/support-api',
+          default_branch: 'main',
+          branches: ['main'],
+        });
+      if (path === '/api/v1/projects') return Promise.resolve({ id: 'project-1' });
+      if (path.endsWith('/repository-discovery')) return Promise.resolve({ evidence: [] });
+      if (path === '/api/v1/intents')
+        return Promise.reject(
+          new Error(
+            'DavDeploy helps plan and manage AWS infrastructure for software workloads. It cannot answer general questions or provide stock or investment advice. Describe the application or workload you want to deploy.',
+          ),
+        );
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <NewPlanPage />
+      </MemoryRouter>,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Public GitHub URL' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Public GitHub repository' }),
+      'https://github.com/example/support-api',
+    );
+    await user.click(screen.getByRole('button', { name: 'Check repository' }));
+    await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'Support API');
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
+    await user.clear(screen.getByRole('textbox', { name: /desired outcome/i }));
+    await user.type(
+      screen.getByRole('textbox', { name: /desired outcome/i }),
+      'Should I buy a particular stock this week?',
+    );
+    await user.click(await screen.findByRole('button', { name: /analyze and create plan/i }));
+
+    expect(
+      await screen.findByText("This request is outside DavDeploy's scope."),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/not general questions or investment advice/i)).toBeInTheDocument();
+    expect(screen.queryByText('Technical details')).not.toBeInTheDocument();
+    expect(auth.api.request.mock.calls.map(([path]) => path)).not.toContain(
+      '/api/v1/intents/intent-1/plans',
+    );
+  });
+
   it('verifies and plans from a customer-selected public repository', async () => {
     auth.profile.user.role = 'administrator';
     auth.api.request.mockImplementation((path: string) => {

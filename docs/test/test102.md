@@ -151,3 +151,18 @@ This frontend change does not add Terraform planning, apply, health observation,
   skipped.
 - These tests use mocked API responses. No customer API login, AWS role
   creation, AWS verification, plan, or infrastructure change occurred.
+
+## Out-of-scope request feedback — 2026-11-12
+
+- The New Plan page now maps the backend's fixed `OUT_OF_SCOPE` response to a
+  clear message that DavDeploy plans infrastructure for software workloads,
+  not general questions or investment advice. It does not show that fixed
+  refusal as a collapsed technical error.
+- Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot`: 23
+  passed, including the stock-advice refusal experience. This test uses a
+  mocked API response; it does not make an authenticated customer request.
+- `npm run verify`: all 22 test files and 108 tests passed; Prettier, ESLint,
+  TypeScript, API contract, production build, static/SPA checks, and production
+  dependency audit passed (0 vulnerabilities).
+- No customer API call, AWS call, plan, apply, or infrastructure change was
+  made. PR #102 remains a draft and is not deployed.

@@ -87,6 +87,13 @@ function explainPlanningFailure(reason: unknown, budget: string): PlanningFeedba
       technicalDetail,
     };
   }
+  if (technicalDetail.includes('cannot answer general questions')) {
+    return {
+      title: "This request is outside DavDeploy's scope.",
+      message:
+        'DavDeploy plans infrastructure for software workloads, not general questions or investment advice. Describe the application or workload you want to deploy.',
+    };
+  }
   return {
     title: 'We could not create this plan.',
     message: 'Check the information above and try again.',

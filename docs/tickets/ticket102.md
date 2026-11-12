@@ -37,6 +37,8 @@ A read-only source audit covered the frontend routes and production bundle bound
   are ready. Let them return to verify the role identity, and state clearly
   that effective AWS permissions are not attested.
 - Match the next-step explanation to the current plan-generation state.
+- Show out-of-scope Nova responses as a clear customer-facing message instead
+  of a generic plan failure or hidden technical detail.
 - Remove the broad-administrator pilot affordance from customer connection setup.
 - Remove personal/internal allowlist details, operator records and opaque identity IDs from normal customer surfaces.
 - Replace beta/internal settings language and random placeholder text.
@@ -62,6 +64,9 @@ A read-only source audit covered the frontend routes and production bundle bound
       API snapshot and required by the contract checker.
 - [x] Planning-in-progress, plan-ready, failed, and uncertain statuses show
       next steps that match those outcomes.
+- [x] An out-of-scope response such as stock advice explains that DavDeploy
+      plans infrastructure for software workloads and asks for a deployment
+      request; the fixed backend detail is not shown as a technical error.
 - [x] Recorded lifecycle progress has distinct, accessible stage labels;
       upcoming apply/health/teardown steps are clearly marked and do not look
       like operational controls.
@@ -94,6 +99,7 @@ A read-only source audit covered the frontend routes and production bundle bound
 
 - Read-only audit completed on main commit `b6cb14b`; no files or external systems changed by the audit.
 - `npm run verify` passed after the implementation and export sanitization: 22 test files and 101 tests passed; formatting, lint, typecheck, API contract, public environment, production build, static build, SPA refresh, and production dependency audit passed (0 vulnerabilities).
+- Out-of-scope feedback: `npx vitest run src/pages/workflows.test.tsx --reporter=dot` — 23 passed; `npm run verify` — 22 test files and 108 tests passed, plus formatting, lint, typecheck, API contract, public environment, production build, static build, SPA refresh, and production dependency audit (0 vulnerabilities).
 - Focused UI run passed after export sanitization: `npx vitest run src/pages/workflows.test.tsx --reporter=dot` (1 file, 20 tests), including customer-summary export redaction.
 - Codex review feedback on the approved-plan error path was addressed: failure, unknown operation, and unknown plan-review messages now point to customer support, and a regression test verifies the support link and absence of internal-record instructions.
 - The approved-plan status view requests its exact revision from the backend
