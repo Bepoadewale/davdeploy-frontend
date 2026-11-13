@@ -62,6 +62,11 @@ A read-only source audit covered the frontend routes and production bundle bound
 - [x] The project revision-history and generated-plan-run operations, including
       pagination and exact-revision filtering, are present in the frontend's
       API snapshot and required by the contract checker.
+- [x] Project history also shows the latest exact-plan apply state per
+      revision when the backend apply-history endpoint is available. Apply
+      completion is explicitly not presented as application health or teardown.
+- [x] If apply-history is unavailable, revision and plan history remain
+      visible and the customer sees a clear status-only warning.
 - [x] Planning-in-progress, plan-ready, failed, and uncertain statuses show
       next steps that match those outcomes.
 - [x] An out-of-scope response such as stock advice explains that DavDeploy
@@ -170,6 +175,31 @@ test:browser` passed 11 desktop/mobile tests; one desktop-only case was
 ## Follow-up work
 
 - Backend plan/apply/state/pricing/health/lifecycle work remains tracked in the private Nova goal ledger. Revisit the progress page only when those API capabilities exist.
+
+## Exact-plan apply status history update — 2026-11-13
+
+- The project History page now requests the project-scoped exact-plan apply
+  history and displays the latest apply state beside the matching plan
+  revision. It uses clear queued, running, failed, uncertain, and cancelled
+  wording; successful Terraform apply is labelled “health not verified.”
+- An apply-history lookup failure does not hide revisions or Nova plan status.
+  The page explains that only apply history is unavailable.
+- The frontend OpenAPI snapshot and contract checker now include the two
+  backend apply-status operations and the project-history pagination filters.
+- This UI depends on backend PR #399, which is open as a draft and has not
+  been merged or deployed. The feature therefore has no hosted customer
+  evidence and may report apply history unavailable until the backend route
+  is released.
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
+  7 passed. `npm run verify`: 22 files and 108 tests passed; format, lint,
+  typecheck, API contract, public environment, production build, static/SPA
+  checks, and production dependency audit passed (0 vulnerabilities).
+- `npm run test:browser`: 13 passed, one existing project-guarded desktop
+  case skipped. The browser suite verifies the approved-plan status flow;
+  apply-history states are covered by the focused page test with local API
+  fixtures.
+- No authenticated customer API request, AWS call, plan, apply, or
+  infrastructure mutation was made. PR #102 remains a draft and is not live.
 
 ## Current-status-first plan progress update — 2026-11-11
 

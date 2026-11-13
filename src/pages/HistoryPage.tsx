@@ -6,6 +6,8 @@ import type {
   CustomerPlanRevisionHistory,
   CustomerPlanRevisionSummary,
   DashboardResponse,
+  GeneratedPlanApplyRunHistory,
+  GeneratedPlanApplyRunSummary,
   GeneratedPlanRunHistory,
   GeneratedPlanRunSummary,
   ProjectSummary,
@@ -22,6 +24,8 @@ interface ProjectHistory {
   nextCursor: string | null;
   latestRunsByRevision: Record<string, GeneratedPlanRunSummary>;
   runHistoryUnavailable: boolean;
+  latestAppliesByRevision: Record<string, GeneratedPlanApplyRunSummary>;
+  applyHistoryUnavailable: boolean;
 }
 
 function historyUrl(projectId: string, cursor?: string | null) {
@@ -37,12 +41,21 @@ export default function HistoryPage() {
       const dashboard = await api.request<DashboardResponse>('/api/v1/dashboard', { signal });
       const histories = await Promise.all(
         dashboard.projects.map(async (project) => {
-          const [page, runHistory] = await Promise.all([
+          const [page, runHistory, applyHistory] = await Promise.all([
             api.request<CustomerPlanRevisionHistory>(historyUrl(project.id), { signal }),
             Promise.resolve()
               .then(() =>
                 api.request<GeneratedPlanRunHistory>(
                   `/api/v1/projects/${encodeURIComponent(project.id)}/generated-plan-runs?limit=100`,
+                  { signal },
+                ),
+              )
+              .then((runs) => ({ runs, unavailable: false as const }))
+              .catch(() => ({ runs: null, unavailable: true as const })),
+            Promise.resolve()
+              .then(() =>
+                api.request<GeneratedPlanApplyRunHistory>(
+                  `/api/v1/projects/${encodeURIComponent(project.id)}/generated-plan-apply-runs?limit=100`,
                   { signal },
                 ),
               )
@@ -55,12 +68,20 @@ export default function HistoryPage() {
               latestRunsByRevision[run.revision_id] = run;
             }
           }
+          const latestAppliesByRevision: Record<string, GeneratedPlanApplyRunSummary> = {};
+          for (const applyRun of applyHistory.runs?.items ?? []) {
+            if (!latestAppliesByRevision[applyRun.revision_id]) {
+              latestAppliesByRevision[applyRun.revision_id] = applyRun;
+            }
+          }
           return {
             project,
             items: page.items,
             nextCursor: page.next_cursor,
             latestRunsByRevision,
             runHistoryUnavailable: runHistory.unavailable,
+            latestAppliesByRevision,
+            applyHistoryUnavailable: applyHistory.unavailable,
           };
         }),
       );
@@ -92,8 +113,9 @@ export default function HistoryPage() {
           filteredItems: history.items.filter((plan) => {
             const matchesState = filter === 'ALL' || plan.state === filter;
             const run = history.latestRunsByRevision[plan.id];
+            const applyRun = history.latestAppliesByRevision[plan.id];
             const value =
-              `${plan.title} ${plan.state} ${run ? describeRunState(run.state) : ''}`.toLowerCase();
+              `${plan.title} ${plan.state} ${run ? describeRunState(run.state) : ''} ${applyRun ? describeApplyRunState(applyRun.state) : ''}`.toLowerCase();
             return matchesState && value.includes(query.trim().toLowerCase());
           }),
         }))
@@ -194,6 +216,12 @@ export default function HistoryPage() {
                     Terraform plan status could not be loaded. Open a plan to check again.
                   </p>
                 ) : null}
+                {history.applyHistoryUnavailable ? (
+                  <p className="muted" role="status">
+                    Terraform apply history could not be loaded. This does not change the approval
+                    or plan status above.
+                  </p>
+                ) : null}
                 {history.filteredItems.length ? (
                   <div className="row-list">
                     {history.filteredItems.map((plan) => (
@@ -209,6 +237,16 @@ export default function HistoryPage() {
                           {history.latestRunsByRevision[plan.id] ? (
                             <small className="plan-run-status">
                               {describeRunState(history.latestRunsByRevision[plan.id].state)}
+                            </small>
+                          ) : null}
+                          {history.latestAppliesByRevision[plan.id] ? (
+                            <small className="plan-run-status">
+                              {describeApplyRunState(
+                                history.latestAppliesByRevision[plan.id].state,
+                              )}
+                              {history.latestAppliesByRevision[plan.id].error_summary
+                                ? ` · ${history.latestAppliesByRevision[plan.id].error_summary}`
+                                : ''}
                             </small>
                           ) : null}
                         </span>
@@ -282,4 +320,16 @@ function describeRunState(state: string): string {
   if (state === 'FAILED') return 'Terraform plan generation failed';
   if (state === 'RECONCILIATION_REQUIRED') return 'Plan status needs confirmation';
   return 'Nova plan status is unclear';
+}
+
+function describeApplyRunState(state: string): string {
+  if (state === 'QUEUED') return 'Terraform apply queued';
+  if (state === 'BUILD_STARTED' || state === 'APPLY_RUNNING') return 'Terraform apply in progress';
+  if (state === 'APPLY_SUCCEEDED' || state === 'SUCCEEDED')
+    return 'Terraform apply completed · health not verified';
+  if (state === 'APPLY_FAILED' || state === 'FAILED') return 'Terraform apply failed';
+  if (state === 'OUTCOME_UNCERTAIN' || state === 'RECONCILIATION_REQUIRED')
+    return 'Apply result needs confirmation';
+  if (state === 'CANCELLED') return 'Terraform apply cancelled';
+  return 'Terraform apply status is unclear';
 }

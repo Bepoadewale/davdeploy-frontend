@@ -101,6 +101,25 @@ This is a frontend presentation and export change. Tests used local fixtures. No
 
 This frontend change does not add Terraform planning, apply, health observation, teardown, pricing, or backend authorization. Existing public product claims are left as they were. GitHub Actions for the PR remains the required merge gate.
 
+## Exact-plan apply status history update — 2026-11-13
+
+- Focused `npx vitest run src/pages/connectedRoutes.test.tsx --reporter=dot`:
+  7 tests passed. This uses local API fixtures and checks queued/running and
+  successful apply labels, including the explicit health-not-verified wording.
+- `npm run verify`: 22 test files and 108 tests passed; formatting, lint,
+  typecheck, API contract (39 required operations), public environment,
+  production build, static build, SPA refresh, and production dependency audit
+  passed (0 vulnerabilities).
+- `npm run test:browser`: 13 passed, one existing project-guarded desktop
+  case skipped. Browser acceptance covers the approved-plan status flow; the
+  apply-history additions are covered by the focused page test.
+- The UI contract is copied from backend PR #399, still open as a draft and
+  not merged/deployed. No live API request was made, so this is local fixture
+  evidence only. Until the backend endpoint is deployed, the UI keeps plan
+  history visible and shows that apply history could not be loaded.
+- No AWS or Bedrock calls, plan/apply operations, or infrastructure changes
+  occurred.
+
 ## Recorded progress clarity update — 2026-11-11
 
 - The approved-plan timeline now puts an explicit state label on every stage and marks each as complete, in progress, not started, needs attention, or not verified.

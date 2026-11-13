@@ -39,6 +39,8 @@ const required = [
   ['post', '/api/v1/customer-plan-revisions/{revision_id}/cloud-execution-runs'],
   ['get', '/api/v1/projects/{project_id}/customer-plan-revisions'],
   ['get', '/api/v1/projects/{project_id}/generated-plan-runs'],
+  ['get', '/api/v1/generated-plan-apply-runs/{apply_run_id}'],
+  ['get', '/api/v1/projects/{project_id}/generated-plan-apply-runs'],
   ['post', '/api/v1/customer-plans/{plan_id}/revisions'],
   ['post', '/api/v1/customer-plans/revisions/{revision_id}/comments'],
   ['get', '/api/v1/audit-evidence'],
@@ -55,6 +57,7 @@ if (missing.length) {
 const requiredQueryParameters = new Map([
   ['/api/v1/projects/{project_id}/customer-plan-revisions', ['limit', 'cursor']],
   ['/api/v1/projects/{project_id}/generated-plan-runs', ['limit', 'cursor', 'revision_id']],
+  ['/api/v1/projects/{project_id}/generated-plan-apply-runs', ['limit', 'cursor', 'revision_id']],
 ]);
 for (const [path, requiredNames] of requiredQueryParameters) {
   const queryNames = new Set(

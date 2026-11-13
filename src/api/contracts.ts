@@ -194,6 +194,29 @@ export interface GeneratedPlanRunSummary {
   execution_boundary?: string;
 }
 
+export interface GeneratedPlanApplyRunHistory {
+  project_id: string;
+  items: GeneratedPlanApplyRunSummary[];
+  next_cursor: string | null;
+}
+
+export interface GeneratedPlanApplyRunSummary {
+  id: string;
+  project_id: string;
+  plan_title: string;
+  revision_id: string;
+  revision_number: number;
+  source_plan_run_id: string;
+  artifact_id: string;
+  state: string;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error_code?: string | null;
+  error_summary?: string | null;
+  execution_boundary?: string;
+}
+
 export interface PlanGenerationResult {
   id: string;
   plan_hash?: string;

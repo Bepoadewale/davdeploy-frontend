@@ -304,6 +304,35 @@ describe('authenticated connected-route acceptance', () => {
             },
           ],
         });
+      if (path === '/api/v1/projects/project-1/generated-plan-apply-runs?limit=100')
+        return Promise.resolve({
+          project_id: 'project-1',
+          next_cursor: null,
+          items: [
+            {
+              id: 'apply-2',
+              project_id: 'project-1',
+              plan_title: 'Payments API',
+              revision_id: 'revision-2',
+              revision_number: 2,
+              source_plan_run_id: 'run-2',
+              artifact_id: 'artifact-2',
+              state: 'APPLY_SUCCEEDED',
+              error_summary: null,
+            },
+            {
+              id: 'apply-1',
+              project_id: 'project-1',
+              plan_title: 'Payments API',
+              revision_id: 'revision-1',
+              revision_number: 1,
+              source_plan_run_id: 'run-1',
+              artifact_id: 'artifact-1',
+              state: 'APPLY_RUNNING',
+              error_summary: null,
+            },
+          ],
+        });
       throw new Error(`Unexpected ${path}`);
     });
     const user = userEvent.setup();
@@ -316,6 +345,10 @@ describe('authenticated connected-route acceptance', () => {
     expect(await screen.findByText('2 shown · 2 loaded')).toBeInTheDocument();
     expect(await screen.findByText('Terraform plan ready · not applied')).toBeInTheDocument();
     expect(screen.getByText('Terraform planning is in progress')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Terraform apply completed · health not verified'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Terraform apply in progress')).toBeInTheDocument();
     await user.type(screen.getByRole('textbox', { name: 'Search' }), 'admin-1');
     expect(screen.queryByText(/Revision 1/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Revision 2/)).not.toBeInTheDocument();
