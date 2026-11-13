@@ -110,6 +110,9 @@ This frontend change does not add Terraform planning, apply, health observation,
   typecheck, API contract (39 required operations), public environment,
   production build, static build, SPA refresh, and production dependency audit
   passed (0 vulnerabilities).
+- Clean-room worktree `/private/tmp/davdeploy-frontend-pr102-apply-history-20261113`
+  at commit `1753fc0`: `npm ci` and `npm run verify` passed with the same
+  results.
 - `npm run test:browser`: 13 passed, one existing project-guarded desktop
   case skipped. Browser acceptance covers the approved-plan status flow; the
   apply-history additions are covered by the focused page test.
