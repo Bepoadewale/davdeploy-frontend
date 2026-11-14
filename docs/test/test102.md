@@ -123,6 +123,24 @@ This frontend change does not add Terraform planning, apply, health observation,
 - No AWS or Bedrock calls, plan/apply operations, or infrastructure changes
   occurred.
 
+## Approved-plan exact apply status — 2026-11-14
+
+- `PlanPage` now requests the exact revision's apply history alongside its
+  Nova plan history. A successful apply is shown as complete while health is
+  explicitly “Not verified”; a failed status request no longer produces the
+  assertion that deployment has not started.
+- Focused `npx vitest run src/pages/workflows.test.tsx --reporter=dot` passed
+  25 tests. `npm run verify` passed 22 files and 110 tests, plus formatting,
+  lint, typecheck, API contract, public environment, production build, static
+  hosting, SPA refresh, and production dependency audit (0 production
+  vulnerabilities).
+- Full `npm run test:browser` passed 9 cases and failed 4 existing mobile
+  onboarding cases; none exercised the approved-plan route. The approved-plan
+  browser case passed on both desktop and mobile with
+  `npx playwright test --grep "approved plan leads with current status"`
+  (2 passed). No AWS or Bedrock calls, customer API calls, plan/apply
+  operations, or infrastructure changes occurred.
+
 ## Recorded progress clarity update — 2026-11-11
 
 - The approved-plan timeline now puts an explicit state label on every stage and marks each as complete, in progress, not started, needs attention, or not verified.

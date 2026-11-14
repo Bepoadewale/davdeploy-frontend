@@ -41,6 +41,8 @@ async function mockApi(page: Page) {
     if (path.endsWith('/dashboard'))
       return json({ workspace: profile.workspace, projects: [], cloud_connections: [], plans: [] });
     if (path.endsWith('/admin/customer-plan-revisions')) return json([]);
+    if (path.endsWith('/generated-plan-apply-runs'))
+      return json({ project_id: 'project-1', items: [], next_cursor: null });
     if (path.endsWith('/github/connection'))
       return json({
         execution: 'LIVE_READ_ONLY',

@@ -505,6 +505,11 @@ describe('customer workflows', () => {
           ],
           next_cursor: null,
         });
+      if (
+        path ===
+        '/api/v1/projects/project-1/generated-plan-apply-runs?revision_id=revision-1&limit=1'
+      )
+        return Promise.resolve({ project_id: 'project-1', items: [], next_cursor: null });
       return Promise.reject(new Error(`Unexpected ${path}`));
     });
     render(
@@ -547,6 +552,124 @@ describe('customer workflows', () => {
       '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
+  });
+
+  it('shows exact-plan apply status and keeps application health unverified', async () => {
+    const applyHistoryPath =
+      '/api/v1/projects/project-1/generated-plan-apply-runs?revision_id=revision-1&limit=1';
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/customer-plan-revisions/revision-1')
+        return Promise.resolve({ ...review, state: 'APPROVED' });
+      if (path === applyHistoryPath)
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'apply-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_number: 1,
+              source_plan_run_id: 'plan-run-1',
+              artifact_id: 'artifact-1',
+              plan_title: 'Support API',
+              state: 'APPLY_SUCCEEDED',
+            },
+          ],
+          next_cursor: null,
+        });
+      if (path === '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1')
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'run-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_sha256: 'a'.repeat(64),
+              proposal_sha256: 'b'.repeat(64),
+              state: 'PLAN_READY_REVIEW_ONLY',
+              plan_title: 'Support API',
+              revision_number: 1,
+            },
+          ],
+          next_cursor: null,
+        });
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText('Terraform apply completed. Application health is not verified.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Apply finished; health is not confirmed')).toBeInTheDocument();
+    await user.click(screen.getByText('View all deployment stages'));
+    const progress = screen.getByRole('list', { name: 'Deployment progress' });
+    const steps = within(progress).getAllByRole('listitem');
+    expect(steps[2]).toHaveTextContent('Deployment');
+    expect(steps[2]).toHaveTextContent('Complete');
+    expect(steps[3]).toHaveTextContent('Application health');
+    expect(steps[3]).toHaveTextContent('Not verified');
+    expect(steps[3]).toHaveTextContent('No independent health result');
+    expect(auth.api.request).toHaveBeenCalledWith(
+      applyHistoryPath,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('does not claim apply has not started when exact apply status cannot be loaded', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/customer-plan-revisions/revision-1')
+        return Promise.resolve({ ...review, state: 'APPROVED' });
+      if (path === '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1')
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'run-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_sha256: 'a'.repeat(64),
+              proposal_sha256: 'b'.repeat(64),
+              state: 'PLAN_READY_REVIEW_ONLY',
+              plan_title: 'Support API',
+              revision_number: 1,
+            },
+          ],
+          next_cursor: null,
+        });
+      if (
+        path ===
+        '/api/v1/projects/project-1/generated-plan-apply-runs?revision_id=revision-1&limit=1'
+      )
+        return Promise.reject(new Error('status unavailable'));
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Apply status could not be confirmed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/cannot tell whether an apply has started or finished/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Approved. No deployment has started.')).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByText('View all deployment stages'));
+    const progress = screen.getByRole('list', { name: 'Deployment progress' });
+    const steps = within(progress).getAllByRole('listitem');
+    expect(steps[2]).toHaveTextContent('Needs attention');
+    expect(steps[2]).toHaveTextContent('Apply status could not be loaded');
+    expect(steps[3]).toHaveTextContent('Unavailable');
   });
 
   it('exports a customer plan summary without internal revision records', async () => {

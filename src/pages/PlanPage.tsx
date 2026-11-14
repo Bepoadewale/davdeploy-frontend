@@ -1,7 +1,11 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import type { CustomerPlanRevision, GeneratedPlanRunHistory } from '../api/contracts';
+import type {
+  CustomerPlanRevision,
+  GeneratedPlanApplyRunHistory,
+  GeneratedPlanRunHistory,
+} from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
 import { ReadableData } from '../components/ReadableData';
 import { StatusBadge } from '../components/StatusBadge';
@@ -383,7 +387,21 @@ function ApprovedProgress({
     },
     [api, review.id, review.project_id],
   );
+  const generatedApplyHistory = useAsync(
+    (signal) => {
+      if (!review.project_id) {
+        return Promise.resolve({ project_id: '', items: [], next_cursor: null });
+      }
+      const query = new URLSearchParams({ revision_id: review.id, limit: '1' });
+      return api.request<GeneratedPlanApplyRunHistory>(
+        `/api/v1/projects/${encodeURIComponent(review.project_id)}/generated-plan-apply-runs?${query}`,
+        { signal },
+      );
+    },
+    [api, review.id, review.project_id],
+  );
   const generatedRun = generatedRunHistory.data?.items?.[0];
+  const generatedApplyRun = generatedApplyHistory.data?.items?.[0];
   const latestPlanRecord = review.terraform_plan_reviews?.[0];
   const applyRecord = review.cloud_execution_runs?.find(
     (item) => item.mode === 'AUTHENTICATED_APP_RUNNER_APPLY',
@@ -395,18 +413,47 @@ function ApprovedProgress({
     ? describeGeneratedPlanRun(generatedRun.state)
     : describePlanReview(latestPlanRecord);
   const planStepTone = getPlanStepTone(generatedRun?.state, latestPlanRecord);
-  const applyStepTone = getOperationStepTone(applyRecord, 'deployment');
-  const healthStep = getHealthStep(applyRecord);
+  const currentApplyRecord = generatedApplyRun
+    ? { ...generatedApplyRun, state: normalizeGeneratedApplyState(generatedApplyRun.state) }
+    : applyRecord;
+  const applyStatusUnavailable = generatedApplyHistory.error && !generatedApplyRun;
+  const applyStepTone = applyStatusUnavailable
+    ? 'needs-attention'
+    : getOperationStepTone(currentApplyRecord, 'deployment');
+  const healthStep = applyStatusUnavailable
+    ? {
+        tone: 'needs-attention' as const,
+        label: 'Unavailable',
+        description: 'Apply status must be confirmed before application health can be checked.',
+      }
+    : generatedApplyRun
+      ? getGeneratedApplyHealthStep(generatedApplyRun.state)
+      : getHealthStep(applyRecord);
   const teardownStepTone = getOperationStepTone(teardownRecord, 'teardown');
-  const applyStatus = applyRecord
-    ? describeOperationState(applyRecord.state, 'deployment')
-    : 'Not started. Approval alone does not create resources.';
+  const applyStatus = generatedApplyRun
+    ? describeGeneratedApplyRun(generatedApplyRun.state)
+    : applyStatusUnavailable
+      ? 'Apply status could not be loaded. Refresh this page to check again.'
+      : applyRecord
+        ? describeOperationState(applyRecord.state, 'deployment')
+        : 'Not started. Approval alone does not create resources.';
   const teardownStatus = teardownRecord
     ? describeOperationState(teardownRecord.state, 'teardown')
     : 'Not started. No resources are being deleted; teardown is not available here yet.';
-  const nextStep = describeNextStep(applyRecord, teardownRecord, generatedRun?.state);
+  const nextStep = applyStatusUnavailable
+    ? {
+        title: 'Apply status could not be confirmed',
+        description: 'This page cannot tell whether an apply has started or finished.',
+        followUp: (
+          <>
+            Refresh this page later, or check <Link to="/history">Plan history</Link> for this
+            revision’s latest status.
+          </>
+        ),
+      }
+    : describeNextStep(currentApplyRecord, teardownRecord, generatedRun?.state);
   const hasRecordedOperation = Boolean(
-    generatedRun || latestPlanRecord || applyRecord || teardownRecord,
+    generatedRun || latestPlanRecord || generatedApplyRun || applyRecord || teardownRecord,
   );
   return (
     <section className="approved-progress" aria-labelledby="deployment-progress-title">
@@ -424,6 +471,7 @@ function ApprovedProgress({
             onClick={() => {
               onRefresh();
               generatedRunHistory.reload();
+              generatedApplyHistory.reload();
             }}
           >
             Refresh status
@@ -436,13 +484,15 @@ function ApprovedProgress({
       {!hasRecordedOperation ? (
         <div className="approved-next-step" role="status">
           <strong>
-            {generatedRunHistory.loading
+            {generatedRunHistory.loading || generatedApplyHistory.loading
               ? 'Checking plan status…'
-              : 'Approved. No deployment has started.'}
+              : generatedRunHistory.error || generatedApplyHistory.error
+                ? 'Approval recorded. Current operation status could not be loaded.'
+                : 'Approved. No deployment has started.'}
           </strong>
           <p>
-            {generatedRunHistory.error
-              ? 'Plan status could not be retrieved right now. Refresh this page to try again.'
+            {generatedRunHistory.error || generatedApplyHistory.error
+              ? 'Plan or apply status could not be retrieved right now. Refresh this page to try again.'
               : 'DavDeploy has recorded the administrator’s decision. Approval does not start deployment; a generated Terraform plan must be reviewed and approved separately.'}
           </p>
           <p>
@@ -535,13 +585,46 @@ function ApprovedProgress({
           </ol>
         </details>
       ) : null}
-      {hasRecordedOperation && generatedRunHistory.error ? (
+      {hasRecordedOperation && (generatedRunHistory.error || generatedApplyHistory.error) ? (
         <p className="muted" role="status">
-          The latest Nova plan status could not be refreshed. Refresh this page to try again.
+          The latest Nova plan or apply status could not be refreshed. Refresh this page to try
+          again.
         </p>
       ) : null}
     </section>
   );
+}
+
+function normalizeGeneratedApplyState(state: string): string {
+  if (state === 'QUEUED') return 'QUEUED';
+  if (state === 'BUILD_STARTED' || state === 'APPLY_RUNNING') return 'RUNNING';
+  if (state === 'APPLY_SUCCEEDED' || state === 'SUCCEEDED') return 'SUCCEEDED_AWAITING_OBSERVATION';
+  if (state === 'APPLY_FAILED' || state === 'FAILED') return 'FAILED';
+  if (state === 'OUTCOME_UNCERTAIN' || state === 'RECONCILIATION_REQUIRED')
+    return 'RECONCILIATION_REQUIRED';
+  return state;
+}
+
+function describeGeneratedApplyRun(state: string): string {
+  if (state === 'QUEUED') return 'Terraform apply is queued.';
+  if (state === 'BUILD_STARTED' || state === 'APPLY_RUNNING')
+    return 'Terraform apply is running. Application health is not confirmed.';
+  if (state === 'APPLY_SUCCEEDED' || state === 'SUCCEEDED')
+    return 'Terraform apply completed. Application health is not verified.';
+  if (state === 'APPLY_FAILED' || state === 'FAILED')
+    return 'Terraform apply failed. Contact workspace support for help investigating it.';
+  if (state === 'OUTCOME_UNCERTAIN' || state === 'RECONCILIATION_REQUIRED')
+    return 'Apply outcome needs confirmation. Do not start another apply until it is reconciled.';
+  if (state === 'CANCELLED') return 'Terraform apply was cancelled. Check with workspace support.';
+  return 'An exact-plan apply request exists, but its status is unclear.';
+}
+
+function getGeneratedApplyHealthStep(state: string): {
+  tone: ProgressTone;
+  label: string;
+  description: string;
+} {
+  return getHealthStep({ state: normalizeGeneratedApplyState(state) });
 }
 
 function describeGeneratedPlanRun(state: string): string {
@@ -688,6 +771,18 @@ function describeNextStep(
         <>
           Refresh this page for updates. Return to <Link to="/history">Plan history</Link> to reopen
           this plan later.
+        </>
+      ),
+    };
+  }
+  if (applyState === 'CANCELLED') {
+    return {
+      title: 'Apply was cancelled',
+      description: 'Check the run history before requesting another change.',
+      followUp: (
+        <>
+          Contact <Link to="/settings">workspace support</Link> if you are unsure whether any
+          resources changed. Reopen this plan from <Link to="/history">Plan history</Link>.
         </>
       ),
     };

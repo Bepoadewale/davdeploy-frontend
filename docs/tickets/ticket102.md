@@ -69,6 +69,10 @@ A read-only source audit covered the frontend routes and production bundle bound
       visible and the customer sees a clear status-only warning.
 - [x] Planning-in-progress, plan-ready, failed, and uncertain statuses show
       next steps that match those outcomes.
+- [x] Approved-plan detail loads exact-plan apply history for that revision,
+      refreshes it with plan status, and distinguishes apply completion from
+      independently verified application health. Status lookup failures do
+      not claim that apply has not started.
 - [x] An out-of-scope response such as stock advice explains that DavDeploy
       plans infrastructure for software workloads and asks for a deployment
       request; the fixed backend detail is not shown as a technical error.
@@ -99,8 +103,24 @@ A read-only source audit covered the frontend routes and production bundle bound
 - [x] The approved-plan page leads with the current status and what happens
       next. The full lifecycle timeline remains available in an accessible,
       collapsed “View all deployment stages” section.
+- [x] Approved-plan detail reads the latest exact-plan apply run for its
+      revision and labels successful apply as awaiting independent health
+      evidence; unavailable apply history is reported without implying no apply.
 
 ## Tests / validation performed
+
+- Exact-plan apply status on the approved-plan detail was added after the
+  prior status-first work. Focused workflow tests: 25 passed, including
+  successful apply with health still unverified and an unavailable-status
+  case that does not claim deployment has not started. `npm run verify` passed
+  with 22 test files and 110 tests; format, lint, typecheck, API contract,
+  public environment, production build, static hosting, SPA refresh, and
+  production dependency audit passed (0 production vulnerabilities).
+- Full `npm run test:browser` passed 9 tests and failed 4 mobile onboarding
+  cases (Team/About visibility, homepage logo, and two local fixture sign-ins);
+  these unrelated mobile failures occur in existing browser tests and do not
+  touch the approved-plan route. The approved-plan browser case passed on both
+  desktop and mobile through a focused Playwright run (2 passed).
 
 - Read-only audit completed on main commit `b6cb14b`; no files or external systems changed by the audit.
 - `npm run verify` passed after the implementation and export sanitization: 22 test files and 101 tests passed; formatting, lint, typecheck, API contract, public environment, production build, static build, SPA refresh, and production dependency audit passed (0 vulnerabilities).
