@@ -10,7 +10,9 @@ const auth = vi.hoisted(() => ({
   },
   api: { request: vi.fn() },
 }));
+const download = vi.hoisted(() => ({ json: vi.fn() }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => auth }));
+vi.mock('../utils/downloadJson', () => ({ downloadJson: download.json }));
 
 import ActivityPage from './ActivityPage';
 import NewPlanPage from './NewPlanPage';
@@ -20,6 +22,7 @@ import SettingsPage from './SettingsPage';
 const review = {
   id: 'revision-1',
   plan_id: 'customer-plan-1',
+  project_id: 'project-1',
   revision: 1,
   state: 'SUBMITTED',
   creator_subject: 'developer',
@@ -135,7 +138,7 @@ describe('customer workflows', () => {
       '64',
     );
     expect(screen.getByRole('textbox', { name: 'Project name' })).toBeRequired();
-    expect(screen.getByRole('combobox', { name: 'Cloud provider' })).toHaveValue('aws');
+    expect(screen.queryByRole('combobox', { name: 'Cloud provider' })).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'AWS account ID' })).toBeRequired();
     expect(screen.getByRole('combobox', { name: /expected usage/i })).toHaveValue('5');
     expect(screen.getByRole('combobox', { name: /peak pattern/i })).toHaveValue('4');
@@ -144,24 +147,21 @@ describe('customer workflows', () => {
     expect(screen.getByText(/no traffic forecast is required/i)).toBeInTheDocument();
   });
 
-  it('keeps future cloud providers visible without presenting them as available', async () => {
+  it('offers only the currently available cloud provider', async () => {
     auth.api.request.mockImplementation((path: string) => {
       if (path === '/api/v1/github/connection')
         return Promise.resolve({ execution: 'SIMULATED', installations: [] });
       if (path === '/api/v1/cloud-connections') return Promise.resolve([]);
       return Promise.resolve([]);
     });
-    const user = userEvent.setup();
     render(
       <MemoryRouter>
         <NewPlanPage />
       </MemoryRouter>,
     );
 
-    const provider = await screen.findByRole('combobox', { name: 'Cloud provider' });
-    await user.selectOptions(provider, 'azure');
-    expect(screen.getByText(/azure connections are coming soon/i)).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', { name: 'AWS account ID' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('textbox', { name: 'AWS account ID' })).toBeInTheDocument();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
   });
 
   it('routes account setup from Create Plan into Connections', async () => {
@@ -238,6 +238,59 @@ describe('customer workflows', () => {
     expect(await screen.findByText('This plan needs a larger budget.')).toBeInTheDocument();
     expect(screen.getByText(/choose \$250 or more, then try again/i)).toBeInTheDocument();
     expect(screen.getByText('Technical details')).toBeInTheDocument();
+  });
+
+  it('explains that unrelated requests are out of scope without showing a generic planning failure', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/github/connection')
+        return Promise.resolve({ execution: 'SIMULATED', installations: [] });
+      if (path === '/api/v1/cloud-connections') return Promise.resolve([verifiedAwsConnection]);
+      if (path.startsWith('/api/v1/github/public-repository?'))
+        return Promise.resolve({
+          full_name: 'example/support-api',
+          html_url: 'https://github.com/example/support-api',
+          default_branch: 'main',
+          branches: ['main'],
+        });
+      if (path === '/api/v1/projects') return Promise.resolve({ id: 'project-1' });
+      if (path.endsWith('/repository-discovery')) return Promise.resolve({ evidence: [] });
+      if (path === '/api/v1/intents')
+        return Promise.reject(
+          new Error(
+            'DavDeploy helps plan and manage AWS infrastructure for software workloads. It cannot answer general questions or provide stock or investment advice. Describe the application or workload you want to deploy.',
+          ),
+        );
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <NewPlanPage />
+      </MemoryRouter>,
+    );
+    await user.click(await screen.findByRole('button', { name: 'Public GitHub URL' }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Public GitHub repository' }),
+      'https://github.com/example/support-api',
+    );
+    await user.click(screen.getByRole('button', { name: 'Check repository' }));
+    await user.type(screen.getByRole('textbox', { name: 'Project name' }), 'Support API');
+    await user.type(screen.getByRole('textbox', { name: 'AWS account ID' }), '123456789012');
+    await user.clear(screen.getByRole('textbox', { name: /desired outcome/i }));
+    await user.type(
+      screen.getByRole('textbox', { name: /desired outcome/i }),
+      'Should I buy a particular stock this week?',
+    );
+    await user.click(await screen.findByRole('button', { name: /analyze and create plan/i }));
+
+    expect(
+      await screen.findByText("This request is outside DavDeploy's scope."),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/not general questions or investment advice/i)).toBeInTheDocument();
+    expect(screen.queryByText('Technical details')).not.toBeInTheDocument();
+    expect(auth.api.request.mock.calls.map(([path]) => path)).not.toContain(
+      '/api/v1/intents/intent-1/plans',
+    );
   });
 
   it('verifies and plans from a customer-selected public repository', async () => {
@@ -377,7 +430,7 @@ describe('customer workflows', () => {
       'details',
     );
     expect(applicationDetails).not.toHaveAttribute('open');
-    expect(screen.getAllByText('Read details')).toHaveLength(7);
+    expect(screen.getAllByText('Read details')).toHaveLength(6);
     await user.click(screen.getAllByText('Read details')[0]);
     expect(applicationDetails).toHaveAttribute('open');
     expect(screen.getByText('example/support-api')).toBeVisible();
@@ -396,17 +449,12 @@ describe('customer workflows', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Deployment progress' })).toBeInTheDocument();
-    expect(screen.getByText('Approved · revision 1')).toBeInTheDocument();
-    expect(
-      screen.getByText('No Terraform plan is attached to this approval yet.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Not started. No resources are being deleted; teardown is not available here yet.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/cannot yet prepare the costed saved plan/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Approval status' })).toBeInTheDocument();
+    expect(await screen.findByText('Approved. No deployment has started.')).toBeInTheDocument();
+    expect(screen.getByText(/approval does not start deployment/i)).toBeInTheDocument();
+    expect(screen.queryByText('Terraform plan')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application health')).not.toBeInTheDocument();
+    expect(screen.queryByText('Teardown')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Find this plan later' })).toHaveAttribute(
       'href',
       '/history',
@@ -418,9 +466,242 @@ describe('customer workflows', () => {
     expect(
       screen.queryByRole('button', { name: 'Create reviewed destroy plan' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Approved.')).toBeInTheDocument();
+    const runHistoryPath =
+      '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1';
+    await waitFor(() =>
+      expect(
+        auth.api.request.mock.calls.filter(([path]) => path === runHistoryPath).length,
+      ).toBeGreaterThan(0),
+    );
+    const runHistoryCallsBeforeRefresh = auth.api.request.mock.calls.filter(
+      ([path]) => path === runHistoryPath,
+    ).length;
     await user.click(screen.getByRole('button', { name: 'Refresh status' }));
-    await waitFor(() => expect(auth.api.request).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        auth.api.request.mock.calls.filter(([path]) => path === runHistoryPath).length,
+      ).toBeGreaterThan(runHistoryCallsBeforeRefresh),
+    );
+  });
+
+  it('retrieves Nova status for this exact revision and labels a ready plan as unapplied', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/customer-plan-revisions/revision-1')
+        return Promise.resolve({ ...review, state: 'APPROVED' });
+      if (path === '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1')
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'run-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_sha256: 'a'.repeat(64),
+              proposal_sha256: 'b'.repeat(64),
+              state: 'PLAN_READY_REVIEW_ONLY',
+              plan_title: 'Support API',
+              revision_number: 1,
+            },
+          ],
+          next_cursor: null,
+        });
+      if (
+        path ===
+        '/api/v1/projects/project-1/generated-plan-apply-runs?revision_id=revision-1&limit=1'
+      )
+        return Promise.resolve({ project_id: 'project-1', items: [], next_cursor: null });
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText('Terraform plan is ready for review. It has not been applied.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Plan created; costed review is still needed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/cost review and final approval are separate steps/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Nova plan request · revision 1')).toBeInTheDocument();
+    const stageDisclosure = screen.getByText('View all deployment stages');
+    const stageDetails = stageDisclosure.closest('details');
+    expect(stageDetails).not.toHaveAttribute('open');
+    await userEvent.setup().click(stageDisclosure);
+    expect(stageDetails).toHaveAttribute('open');
+    const progress = await screen.findByRole('list', { name: 'Deployment progress' });
+    const steps = within(progress).getAllByRole('listitem');
+    expect(steps[0]).toHaveTextContent('Administrator approval');
+    expect(within(steps[0]).getByText('Complete')).toBeInTheDocument();
+    expect(steps[1]).toHaveTextContent('Terraform plan');
+    expect(within(steps[1]).getByText('Complete')).toBeInTheDocument();
+    expect(steps[2]).toHaveTextContent('Deployment');
+    expect(within(steps[2]).getByText('Not started')).toBeInTheDocument();
+    expect(steps[3]).toHaveTextContent('Application health');
+    expect(within(steps[3]).getByText('Not started')).toBeInTheDocument();
+    expect(steps[4]).toHaveTextContent('Teardown');
+    expect(within(steps[4]).getByText('Not started')).toBeInTheDocument();
+    expect(
+      screen.getByText(/not started.*informational.*action is available/i),
+    ).toBeInTheDocument();
+    expect(auth.api.request).toHaveBeenCalledWith(
+      '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('shows exact-plan apply status and keeps application health unverified', async () => {
+    const applyHistoryPath =
+      '/api/v1/projects/project-1/generated-plan-apply-runs?revision_id=revision-1&limit=1';
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/customer-plan-revisions/revision-1')
+        return Promise.resolve({ ...review, state: 'APPROVED' });
+      if (path === applyHistoryPath)
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'apply-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_number: 1,
+              source_plan_run_id: 'plan-run-1',
+              artifact_id: 'artifact-1',
+              plan_title: 'Support API',
+              state: 'APPLY_SUCCEEDED',
+            },
+          ],
+          next_cursor: null,
+        });
+      if (path === '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1')
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'run-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_sha256: 'a'.repeat(64),
+              proposal_sha256: 'b'.repeat(64),
+              state: 'PLAN_READY_REVIEW_ONLY',
+              plan_title: 'Support API',
+              revision_number: 1,
+            },
+          ],
+          next_cursor: null,
+        });
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText('Terraform apply completed. Application health is not verified.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Apply finished; health is not confirmed')).toBeInTheDocument();
+    await user.click(screen.getByText('View all deployment stages'));
+    const progress = screen.getByRole('list', { name: 'Deployment progress' });
+    const steps = within(progress).getAllByRole('listitem');
+    expect(steps[2]).toHaveTextContent('Deployment');
+    expect(steps[2]).toHaveTextContent('Complete');
+    expect(steps[3]).toHaveTextContent('Application health');
+    expect(steps[3]).toHaveTextContent('Not verified');
+    expect(steps[3]).toHaveTextContent('No independent health result');
+    expect(auth.api.request).toHaveBeenCalledWith(
+      applyHistoryPath,
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('does not claim apply has not started when exact apply status cannot be loaded', async () => {
+    auth.api.request.mockImplementation((path: string) => {
+      if (path === '/api/v1/customer-plan-revisions/revision-1')
+        return Promise.resolve({ ...review, state: 'APPROVED' });
+      if (path === '/api/v1/projects/project-1/generated-plan-runs?revision_id=revision-1&limit=1')
+        return Promise.resolve({
+          project_id: 'project-1',
+          items: [
+            {
+              id: 'run-1',
+              project_id: 'project-1',
+              revision_id: 'revision-1',
+              revision_sha256: 'a'.repeat(64),
+              proposal_sha256: 'b'.repeat(64),
+              state: 'PLAN_READY_REVIEW_ONLY',
+              plan_title: 'Support API',
+              revision_number: 1,
+            },
+          ],
+          next_cursor: null,
+        });
+      if (
+        path ===
+        '/api/v1/projects/project-1/generated-plan-apply-runs?revision_id=revision-1&limit=1'
+      )
+        return Promise.reject(new Error('status unavailable'));
+      return Promise.reject(new Error(`Unexpected ${path}`));
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Apply status could not be confirmed')).toBeInTheDocument();
+    expect(
+      screen.getByText(/cannot tell whether an apply has started or finished/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Approved. No deployment has started.')).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByText('View all deployment stages'));
+    const progress = screen.getByRole('list', { name: 'Deployment progress' });
+    const steps = within(progress).getAllByRole('listitem');
+    expect(steps[2]).toHaveTextContent('Needs attention');
+    expect(steps[2]).toHaveTextContent('Apply status could not be loaded');
+    expect(steps[3]).toHaveTextContent('Unavailable');
+  });
+
+  it('exports a customer plan summary without internal revision records', async () => {
+    download.json.mockClear();
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      local_executions: [{ id: 'local-run-1' }],
+      cloud_execution_runs: [{ id: 'internal-run-1' }],
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Download plan evidence' }));
+    expect(download.json).toHaveBeenCalledWith(
+      'davdeploy-plan-revision-1.json',
+      expect.objectContaining({
+        export_type: 'customer-plan-summary',
+        plan: expect.objectContaining({ revision: 1, title: 'App Runner' }),
+      }),
+    );
+    const exported = JSON.stringify(download.json.mock.calls[0]);
+    expect(exported).not.toContain('creator_subject');
+    expect(exported).not.toContain('local_executions');
+    expect(exported).not.toContain('internal-run-1');
+    expect(exported).not.toContain('content_digest');
   });
 
   it('shows recorded apply and teardown evidence without claiming health or absence', async () => {
@@ -518,7 +799,32 @@ describe('customer workflows', () => {
     expect(screen.queryByText(/nothing is being deployed/i)).not.toBeInTheDocument();
   });
 
+  it('directs failed lifecycle operations to customer support instead of hidden technical records', async () => {
+    auth.api.request.mockResolvedValue({
+      ...review,
+      state: 'APPROVED',
+      cloud_execution_runs: [
+        { id: 'apply-1', mode: 'AUTHENTICATED_APP_RUNNER_APPLY', state: 'FAILED' },
+      ],
+    });
+    render(
+      <MemoryRouter initialEntries={['/plans/revision-1']}>
+        <Routes>
+          <Route path="/plans/:revisionId" element={<PlanPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('An operation needs attention')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contact workspace support' })).toHaveAttribute(
+      'href',
+      '/settings',
+    );
+    expect(screen.queryByText(/technical records|evidence inventory/i)).not.toBeInTheDocument();
+  });
+
   it('groups audit evidence and exposes inspectable event detail', async () => {
+    download.json.mockClear();
     auth.api.request.mockResolvedValue([
       {
         id: 'event-1',
@@ -546,13 +852,20 @@ describe('customer workflows', () => {
     await user.click(await screen.findByRole('button', { name: /plan submitted/i }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByRole('heading', { name: /plan submitted/i })).toBeInTheDocument();
-    expect(within(dialog).getByText(/event evidence/i)).toBeInTheDocument();
+    expect(within(dialog).getByText('Payments')).toBeInTheDocument();
+    expect(within(dialog).queryByText('developer')).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
 
     await user.selectOptions(screen.getByLabelText('Project'), 'Payments');
     await user.selectOptions(screen.getByLabelText('Environment'), 'production');
     expect(screen.queryByRole('button', { name: /plan created/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Download evidence' })).toBeEnabled();
+    const downloadButton = screen.getByRole('button', { name: 'Download activity summary' });
+    expect(downloadButton).toBeEnabled();
+    await user.click(downloadButton);
+    const exported = JSON.stringify(download.json.mock.calls[0]);
+    expect(exported).not.toContain('actor_subject');
+    expect(exported).not.toContain('developer');
+    expect(exported).not.toContain('event-1');
   });
 
   it('records a support request without claiming it sends an email', async () => {
@@ -561,7 +874,6 @@ describe('customer workflows', () => {
       if (path.endsWith('/members'))
         return Promise.resolve([{ subject: 'developer', role: 'developer' }]);
       if (path.endsWith('/usage')) return Promise.resolve({});
-      if (path.endsWith('/subscription')) return Promise.resolve({});
       if (path === '/api/v1/support/tickets' && !options?.method) return Promise.resolve([]);
       if (path === '/api/v1/support/tickets' && options?.method === 'POST')
         return Promise.resolve({ id: 'support-1', state: 'OPEN' });
@@ -600,7 +912,7 @@ describe('customer workflows', () => {
     auth.api.request.mockImplementation((path: string, options?: { method?: string }) => {
       if (path.endsWith('/members')) return Promise.resolve([]);
       if (path.endsWith('/workspace/invitations')) return Promise.resolve([]);
-      if (path.endsWith('/usage') || path.endsWith('/subscription')) return Promise.resolve({});
+      if (path.endsWith('/usage')) return Promise.resolve({});
       if (path === '/api/v1/support/tickets' && !options?.method)
         return Promise.resolve([
           {
@@ -631,12 +943,12 @@ describe('customer workflows', () => {
     );
   });
 
-  it('filters support history by status while retaining requester and timestamp context', async () => {
+  it('filters support history by status without exposing internal requester IDs', async () => {
     auth.profile.user.role = 'administrator';
     auth.api.request.mockImplementation((path: string) => {
       if (path.endsWith('/members') || path.endsWith('/workspace/invitations'))
         return Promise.resolve([]);
-      if (path.endsWith('/usage') || path.endsWith('/subscription')) return Promise.resolve({});
+      if (path.endsWith('/usage')) return Promise.resolve({});
       if (path === '/api/v1/support/tickets')
         return Promise.resolve([
           {
@@ -666,24 +978,20 @@ describe('customer workflows', () => {
     );
 
     expect(await screen.findByText('Open request')).toBeInTheDocument();
-    expect(screen.getByText(/developer ·/i)).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText('Support request history')).queryByText('developer'),
+    ).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Filter support status'), 'RESOLVED');
     expect(screen.queryByText('Open request')).not.toBeInTheDocument();
     expect(screen.getByText('Resolved request')).toBeInTheDocument();
   });
 
-  it('keeps payment collection out of billing-ready settings', async () => {
+  it('keeps internal entitlement names and payment collection out of customer settings', async () => {
     auth.profile.user.role = 'developer';
     auth.api.request.mockImplementation((path: string) => {
       if (path.endsWith('/members'))
         return Promise.resolve([{ subject: 'developer', role: 'developer' }]);
       if (path.endsWith('/usage')) return Promise.resolve({ plans_created: 2 });
-      if (path.endsWith('/subscription'))
-        return Promise.resolve({
-          plan_name: 'private-beta',
-          state: 'ACTIVE',
-          limits: { plans: 20 },
-        });
       if (path === '/api/v1/support/tickets') return Promise.resolve([]);
       return Promise.resolve({});
     });
@@ -692,10 +1000,12 @@ describe('customer workflows', () => {
         <SettingsPage />
       </MemoryRouter>,
     );
-    expect(await screen.findByText(/does not collect payment details/i)).toBeInTheDocument();
+    expect(await screen.findByText('Metered product activity')).toBeInTheDocument();
     expect(document.querySelector('.settings-stack')).toBeInTheDocument();
     expect(document.querySelector('.settings-grid')).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/card number/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/private-beta/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/billing-ready/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /request deletion/i })).toBeDisabled();
   });
 
@@ -719,8 +1029,6 @@ describe('customer workflows', () => {
           },
         ]);
       if (path.endsWith('/usage')) return Promise.resolve({});
-      if (path.endsWith('/subscription'))
-        return Promise.resolve({ plan_name: 'private-beta', state: 'ACTIVE', limits: {} });
       if (path === '/api/v1/support/tickets') return Promise.resolve([]);
       if (path.endsWith('/resend') || path.endsWith('/cancel')) return Promise.resolve({});
       return Promise.reject(new Error(`Unexpected ${path}`));

@@ -9,7 +9,7 @@ import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
 
 export default function ConnectionsPage() {
-  const { api } = useAuth();
+  const { api, profile } = useAuth();
   const [searchParams] = useSearchParams();
   const state = useAsync(
     async (signal) => ({
@@ -18,14 +18,9 @@ export default function ConnectionsPage() {
     }),
     [api],
   );
-  const [cloudProvider, setCloudProvider] = useState('aws');
   const [accountId, setAccountId] = useState(searchParams.get('account') ?? '');
-  const [accessMode, setAccessMode] = useState<
-    'existing-role' | 'discovery' | 'administrator-pilot'
-  >('discovery');
+  const [accessMode, setAccessMode] = useState<'existing-role' | 'discovery'>('discovery');
   const [discoveryRoleArn, setDiscoveryRoleArn] = useState('');
-  const [executionRoleArn, setExecutionRoleArn] = useState('');
-  const [administratorAcknowledged, setAdministratorAcknowledged] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,7 +47,6 @@ export default function ConnectionsPage() {
             body: {
               account_id: accountId,
               discovery_role_arn: discoveryRoleArn,
-              execution_role_arn: executionRoleArn || undefined,
             },
             retrySafe: false,
           },
@@ -70,16 +64,14 @@ export default function ConnectionsPage() {
           body: {
             account_id: accountId,
             access_mode: accessMode,
-            acknowledge_administrator_access: administratorAcknowledged,
+            acknowledge_administrator_access: false,
           },
           retrySafe: false,
         },
       );
       window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
       setMessage(
-        accessMode === 'administrator-pilot'
-          ? 'AWS opened a review page for a separate AdministratorAccess pilot role.'
-          : 'AWS opened a review page for a read-only discovery role. No workload resources were requested.',
+        'AWS opened a review page for a read-only discovery role. No workload resources were requested.',
       );
       state.reload();
     } catch (error) {
@@ -104,7 +96,7 @@ export default function ConnectionsPage() {
     }
   }
 
-  async function verifyConnection(id: string) {
+  async function verifyConnection(id: string, planRoleSetup = false) {
     setBusy(true);
     setMessage(null);
     setError(null);
@@ -115,12 +107,45 @@ export default function ConnectionsPage() {
       );
       setMessage(
         job.state === 'SUCCEEDED'
-          ? 'Cloud connection verified. Live inventory is now available for planning.'
-          : 'Verification queued. Refresh this page shortly to see the verified connection.',
+          ? planRoleSetup
+            ? 'Plan-only role identity verified. Its effective permissions are not attested.'
+            : 'Cloud connection verified. Live inventory is now available for planning.'
+          : planRoleSetup
+            ? 'Plan-only role verification queued. Refresh this page shortly to check its status.'
+            : 'Verification queued. Refresh this page shortly to see the verified connection.',
       );
       state.reload();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Connection verification failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function beginPlanRoleSetup(connection: CloudConnection) {
+    if (!connection.account_id) {
+      setError('The verified AWS connection is missing its account ID.');
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const setup = await api.request<{ quick_create_url: string }>(
+        `/api/v1/cloud-connections/${connection.id}/aws-quick-create`,
+        {
+          method: 'POST',
+          body: { account_id: connection.account_id, access_mode: 'plan-only' },
+          retrySafe: false,
+        },
+      );
+      window.open(setup.quick_create_url, '_blank', 'noopener,noreferrer');
+      setMessage(
+        'AWS opened the plan-only role review page. Review and create the role there, then return and verify it here.',
+      );
+      state.reload();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Plan-only role setup failed.');
     } finally {
       setBusy(false);
     }
@@ -173,9 +198,7 @@ export default function ConnectionsPage() {
                       <span className="compact-mark">GH</span>
                       <span>
                         <b>{item.account_login}</b>
-                        <small>
-                          {item.account_type} · installation {item.id}
-                        </small>
+                        <small>{item.account_type} GitHub account</small>
                       </span>
                     </div>
                   ))}
@@ -221,8 +244,8 @@ export default function ConnectionsPage() {
                 </div>
               </div>
               <p className="muted">
-                DavDeploy never asks the browser for provider access keys. AWS setup creates scoped
-                role metadata through an AWS review.
+                DavDeploy never asks the browser for provider access keys. Connect an AWS account
+                with read-only access for planning, or attach an existing read-only role.
               </p>
               <div
                 className="connection-access-options"
@@ -230,13 +253,12 @@ export default function ConnectionsPage() {
                 aria-label="AWS access type"
               >
                 {[
-                  ['existing-role', 'Use an existing role', 'Bring a customer-managed role.'],
-                  ['discovery', 'Create read-only access', 'Recommended for planning.'],
                   [
-                    'administrator-pilot',
-                    'Enable deployment pilot',
-                    'Creates a separate AdministratorAccess role.',
+                    'existing-role',
+                    'Attach an existing role',
+                    'Bring a customer-managed read-only role.',
                   ],
+                  ['discovery', 'Create read-only access', 'For account discovery and planning.'],
                 ].map(([value, title, detail]) => (
                   <button
                     key={value}
@@ -244,7 +266,6 @@ export default function ConnectionsPage() {
                     className={accessMode === value ? 'is-selected' : ''}
                     onClick={() => {
                       setAccessMode(value as typeof accessMode);
-                      setAdministratorAcknowledged(false);
                     }}
                   >
                     <b>{title}</b>
@@ -252,22 +273,6 @@ export default function ConnectionsPage() {
                   </button>
                 ))}
               </div>
-              {accessMode === 'administrator-pilot' ? (
-                <div className="notice notice-error">
-                  <p>
-                    Pilot access can create, change, and delete AWS resources. Use it only for a
-                    reviewed deployment pilot.
-                  </p>
-                  <label className="administrator-acknowledgement">
-                    <input
-                      type="checkbox"
-                      checked={administratorAcknowledged}
-                      onChange={(event) => setAdministratorAcknowledged(event.target.checked)}
-                    />
-                    <span>I understand this creates an AdministratorAccess role.</span>
-                  </label>
-                </div>
-              ) : null}
               {accessMode === 'existing-role' ? (
                 <div className="form-grid">
                   <label>
@@ -278,69 +283,29 @@ export default function ConnectionsPage() {
                       placeholder="arn:aws:iam::123456789012:role/DavDeployDiscovery"
                     />
                   </label>
-                  <label>
-                    Deployment role ARN <small>(optional)</small>
-                    <input
-                      value={executionRoleArn}
-                      onChange={(event) => setExecutionRoleArn(event.target.value)}
-                      placeholder="arn:aws:iam::123456789012:role/DavDeployExecution"
-                    />
-                  </label>
                 </div>
               ) : null}
               <div className="inline-form">
                 <label>
-                  Cloud provider
-                  <select
-                    value={cloudProvider}
-                    onChange={(event) => setCloudProvider(event.target.value)}
-                  >
-                    <option value="aws">AWS</option>
-                    <option value="azure">Azure (coming soon)</option>
-                    <option value="gcp">Google Cloud (coming soon)</option>
-                    <option value="other">Other cloud (coming soon)</option>
-                  </select>
+                  AWS account ID
+                  <input
+                    inputMode="numeric"
+                    maxLength={12}
+                    value={accountId}
+                    onChange={(event) => setAccountId(event.target.value.replace(/\D/g, ''))}
+                    placeholder="123456789012"
+                  />
                 </label>
-                {cloudProvider === 'aws' ? (
-                  <>
-                    <label>
-                      AWS account ID
-                      <input
-                        inputMode="numeric"
-                        maxLength={12}
-                        value={accountId}
-                        onChange={(event) => setAccountId(event.target.value.replace(/\D/g, ''))}
-                        placeholder="123456789012"
-                      />
-                    </label>
-                    <button
-                      className="button button-primary"
-                      type="button"
-                      disabled={
-                        busy ||
-                        !accountId ||
-                        (accessMode === 'existing-role' && !discoveryRoleArn) ||
-                        (accessMode === 'administrator-pilot' && !administratorAcknowledged)
-                      }
-                      onClick={() => void beginCloudConnection()}
-                    >
-                      {accessMode === 'existing-role'
-                        ? 'Use role contract'
-                        : accessMode === 'administrator-pilot'
-                          ? 'Enable pilot access'
-                          : 'Connect Account'}
-                    </button>
-                  </>
-                ) : (
-                  <p className="cloud-provider-coming-soon" role="status">
-                    {cloudProvider === 'azure'
-                      ? 'Azure'
-                      : cloudProvider === 'gcp'
-                        ? 'Google Cloud'
-                        : 'This cloud'}{' '}
-                    connections are coming soon. Choose AWS to connect an account today.
-                  </p>
-                )}
+                <button
+                  className="button button-primary"
+                  type="button"
+                  disabled={
+                    busy || !accountId || (accessMode === 'existing-role' && !discoveryRoleArn)
+                  }
+                  onClick={() => void beginCloudConnection()}
+                >
+                  {accessMode === 'existing-role' ? 'Attach read-only role' : 'Connect account'}
+                </button>
               </div>
               {state.data.cloud.length ? (
                 <div className="connection-list">
@@ -354,15 +319,51 @@ export default function ConnectionsPage() {
                         </small>
                       </div>
                       <StatusBadge state={item.setup_state} />
-                      {item.setup_state === 'SETUP_LINK_GENERATED' ? (
+                      {item.plan_role_arn ? (
+                        <div className="plan-role-status">
+                          <small>
+                            Plan-only role · {describePlanRoleState(item.plan_role_setup_state)}
+                            {item.plan_role_policy_status === 'POLICY_UNATTESTED'
+                              ? ' · effective AWS permissions have not been verified'
+                              : ''}
+                          </small>
+                        </div>
+                      ) : null}
+                      {item.plan_role_setup_available && profile?.user.role === 'administrator' ? (
                         <button
                           className="button button-secondary"
                           disabled={busy}
                           type="button"
-                          onClick={() => void verifyConnection(item.id)}
+                          onClick={() => void beginPlanRoleSetup(item)}
                         >
-                          Verify setup
+                          Set up plan-only role
                         </button>
+                      ) : null}
+                      {item.setup_state === 'SETUP_LINK_GENERATED' ||
+                      item.plan_role_setup_state === 'SETUP_LINK_GENERATED' ? (
+                        <button
+                          className="button button-secondary"
+                          disabled={busy}
+                          type="button"
+                          onClick={() =>
+                            void verifyConnection(
+                              item.id,
+                              item.plan_role_setup_state === 'SETUP_LINK_GENERATED',
+                            )
+                          }
+                        >
+                          {item.plan_role_setup_state === 'SETUP_LINK_GENERATED'
+                            ? 'Verify plan-only role'
+                            : 'Verify setup'}
+                        </button>
+                      ) : null}
+                      {item.setup_state === 'VERIFIED' &&
+                      !item.plan_role_arn &&
+                      !item.plan_role_setup_available &&
+                      profile?.user.role === 'administrator' ? (
+                        <small className="muted">
+                          Plan-only role setup is not currently available for this connection.
+                        </small>
                       ) : null}
                       <button
                         className="button button-quiet"
@@ -387,4 +388,11 @@ export default function ConnectionsPage() {
       </AsyncRegion>
     </div>
   );
+}
+
+function describePlanRoleState(state: string | undefined): string {
+  if (state === 'SETUP_LINK_GENERATED') return 'setup waiting for verification';
+  if (state === 'VERIFIED') return 'account identity verified';
+  if (state === 'VERIFICATION_FAILED') return 'verification failed';
+  return 'status unavailable';
 }

@@ -66,8 +66,8 @@ export default function BlogManagePage() {
         </div>
         <section className="panel" aria-labelledby="blog-author-access-required">
           <p id="blog-author-access-required">
-            Your workspace sign-in is shared with the public blog. Publishing is available to
-            verified @davdeploy.tech addresses and bepoadewale1@gmail.com.
+            Your workspace account is not authorized to publish to the DavDeploy journal. Contact
+            your workspace administrator if you believe this is incorrect.
           </p>
           <Link className="button button-secondary" to="/blog">
             View the public blog

@@ -58,6 +58,24 @@ export interface DashboardResponse {
   recent_activity?: AuditEvent[];
 }
 
+export interface CustomerPlanRevisionHistory {
+  project_id: string;
+  items: CustomerPlanRevisionSummary[];
+  next_cursor: string | null;
+}
+
+export interface CustomerPlanRevisionSummary {
+  id: string;
+  plan_id: string;
+  project_id: string;
+  title: string;
+  revision: number;
+  state: PlanState | string;
+  content_digest: string;
+  created_at?: string | null;
+  submitted_at?: string | null;
+}
+
 export interface GitHubInstallation {
   id: string;
   account_login: string;
@@ -94,6 +112,10 @@ export interface CloudConnection {
   account_id?: string | null;
   role_arn?: string | null;
   setup_state: string;
+  plan_role_arn?: string | null;
+  plan_role_setup_state?: string;
+  plan_role_policy_status?: string;
+  plan_role_setup_available?: boolean;
   authorized_regions?: string[];
   capabilities?: string[];
   verified_at?: string | null;
@@ -149,6 +171,52 @@ export interface CustomerPlanRevision {
   created_at?: string;
 }
 
+export interface GeneratedPlanRunHistory {
+  project_id: string;
+  items: GeneratedPlanRunSummary[];
+  next_cursor: string | null;
+}
+
+export interface GeneratedPlanRunSummary {
+  id: string;
+  project_id: string;
+  revision_id: string;
+  revision_sha256: string;
+  proposal_sha256: string;
+  state: string;
+  plan_title: string;
+  revision_number: number;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error_code?: string | null;
+  error_summary?: string | null;
+  execution_boundary?: string;
+}
+
+export interface GeneratedPlanApplyRunHistory {
+  project_id: string;
+  items: GeneratedPlanApplyRunSummary[];
+  next_cursor: string | null;
+}
+
+export interface GeneratedPlanApplyRunSummary {
+  id: string;
+  project_id: string;
+  plan_title: string;
+  revision_id: string;
+  revision_number: number;
+  source_plan_run_id: string;
+  artifact_id: string;
+  state: string;
+  created_at?: string | null;
+  started_at?: string | null;
+  finished_at?: string | null;
+  error_code?: string | null;
+  error_summary?: string | null;
+  execution_boundary?: string;
+}
+
 export interface PlanGenerationResult {
   id: string;
   plan_hash?: string;
@@ -169,13 +237,6 @@ export interface WorkspaceMember {
 }
 
 export interface UsageSummary {
-  [key: string]: unknown;
-}
-
-export interface Subscription {
-  plan_name?: string;
-  state?: string;
-  limits?: Record<string, number>;
   [key: string]: unknown;
 }
 

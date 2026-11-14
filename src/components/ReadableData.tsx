@@ -37,18 +37,3 @@ function renderValue(value: unknown): ReactNode {
 export function ReadableData({ value }: { value: unknown }) {
   return <div className="readable-data">{renderValue(value)}</div>;
 }
-
-export function RawData({
-  value,
-  label = 'Inspect raw response',
-}: {
-  value: unknown;
-  label?: string;
-}) {
-  return (
-    <details className="raw-data">
-      <summary>{label}</summary>
-      <pre>{JSON.stringify(value, null, 2)}</pre>
-    </details>
-  );
-}

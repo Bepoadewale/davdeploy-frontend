@@ -1209,6 +1209,10 @@ code {
   margin-top: 2px;
   font-size: 10px;
 }
+.row-link .plan-run-status {
+  color: var(--brand);
+  font-weight: 700;
+}
 .row-link > span:last-child {
   color: var(--faint);
   font-size: 20px;
@@ -1738,25 +1742,6 @@ label > small {
 .data-list dd {
   margin: 0;
 }
-.raw-data {
-  margin-top: 12px;
-}
-.raw-data summary {
-  color: var(--brand);
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-}
-.raw-data pre {
-  max-height: 300px;
-  overflow: auto;
-  padding: 12px;
-  background: #101828;
-  border-radius: 8px;
-  color: #d0d5dd;
-  font-size: 10px;
-  white-space: pre-wrap;
-}
 .governance-panel {
   margin: 12px 0;
 }
@@ -1785,6 +1770,23 @@ label > small {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+.current-deployment-status .eyebrow {
+  margin: 0 0 4px;
+}
+.deployment-details {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.deployment-details > summary {
+  width: fit-content;
+  color: var(--brand);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+.deployment-details[open] > summary {
+  margin-bottom: 12px;
 }
 .deployment-step {
   display: grid;
@@ -1819,6 +1821,21 @@ label > small {
   color: var(--success, #067647);
   border-color: currentColor;
 }
+.deployment-step.is-in-progress .deployment-step-marker {
+  color: var(--brand);
+  border-color: currentColor;
+}
+.deployment-step.is-needs-attention .deployment-step-marker,
+.deployment-step.is-not-verified .deployment-step-marker {
+  color: var(--danger);
+  border-color: currentColor;
+}
+.deployment-step.is-not-verified .deployment-step-marker {
+  color: #7a2e0e;
+}
+.deployment-step.is-not-started .deployment-step-marker {
+  border-style: dashed;
+}
 .deployment-step strong,
 .deployment-step span:not(.deployment-step-marker) {
   display: block;
@@ -1831,6 +1848,43 @@ label > small {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
+}
+.deployment-step-status {
+  width: max-content;
+  margin: 0 0 5px;
+  padding: 2px 8px;
+  color: var(--muted);
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11px !important;
+  font-weight: 700;
+}
+.deployment-step.is-complete .deployment-step-status {
+  color: var(--success);
+  background: var(--success-soft);
+  border-color: #abefc6;
+}
+.deployment-step.is-in-progress .deployment-step-status {
+  color: var(--brand-strong);
+  background: var(--brand-soft);
+  border-color: #b2ccff;
+}
+.deployment-step.is-needs-attention .deployment-step-status,
+.deployment-step.is-not-verified .deployment-step-status {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: #fecdca;
+}
+.deployment-step.is-not-verified .deployment-step-status {
+  color: #7a2e0e;
+  background: var(--warning-soft);
+  border-color: #fedf89;
+}
+.deployment-progress-help {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 12px;
 }
 .approved-next-step {
   padding: 14px 16px;
@@ -1917,6 +1971,10 @@ label > small {
 .member-list b,
 .member-list small {
   display: block;
+}
+.connection-list .plan-role-status {
+  flex-basis: 100%;
+  color: var(--ink-soft);
 }
 .inline-form {
   display: grid;

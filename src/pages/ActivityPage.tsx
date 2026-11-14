@@ -3,7 +3,6 @@ import { useAuth } from '../auth/AuthContext';
 import type { AuditEvent } from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
 import { EmptyState } from '../components/EmptyState';
-import { RawData } from '../components/ReadableData';
 import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
 import { downloadJson } from '../utils/downloadJson';
@@ -18,7 +17,7 @@ function metadataValue(event: AuditEvent, names: string[]) {
 }
 
 function activityProject(event: AuditEvent) {
-  return metadataValue(event, ['project_name', 'project_id']) || 'Unassigned project';
+  return metadataValue(event, ['project_name']) || 'Workspace activity';
 }
 
 function activityEnvironment(event: AuditEvent) {
@@ -49,7 +48,9 @@ export default function ActivityPage() {
     () =>
       (state.data ?? []).filter(
         (event) =>
-          JSON.stringify(event).toLowerCase().includes(query.toLowerCase()) &&
+          `${event.action} ${activityProject(event)} ${activityEnvironment(event)}`
+            .toLowerCase()
+            .includes(query.toLowerCase()) &&
           (!project || activityProject(event) === project) &&
           (!environment || activityEnvironment(event) === environment),
       ),
@@ -113,13 +114,18 @@ export default function ActivityPage() {
           onClick={() =>
             downloadJson('davdeploy-audit-evidence.json', {
               exported_at: new Date().toISOString(),
-              export_type: 'filtered-audit-evidence',
-              filters: { query, project: project || null, environment: environment || null },
-              events,
+              export_type: 'customer-activity-summary',
+              events: events.map((event) => ({
+                action: event.action.replaceAll('_', ' '),
+                at: event.at ?? null,
+                entity_type: event.entity_type ?? null,
+                project: activityProject(event),
+                environment: activityEnvironment(event),
+              })),
             })
           }
         >
-          Download evidence
+          Download activity summary
         </button>
       </div>
       <AsyncRegion
@@ -156,8 +162,7 @@ export default function ActivityPage() {
                               <span>
                                 <b>{event.action.replaceAll('_', ' ')}</b>
                                 <small>
-                                  {event.actor_subject ?? 'system'} · {event.entity_type ?? 'event'}{' '}
-                                  ·{' '}
+                                  {event.entity_type ?? 'Workspace event'} ·{' '}
                                   {event.at
                                     ? new Date(event.at).toLocaleTimeString()
                                     : 'time unavailable'}
@@ -203,7 +208,24 @@ export default function ActivityPage() {
                 Close
               </button>
             </div>
-            <RawData value={selected} label="Event evidence" />
+            <dl className="data-list">
+              <div>
+                <dt>Action</dt>
+                <dd>{selected.action.replaceAll('_', ' ')}</dd>
+              </div>
+              <div>
+                <dt>Project</dt>
+                <dd>{activityProject(selected)}</dd>
+              </div>
+              <div>
+                <dt>Environment</dt>
+                <dd>{activityEnvironment(selected)}</dd>
+              </div>
+              <div>
+                <dt>Time</dt>
+                <dd>{selected.at ? new Date(selected.at).toLocaleString() : 'Unavailable'}</dd>
+              </div>
+            </dl>
           </aside>
         </div>
       ) : null}

@@ -5,6 +5,28 @@ const profile = {
   workspace: { id: 'workspace-fixture', name: 'Fixture workspace', organization_id: 'org-fixture' },
 };
 
+const approvedRevision = {
+  id: 'revision-1',
+  plan_id: 'plan-1',
+  project_id: 'project-1',
+  revision: 1,
+  state: 'APPROVED',
+  creator_subject: 'fixture-founder',
+  content_digest: 'a'.repeat(64),
+  content: {
+    summary: { selected_profile: 'App Runner', why: 'Lowest-complexity option for this API.' },
+    resource_breakdown: [
+      { name: 'Application', service: 'Managed application runtime', purpose: 'Run the API' },
+    ],
+    security: ['Private customer data'],
+    cost_estimate: { monthly_low: 20, monthly_high: 50, assumptions: ['Fixture estimate'] },
+    observability: {},
+    risks_and_limitations: ['A generated plan must be reviewed before deployment.'],
+  },
+  terraform_plan_reviews: [],
+  cloud_execution_runs: [],
+};
+
 async function mockApi(page: Page) {
   await page.route('http://api.fixture/api/v1/**', async (route) => {
     const url = new URL(route.request().url());
@@ -19,6 +41,8 @@ async function mockApi(page: Page) {
     if (path.endsWith('/dashboard'))
       return json({ workspace: profile.workspace, projects: [], cloud_connections: [], plans: [] });
     if (path.endsWith('/admin/customer-plan-revisions')) return json([]);
+    if (path.endsWith('/generated-plan-apply-runs'))
+      return json({ project_id: 'project-1', items: [], next_cursor: null });
     if (path.endsWith('/github/connection'))
       return json({
         execution: 'LIVE_READ_ONLY',
@@ -53,6 +77,7 @@ test.beforeEach(async ({ page }) => {
 test('public Team and About pages remain available without workspace sign-in', async ({ page }) => {
   await page.goto('/team');
   await expect(page.getByRole('heading', { name: 'Meet the founder.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Adewale Ayeni-Bepo' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'About Us' })).toHaveAttribute('href', '/about');
 
   await page.goto('/about');
@@ -104,16 +129,16 @@ test('local fixture sign-in reaches the first-plan workspace state', async ({ pa
   await expect(page.getByRole('link', { name: 'Read the guide' })).toBeVisible();
 });
 
-test('AWS pilot access stays blocked until it is explicitly acknowledged', async ({ page }) => {
+test('AWS connection setup only offers read-only access', async ({ page }) => {
   await signInToFixtureWorkspace(page, 'Administrator');
   await navigateWorkspace(page, '/connections');
 
-  await page.getByRole('button', { name: /Enable deployment pilot/ }).click();
-  await page.getByRole('textbox', { name: 'AWS account ID' }).fill('123456789012');
-  await expect(page.getByRole('button', { name: 'Enable pilot access' })).toBeDisabled();
-  await page.getByRole('checkbox').check();
-  await expect(page.getByRole('button', { name: 'Enable pilot access' })).toBeEnabled();
-  await expect(page.getByText(/create, change, and delete AWS resources/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Customer-owned environments' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Attach an existing role/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Create read-only access/ })).toBeVisible();
+  await expect(
+    page.getByText(/AdministratorAccess|deployment pilot|create, change, and delete/i),
+  ).toHaveCount(0);
 });
 
 test('plan setup keeps provider limits and input errors in plain English', async ({ page }) => {
@@ -121,15 +146,63 @@ test('plan setup keeps provider limits and input errors in plain English', async
   await navigateWorkspace(page, '/plans/new');
 
   await expect(page.getByRole('heading', { name: 'Start with the outcome.' })).toBeVisible();
-  await page.getByLabel('Cloud provider').selectOption('azure');
-  await expect(page.getByRole('status')).toContainText('Azure connections are coming soon');
-  await page.getByLabel('Cloud provider').selectOption('aws');
+  await expect(page.getByLabel('AWS account ID')).toBeVisible();
+  await expect(page.getByLabel('Cloud provider')).toHaveCount(0);
   await page.getByLabel('AWS account ID').fill('12345678901');
-  await page.getByRole('button', { name: 'Connect Account' }).click();
-  await expect(page.getByText('Enter a 12-digit AWS account ID.')).toBeVisible();
   await expect(
-    page.getByText('Use the account where you want DavDeploy to plan the deployment.'),
+    page.getByText(/DavDeploy never asks your browser for cloud credentials/i),
   ).toBeVisible();
+});
+
+test('approved plan leads with current status and keeps future stages collapsed', async ({
+  page,
+}) => {
+  await page.route('http://api.fixture/api/v1/customer-plan-revisions/revision-1', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(approvedRevision),
+    }),
+  );
+  await page.route('http://api.fixture/api/v1/projects/project-1/generated-plan-runs?*', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        project_id: 'project-1',
+        items: [
+          {
+            id: 'run-1',
+            project_id: 'project-1',
+            revision_id: 'revision-1',
+            revision_sha256: 'a'.repeat(64),
+            proposal_sha256: 'b'.repeat(64),
+            state: 'PLAN_READY_REVIEW_ONLY',
+            plan_title: 'Support API',
+            revision_number: 1,
+          },
+        ],
+        next_cursor: null,
+      }),
+    }),
+  );
+
+  await signInToFixtureWorkspace(page, 'Administrator');
+  await page.evaluate(() => {
+    window.history.pushState({}, '', '/plans/revision-1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+
+  await expect(page.getByText('Current status')).toBeVisible();
+  await expect(page.getByText('Plan created; costed review is still needed')).toBeVisible();
+  const stageDetails = page.locator('.deployment-details');
+  await expect(stageDetails).not.toHaveAttribute('open', '');
+  await expect(stageDetails.getByRole('list', { name: 'Deployment progress' })).toBeHidden();
+
+  await page.getByText('View all deployment stages').click();
+  await expect(stageDetails).toHaveAttribute('open', '');
+  await expect(stageDetails.getByRole('list', { name: 'Deployment progress' })).toBeVisible();
+  await expect(stageDetails.getByRole('listitem')).toHaveCount(5);
 });
 
 test('mobile navigation keeps support and product boundaries reachable', async ({

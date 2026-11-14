@@ -64,7 +64,7 @@ describe('blog author access', () => {
     await waitFor(() => expect(article).toHaveValue('# Overview\n\n## Details\n\n**Bold note**'));
   });
 
-  it('explains the author rule instead of redirecting workspace users without access', async () => {
+  it('explains author access without exposing the private allowlist', async () => {
     mocks.request.mockResolvedValue({ can_publish: false });
 
     renderManagePage();
@@ -72,7 +72,8 @@ describe('blog author access', () => {
     expect(
       await screen.findByRole('heading', { name: 'Blog author access required' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/workspace sign-in is shared with the public blog/i)).toBeVisible();
+    expect(screen.getByText(/not authorized to publish to the DavDeploy journal/i)).toBeVisible();
+    expect(screen.queryByText(/bepoadewale1@gmail.com/i)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View the public blog' })).toHaveAttribute(
       'href',
       '/blog',

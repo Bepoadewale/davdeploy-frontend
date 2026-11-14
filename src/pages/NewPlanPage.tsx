@@ -20,7 +20,6 @@ interface FormState {
   publicRepository: string;
   projectName: string;
   branch: string;
-  cloudProvider: string;
   cloudAccountId: string;
   region: string;
   dataClassification: string;
@@ -44,7 +43,6 @@ const initialForm: FormState = {
   publicRepository: '',
   projectName: '',
   branch: '',
-  cloudProvider: 'aws',
   cloudAccountId: '',
   region: 'us-east-1',
   dataClassification: 'restricted',
@@ -87,6 +85,13 @@ function explainPlanningFailure(reason: unknown, budget: string): PlanningFeedba
       title: 'These choices do not fit together yet.',
       message: 'Adjust the workload, reliability target, or budget, then create the plan again.',
       technicalDetail,
+    };
+  }
+  if (technicalDetail.includes('cannot answer general questions')) {
+    return {
+      title: "This request is outside DavDeploy's scope.",
+      message:
+        'DavDeploy plans infrastructure for software workloads, not general questions or investment advice. Describe the application or workload you want to deploy.',
     };
   }
   return {
@@ -225,10 +230,6 @@ export default function NewPlanPage() {
     try {
       const selectedRepository =
         repositorySource === 'public' ? publicRepository?.html_url : form.repository;
-      if (form.cloudProvider !== 'aws')
-        throw new Error(
-          `${form.cloudProvider} connections are coming soon. Choose AWS to continue.`,
-        );
       if (!/^\d{12}$/.test(form.cloudAccountId))
         throw new Error('Enter the 12-digit AWS account ID where you want this plan to run.');
       if (!selectedCloudConnection)
@@ -360,7 +361,7 @@ export default function NewPlanPage() {
                     id="project-name"
                     value={form.projectName}
                     onChange={(event) => update('projectName', event.target.value)}
-                    placeholder="French Pattern Cramming"
+                    placeholder="Payments API"
                     minLength={3}
                     maxLength={64}
                     pattern="[A-Za-z0-9][A-Za-z0-9 .,'()&-]{2,63}"
@@ -433,58 +434,33 @@ export default function NewPlanPage() {
                 </label>
                 <div className="span-two cloud-target-fields">
                   <label>
-                    Cloud provider
-                    <select
-                      value={form.cloudProvider}
-                      onChange={(event) => update('cloudProvider', event.target.value)}
-                    >
-                      <option value="aws">AWS</option>
-                      <option value="azure">Azure (coming soon)</option>
-                      <option value="gcp">Google Cloud (coming soon)</option>
-                      <option value="other">Other cloud (coming soon)</option>
-                    </select>
+                    AWS account ID
+                    <input
+                      inputMode="numeric"
+                      maxLength={12}
+                      value={form.cloudAccountId}
+                      onChange={(event) =>
+                        update('cloudAccountId', event.target.value.replace(/\D/g, ''))
+                      }
+                      placeholder="123456789012"
+                      required
+                    />
                   </label>
-                  {form.cloudProvider === 'aws' ? (
-                    <label>
-                      AWS account ID
-                      <input
-                        inputMode="numeric"
-                        maxLength={12}
-                        value={form.cloudAccountId}
-                        onChange={(event) =>
-                          update('cloudAccountId', event.target.value.replace(/\D/g, ''))
-                        }
-                        placeholder="123456789012"
-                        required
-                      />
-                    </label>
-                  ) : (
-                    <p className="cloud-provider-coming-soon" role="status">
-                      {form.cloudProvider === 'azure'
-                        ? 'Azure'
-                        : form.cloudProvider === 'gcp'
-                          ? 'Google Cloud'
-                          : 'This cloud'}{' '}
-                      connections are coming soon. Choose AWS to continue today.
-                    </p>
-                  )}
-                  {form.cloudProvider === 'aws' ? (
-                    <div className="cloud-target-action">
-                      <button
-                        className="button button-secondary"
-                        type="button"
-                        disabled={busy || !form.cloudAccountId || Boolean(selectedCloudConnection)}
-                        onClick={beginAWSSetup}
-                      >
-                        {selectedCloudConnection ? 'AWS account verified' : 'Connect Account'}
-                      </button>
-                      <small>
-                        {selectedCloudConnection
-                          ? 'This account is ready for planning.'
-                          : 'DavDeploy never asks your browser for cloud credentials.'}
-                      </small>
-                    </div>
-                  ) : null}
+                  <div className="cloud-target-action">
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      disabled={busy || !form.cloudAccountId || Boolean(selectedCloudConnection)}
+                      onClick={beginAWSSetup}
+                    >
+                      {selectedCloudConnection ? 'AWS account verified' : 'Connect Account'}
+                    </button>
+                    <small>
+                      {selectedCloudConnection
+                        ? 'This account is ready for planning.'
+                        : 'DavDeploy never asks your browser for cloud credentials.'}
+                    </small>
+                  </div>
                 </div>
               </div>
             </section>
@@ -492,7 +468,7 @@ export default function NewPlanPage() {
               <div className="section-heading">
                 <div>
                   <p className="eyebrow">02 · Customer intent</p>
-                  <h2>What should davdeploy build?</h2>
+                  <h2>What should DavDeploy plan?</h2>
                 </div>
               </div>
               <label>
@@ -645,11 +621,7 @@ export default function NewPlanPage() {
               </div>
             ) : null}
             <div className="form-actions">
-              <button
-                className="button button-primary"
-                type="submit"
-                disabled={busy || form.cloudProvider !== 'aws'}
-              >
+              <button className="button button-primary" type="submit" disabled={busy}>
                 {busy ? 'Building review…' : 'Analyze and create plan'}
               </button>
               <span>Creates a draft review record. No cloud resources are created.</span>

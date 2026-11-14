@@ -1,9 +1,13 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import type { CustomerPlanRevision } from '../api/contracts';
+import type {
+  CustomerPlanRevision,
+  GeneratedPlanApplyRunHistory,
+  GeneratedPlanRunHistory,
+} from '../api/contracts';
 import { AsyncRegion } from '../components/AsyncRegion';
-import { ReadableData, RawData } from '../components/ReadableData';
+import { ReadableData } from '../components/ReadableData';
 import { StatusBadge } from '../components/StatusBadge';
 import { ProductVisual } from '../components/ProductVisual';
 import { useAsync } from '../hooks/useAsync';
@@ -16,13 +20,11 @@ function PlanDetail({
   title,
   summary,
   value,
-  raw,
 }: {
   eyebrow: string;
   title: string;
   summary: string;
   value: unknown;
-  raw?: boolean;
 }) {
   return (
     <section className="panel plan-detail">
@@ -40,7 +42,6 @@ function PlanDetail({
         <p className="plan-detail-summary">{summary}</p>
         <div className="plan-detail-content">
           <ReadableData value={value} />
-          {raw ? <RawData value={value} /> : null}
         </div>
         <button
           className="button button-quiet plan-detail-close-bottom"
@@ -93,10 +94,22 @@ export default function PlanPage() {
 
   function exportSummary() {
     if (!review) return;
-    downloadJson(`davdeploy-plan-${review.id}.json`, {
+    downloadJson(`davdeploy-plan-revision-${review.revision}.json`, {
       exported_at: new Date().toISOString(),
-      export_type: 'plan-review-evidence',
-      revision: review,
+      export_type: 'customer-plan-summary',
+      plan: {
+        title: review.title ?? review.content.summary.selected_profile,
+        revision: review.revision,
+        approval_state: review.state.toLowerCase().replaceAll('_', ' '),
+        summary: review.content.summary,
+        resources: review.content.resource_breakdown,
+        requirements: review.content.application_analysis,
+        estimated_cost: review.content.cost_estimate,
+        security: review.content.security,
+        observability: review.content.observability,
+        deployment_strategy: review.content.deployment_strategy,
+        risks: review.content.risks_and_limitations,
+      },
     });
   }
 
@@ -185,10 +198,6 @@ export default function PlanPage() {
                     <small>{resource.purpose}</small>
                   </div>
                 ))}
-                <div className="monitoring">
-                  <b>Prometheus + Grafana</b>
-                  <small>Metrics and dashboards</small>
-                </div>
               </div>
             </section>
             <div className="review-grid">
@@ -197,14 +206,12 @@ export default function PlanPage() {
                 title="Interpreted requirements"
                 summary="Repository, workload, and constraints used for this plan."
                 value={review.content.application_analysis}
-                raw
               />
               <PlanDetail
                 eyebrow="Cost"
                 title="Estimated range and assumptions"
                 summary="A planning estimate, not an AWS bill."
                 value={review.content.cost_estimate}
-                raw
               />
               <PlanDetail
                 eyebrow="Security"
@@ -240,7 +247,7 @@ export default function PlanPage() {
                   <p className="eyebrow">Governance</p>
                   <h2>
                     {review.state === 'APPROVED' || review.state === 'SELF_APPROVED'
-                      ? 'Deployment status'
+                      ? 'Decision recorded'
                       : 'Available next action'}
                   </h2>
                 </div>
@@ -324,7 +331,7 @@ export default function PlanPage() {
                   </button>
                 ) : null}
                 {review.state === 'APPROVED' || review.state === 'SELF_APPROVED' ? (
-                  <ApprovedProgress review={review} onRefresh={state.reload} />
+                  <ApprovedProgress review={review} api={api} onRefresh={state.reload} />
                 ) : null}
               </div>
             </section>
@@ -351,19 +358,6 @@ export default function PlanPage() {
                 </button>
               </form>
             </section>
-            <PlanDetail
-              eyebrow="Evidence inventory"
-              title="Technical records (optional)"
-              summary="Detailed audit records for support and review. Most customers can ignore these."
-              value={{
-                desired_state_publications: review.desired_state_publications ?? [],
-                terraform_plan_renders: review.terraform_plan_renders ?? [],
-                cloud_readiness_preflights: review.cloud_readiness_preflights ?? [],
-                terraform_plan_reviews: review.terraform_plan_reviews ?? [],
-                cloud_execution_runs: review.cloud_execution_runs ?? [],
-                local_executions: review.local_executions ?? [],
-              }}
-            />
           </>
         ) : null}
       </AsyncRegion>
@@ -373,11 +367,41 @@ export default function PlanPage() {
 
 function ApprovedProgress({
   review,
+  api,
   onRefresh,
 }: {
   review: CustomerPlanRevision;
+  api: ReturnType<typeof useAuth>['api'];
   onRefresh: () => void;
 }) {
+  const generatedRunHistory = useAsync(
+    (signal) => {
+      if (!review.project_id) {
+        return Promise.resolve({ project_id: '', items: [], next_cursor: null });
+      }
+      const query = new URLSearchParams({ revision_id: review.id, limit: '1' });
+      return api.request<GeneratedPlanRunHistory>(
+        `/api/v1/projects/${encodeURIComponent(review.project_id)}/generated-plan-runs?${query}`,
+        { signal },
+      );
+    },
+    [api, review.id, review.project_id],
+  );
+  const generatedApplyHistory = useAsync(
+    (signal) => {
+      if (!review.project_id) {
+        return Promise.resolve({ project_id: '', items: [], next_cursor: null });
+      }
+      const query = new URLSearchParams({ revision_id: review.id, limit: '1' });
+      return api.request<GeneratedPlanApplyRunHistory>(
+        `/api/v1/projects/${encodeURIComponent(review.project_id)}/generated-plan-apply-runs?${query}`,
+        { signal },
+      );
+    },
+    [api, review.id, review.project_id],
+  );
+  const generatedRun = generatedRunHistory.data?.items?.[0];
+  const generatedApplyRun = generatedApplyHistory.data?.items?.[0];
   const latestPlanRecord = review.terraform_plan_reviews?.[0];
   const applyRecord = review.cloud_execution_runs?.find(
     (item) => item.mode === 'AUTHENTICATED_APP_RUNNER_APPLY',
@@ -385,23 +409,71 @@ function ApprovedProgress({
   const teardownRecord = review.cloud_execution_runs?.find(
     (item) => item.mode === 'AUTHENTICATED_APP_RUNNER_DESTROY',
   );
-  const planStatus = describePlanReview(latestPlanRecord);
-  const applyStatus = applyRecord
-    ? describeOperationState(applyRecord.state, 'deployment')
-    : 'Not started. Approval alone does not create resources.';
+  const planStatus = generatedRun
+    ? describeGeneratedPlanRun(generatedRun.state)
+    : describePlanReview(latestPlanRecord);
+  const planStepTone = getPlanStepTone(generatedRun?.state, latestPlanRecord);
+  const currentApplyRecord = generatedApplyRun
+    ? { ...generatedApplyRun, state: normalizeGeneratedApplyState(generatedApplyRun.state) }
+    : applyRecord;
+  const applyStatusUnavailable = generatedApplyHistory.error && !generatedApplyRun;
+  const applyStepTone = applyStatusUnavailable
+    ? 'needs-attention'
+    : getOperationStepTone(currentApplyRecord, 'deployment');
+  const healthStep = applyStatusUnavailable
+    ? {
+        tone: 'needs-attention' as const,
+        label: 'Unavailable',
+        description: 'Apply status must be confirmed before application health can be checked.',
+      }
+    : generatedApplyRun
+      ? getGeneratedApplyHealthStep(generatedApplyRun.state)
+      : getHealthStep(applyRecord);
+  const teardownStepTone = getOperationStepTone(teardownRecord, 'teardown');
+  const applyStatus = generatedApplyRun
+    ? describeGeneratedApplyRun(generatedApplyRun.state)
+    : applyStatusUnavailable
+      ? 'Apply status could not be loaded. Refresh this page to check again.'
+      : applyRecord
+        ? describeOperationState(applyRecord.state, 'deployment')
+        : 'Not started. Approval alone does not create resources.';
   const teardownStatus = teardownRecord
     ? describeOperationState(teardownRecord.state, 'teardown')
     : 'Not started. No resources are being deleted; teardown is not available here yet.';
-  const nextStep = describeNextStep(applyRecord, teardownRecord);
+  const nextStep = applyStatusUnavailable
+    ? {
+        title: 'Apply status could not be confirmed',
+        description: 'This page cannot tell whether an apply has started or finished.',
+        followUp: (
+          <>
+            Refresh this page later, or check <Link to="/history">Plan history</Link> for this
+            revision’s latest status.
+          </>
+        ),
+      }
+    : describeNextStep(currentApplyRecord, teardownRecord, generatedRun?.state);
+  const hasRecordedOperation = Boolean(
+    generatedRun || latestPlanRecord || generatedApplyRun || applyRecord || teardownRecord,
+  );
   return (
     <section className="approved-progress" aria-labelledby="deployment-progress-title">
       <div className="approved-progress-heading">
         <div>
           <p className="eyebrow">After approval</p>
-          <h3 id="deployment-progress-title">Deployment progress</h3>
+          <h3 id="deployment-progress-title">
+            {hasRecordedOperation ? 'Recorded activity' : 'Approval status'}
+          </h3>
         </div>
         <div className="approved-progress-actions">
-          <button className="button button-secondary" type="button" onClick={onRefresh}>
+          <button
+            className="button button-secondary"
+            type="button"
+            onClick={() => {
+              onRefresh();
+              generatedRunHistory.reload();
+              generatedApplyHistory.reload();
+            }}
+          >
             Refresh status
           </button>
           <Link className="button button-secondary" to="/history">
@@ -409,60 +481,161 @@ function ApprovedProgress({
           </Link>
         </div>
       </div>
-      <ol className="deployment-steps">
-        <li className="deployment-step is-complete">
-          <span className="deployment-step-marker" aria-hidden="true">
-            ✓
-          </span>
-          <div>
-            <strong>Administrator approval</strong>
-            <span>Approved · revision {review.revision}</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            2
-          </span>
-          <div>
-            <strong>Terraform plan</strong>
-            <span>{planStatus}</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            3
-          </span>
-          <div>
-            <strong>Deployment</strong>
-            <span>{applyStatus}</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            4
-          </span>
-          <div>
-            <strong>Application health</strong>
-            <span>No independent health result is attached to this record.</span>
-          </div>
-        </li>
-        <li className="deployment-step">
-          <span className="deployment-step-marker" aria-hidden="true">
-            5
-          </span>
-          <div>
-            <strong>Teardown</strong>
-            <span>{teardownStatus}</span>
-          </div>
-        </li>
-      </ol>
-      <div className="approved-next-step" role="status">
-        <strong>{nextStep.title}</strong>
-        <p>{nextStep.description}</p>
-        <p>{nextStep.followUp}</p>
-      </div>
+      {!hasRecordedOperation ? (
+        <div className="approved-next-step" role="status">
+          <strong>
+            {generatedRunHistory.loading || generatedApplyHistory.loading
+              ? 'Checking plan status…'
+              : generatedRunHistory.error || generatedApplyHistory.error
+                ? 'Approval recorded. Current operation status could not be loaded.'
+                : 'Approved. No deployment has started.'}
+          </strong>
+          <p>
+            {generatedRunHistory.error || generatedApplyHistory.error
+              ? 'Plan or apply status could not be retrieved right now. Refresh this page to try again.'
+              : 'DavDeploy has recorded the administrator’s decision. Approval does not start deployment; a generated Terraform plan must be reviewed and approved separately.'}
+          </p>
+          <p>
+            Reopen this record from <Link to="/history">Plan history</Link>. Refresh it later to
+            check for updates.
+          </p>
+        </div>
+      ) : null}
+      {hasRecordedOperation ? (
+        <div className="approved-next-step current-deployment-status" role="status">
+          <span className="eyebrow">Current status</span>
+          <strong>{nextStep.title}</strong>
+          <p>{nextStep.description}</p>
+          <p>{nextStep.followUp}</p>
+        </div>
+      ) : null}
+      {hasRecordedOperation ? (
+        <details className="deployment-details">
+          <summary>View all deployment stages</summary>
+          <p className="deployment-progress-help">
+            This history shows completed and current stages as well as future stages. “Not started”
+            is informational; it does not mean an action is available on this page.
+          </p>
+          <ol className="deployment-steps" aria-label="Deployment progress">
+            <li className="deployment-step is-complete">
+              <span className="deployment-step-marker" aria-hidden="true">
+                ✓
+              </span>
+              <div>
+                <strong>Administrator approval</strong>
+                <span className="deployment-step-status">Complete</span>
+                <span>Approved · revision {review.revision}</span>
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${planStepTone}`}
+              aria-current={planStepTone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                2
+              </span>
+              <div>
+                <strong>Terraform plan</strong>
+                <span className="deployment-step-status">{stageLabel(planStepTone)}</span>
+                <span>{planStatus}</span>
+                {generatedRun ? (
+                  <span>Nova plan request · revision {generatedRun.revision_number}</span>
+                ) : null}
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${applyStepTone}`}
+              aria-current={applyStepTone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                3
+              </span>
+              <div>
+                <strong>Deployment</strong>
+                <span className="deployment-step-status">{stageLabel(applyStepTone)}</span>
+                <span>{applyStatus}</span>
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${healthStep.tone}`}
+              aria-current={healthStep.tone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                4
+              </span>
+              <div>
+                <strong>Application health</strong>
+                <span className="deployment-step-status">{healthStep.label}</span>
+                <span>{healthStep.description}</span>
+              </div>
+            </li>
+            <li
+              className={`deployment-step is-${teardownStepTone}`}
+              aria-current={teardownStepTone === 'in-progress' ? 'step' : undefined}
+            >
+              <span className="deployment-step-marker" aria-hidden="true">
+                5
+              </span>
+              <div>
+                <strong>Teardown</strong>
+                <span className="deployment-step-status">{stageLabel(teardownStepTone)}</span>
+                <span>{teardownStatus}</span>
+              </div>
+            </li>
+          </ol>
+        </details>
+      ) : null}
+      {hasRecordedOperation && (generatedRunHistory.error || generatedApplyHistory.error) ? (
+        <p className="muted" role="status">
+          The latest Nova plan or apply status could not be refreshed. Refresh this page to try
+          again.
+        </p>
+      ) : null}
     </section>
   );
+}
+
+function normalizeGeneratedApplyState(state: string): string {
+  if (state === 'QUEUED') return 'QUEUED';
+  if (state === 'BUILD_STARTED' || state === 'APPLY_RUNNING') return 'RUNNING';
+  if (state === 'APPLY_SUCCEEDED' || state === 'SUCCEEDED') return 'SUCCEEDED_AWAITING_OBSERVATION';
+  if (state === 'APPLY_FAILED' || state === 'FAILED') return 'FAILED';
+  if (state === 'OUTCOME_UNCERTAIN' || state === 'RECONCILIATION_REQUIRED')
+    return 'RECONCILIATION_REQUIRED';
+  return state;
+}
+
+function describeGeneratedApplyRun(state: string): string {
+  if (state === 'QUEUED') return 'Terraform apply is queued.';
+  if (state === 'BUILD_STARTED' || state === 'APPLY_RUNNING')
+    return 'Terraform apply is running. Application health is not confirmed.';
+  if (state === 'APPLY_SUCCEEDED' || state === 'SUCCEEDED')
+    return 'Terraform apply completed. Application health is not verified.';
+  if (state === 'APPLY_FAILED' || state === 'FAILED')
+    return 'Terraform apply failed. Contact workspace support for help investigating it.';
+  if (state === 'OUTCOME_UNCERTAIN' || state === 'RECONCILIATION_REQUIRED')
+    return 'Apply outcome needs confirmation. Do not start another apply until it is reconciled.';
+  if (state === 'CANCELLED') return 'Terraform apply was cancelled. Check with workspace support.';
+  return 'An exact-plan apply request exists, but its status is unclear.';
+}
+
+function getGeneratedApplyHealthStep(state: string): {
+  tone: ProgressTone;
+  label: string;
+  description: string;
+} {
+  return getHealthStep({ state: normalizeGeneratedApplyState(state) });
+}
+
+function describeGeneratedPlanRun(state: string): string {
+  if (state === 'PREPARING') return 'Nova is preparing the Terraform plan.';
+  if (state === 'BUILD_STARTED') return 'Terraform is creating the plan.';
+  if (state === 'PLAN_READY_REVIEW_ONLY')
+    return 'Terraform plan is ready for review. It has not been applied.';
+  if (state === 'RECONCILIATION_REQUIRED')
+    return 'Plan status needs confirmation. Contact workspace support for help.';
+  if (state === 'FAILED') return 'Plan generation failed. Contact workspace support for help.';
+  return 'A Nova plan request exists, but its status is unclear. Contact workspace support for help.';
 }
 
 function describeOperationState(state: unknown, phase: 'deployment' | 'teardown'): string {
@@ -476,10 +649,88 @@ function describeOperationState(state: unknown, phase: 'deployment' | 'teardown'
   if (state.includes('RECONCILIATION') || state.includes('UNKNOWN'))
     return 'The operation needs its outcome confirmed.';
   if (state.includes('FAIL'))
-    return 'The operation failed. Open the evidence inventory for details.';
+    return 'The operation failed. Contact workspace support for help investigating it.';
   if (state.includes('RUNNING') || state.includes('PROGRESS') || state.includes('QUEUED'))
     return phase === 'deployment' ? 'Deployment is in progress.' : 'Teardown is in progress.';
-  return 'An operation record exists; open the evidence inventory for its exact status.';
+  return 'An operation record exists, but its status is unclear. Contact workspace support for help.';
+}
+
+type ProgressTone = 'complete' | 'in-progress' | 'not-started' | 'needs-attention' | 'not-verified';
+
+function stageLabel(tone: ProgressTone): string {
+  if (tone === 'complete') return 'Complete';
+  if (tone === 'in-progress') return 'In progress';
+  if (tone === 'needs-attention') return 'Needs attention';
+  if (tone === 'not-verified') return 'Not verified';
+  return 'Not started';
+}
+
+function getPlanStepTone(
+  state: string | undefined,
+  record: Record<string, unknown> | undefined,
+): ProgressTone {
+  if (state === 'PREPARING' || state === 'BUILD_STARTED') return 'in-progress';
+  if (state === 'PLAN_READY_REVIEW_ONLY') return 'complete';
+  if (state === 'FAILED' || state === 'RECONCILIATION_REQUIRED') return 'needs-attention';
+  if (state) return 'needs-attention';
+  if (!record) return 'not-started';
+  if (record.mode === 'LOCAL_CONTRACT_ONLY' || record.state === 'LOCAL_CONTRACT_PLAN_REVIEWED')
+    return 'not-started';
+  if (record.state === 'AUTHENTICATED_PLAN_REVIEWED') return 'complete';
+  return 'needs-attention';
+}
+
+function getOperationStepTone(
+  operation: Record<string, unknown> | undefined,
+  phase: 'deployment' | 'teardown',
+): ProgressTone {
+  if (!operation) return 'not-started';
+  const state = typeof operation.state === 'string' ? operation.state : '';
+  if (state === 'READY_FOR_OPERATOR_APP_RUNNER_EXECUTION') return 'needs-attention';
+  if (isActiveOperationState(state)) return 'in-progress';
+  if (state === 'SUCCEEDED_AWAITING_OBSERVATION')
+    return phase === 'deployment' ? 'complete' : 'not-verified';
+  return 'needs-attention';
+}
+
+function getHealthStep(apply: Record<string, unknown> | undefined): {
+  tone: ProgressTone;
+  label: string;
+  description: string;
+} {
+  if (!apply) {
+    return {
+      tone: 'not-started',
+      label: 'Not started',
+      description: 'A health check can run after a deployment finishes.',
+    };
+  }
+  const state = typeof apply.state === 'string' ? apply.state : '';
+  if (isActiveOperationState(state)) {
+    return {
+      tone: 'not-started',
+      label: 'Waiting for deployment',
+      description: 'Health is checked only after the deployment operation finishes.',
+    };
+  }
+  if (state === 'SUCCEEDED_AWAITING_OBSERVATION') {
+    return {
+      tone: 'not-verified',
+      label: 'Not verified',
+      description: 'No independent health result is attached to this record.',
+    };
+  }
+  return {
+    tone: 'needs-attention',
+    label: 'Unavailable',
+    description: 'Health cannot be confirmed from the current deployment record.',
+  };
+}
+
+function isActiveOperationState(state: string): boolean {
+  return ['QUEUED', 'PENDING', 'STARTED', 'RUNNING', 'IN_PROGRESS', 'PROGRESS'].some((part) =>
+    state.includes(part),
+  );
 }
 
 function describePlanReview(record: Record<string, unknown> | undefined): string {
@@ -488,19 +739,17 @@ function describePlanReview(record: Record<string, unknown> | undefined): string
     return 'A local plan contract was recorded. It is not a customer-account Terraform plan.';
   if (record.state === 'AUTHENTICATED_PLAN_REVIEWED')
     return 'A customer-account plan review was recorded. Final costed approval is still required.';
-  return 'A plan review record exists. Open the technical records for its details.';
+  return 'A plan review record exists, but its status is unclear. Contact workspace support for help.';
 }
 
 function describeNextStep(
   apply: Record<string, unknown> | undefined,
   teardown: Record<string, unknown> | undefined,
+  generatedPlanState?: string,
 ): { title: string; description: string; followUp: ReactNode } {
   const applyState = typeof apply?.state === 'string' ? apply.state : '';
   const teardownState = typeof teardown?.state === 'string' ? teardown.state : '';
-  const isActive = (state: string) =>
-    ['QUEUED', 'PENDING', 'STARTED', 'RUNNING', 'IN_PROGRESS'].some((part) => state.includes(part));
-
-  if (teardown && isActive(teardownState)) {
+  if (teardown && isActiveOperationState(teardownState)) {
     return {
       title: 'Teardown in progress',
       description:
@@ -513,7 +762,7 @@ function describeNextStep(
       ),
     };
   }
-  if (apply && isActive(applyState)) {
+  if (apply && isActiveOperationState(applyState)) {
     return {
       title: 'Deployment in progress',
       description:
@@ -526,6 +775,18 @@ function describeNextStep(
       ),
     };
   }
+  if (applyState === 'CANCELLED') {
+    return {
+      title: 'Apply was cancelled',
+      description: 'Check the run history before requesting another change.',
+      followUp: (
+        <>
+          Contact <Link to="/settings">workspace support</Link> if you are unsure whether any
+          resources changed. Reopen this plan from <Link to="/history">Plan history</Link>.
+        </>
+      ),
+    };
+  }
   if (applyState === 'READY_FOR_OPERATOR_APP_RUNNER_EXECUTION') {
     return {
       title: 'Deployment is waiting for an operator',
@@ -533,7 +794,7 @@ function describeNextStep(
         'A pilot deployment request is ready, but this customer page cannot start that operation.',
       followUp: (
         <>
-          Ask your workspace administrator to review the technical records. Reopen this plan from{' '}
+          Contact <Link to="/settings">workspace support</Link> for help. Reopen this plan from{' '}
           <Link to="/history">Plan history</Link>.
         </>
       ),
@@ -569,10 +830,63 @@ function describeNextStep(
     return {
       title: 'An operation needs attention',
       description:
-        'A recorded lifecycle operation failed. Review its technical records; this page has no recovery action.',
+        'A recorded lifecycle operation failed. This page cannot recover it; contact workspace support for help.',
       followUp: (
         <>
-          Refresh for updates, or reopen this revision from <Link to="/history">Plan history</Link>.
+          <Link to="/settings">Contact workspace support</Link>, or reopen this revision from{' '}
+          <Link to="/history">Plan history</Link>.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'PLAN_READY_REVIEW_ONLY') {
+    return {
+      title: 'Plan created; costed review is still needed',
+      description:
+        'The Terraform plan is ready and has not been applied. Cost review and final approval are separate steps.',
+      followUp: (
+        <>
+          This page shows planning status. Costed approval and deployment are not available here
+          yet. Return to <Link to="/history">Plan history</Link> to reopen this revision later.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'PREPARING' || generatedPlanState === 'BUILD_STARTED') {
+    return {
+      title: 'Terraform planning is in progress',
+      description:
+        'Nova and Terraform are preparing a review-only plan. Plan creation does not apply changes or create AWS resources.',
+      followUp: (
+        <>
+          Refresh this page to check again, or return to <Link to="/history">Plan history</Link> and
+          reopen this revision later.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'FAILED') {
+    return {
+      title: 'Plan generation failed',
+      description:
+        'No deployment is reported. Contact workspace support for help investigating the plan failure.',
+      followUp: (
+        <>
+          <Link to="/settings">Contact workspace support</Link>, or return to{' '}
+          <Link to="/history">Plan history</Link> to reopen this revision.
+        </>
+      ),
+    };
+  }
+  if (generatedPlanState === 'RECONCILIATION_REQUIRED') {
+    return {
+      title: 'Plan status needs confirmation',
+      description:
+        'DavDeploy cannot yet confirm the outcome of this planning request. Do not start another request until its status is resolved.',
+      followUp: (
+        <>
+          <Link to="/settings">Contact workspace support</Link>, or return to{' '}
+          <Link to="/history">Plan history</Link> to check again later.
         </>
       ),
     };
